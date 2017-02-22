@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:ap="http://schemas.android.com/apk/res-auto"
+              android:orientation="vertical"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:background="#FFFFFF">
+
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:text="TextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/dataRate"
+            android:layout_weight="1" />
+
+        <TextView
+            android:text="Battery"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:id="@+id/batteryText"
+            android:layout_weight="0.42"
+            android:textAlignment="textEnd"
+            android:textSize="15sp"/>
+
+        <!--<Switch
+            android:text="Filter (On = BW, Off = FIR)"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/filterType" />-->
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_weight="1"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content">
+
+        <com.androidplot.xy.XYPlot
+            style="@style/APDefacto.Dark"
+            android:id="@+id/ecgPlot"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            ap:label="EMG Data"
+            ap:rangeLabel="range"
+            ap:domainLabel="domain"
+            android:layout_weight="1"
+            android:layout_marginTop="0dp"
+            android:layout_marginLeft="0dp"
+            android:layout_marginRight="0dp"
+            androidPlot.backgroundPaint.color="#FFFFFF"
+            androidPlot.borderPaint.color="#FFFFFF"
+            androidplot.renderMode="use_background_thread"
+            androidPlot.title="ECG Data Plot"
+            androidPlot.domainLabel="Domain"
+            androidPlot.rangeLabel="Range"
+            androidPlot.titleWidget.labelPaint.textSize="@dimen/title_font_size"
+            androidPlot.domainLabelWidget.labelPaint.textSize="@dimen/domain_label_font_size"
+            androidPlot.rangeLabelWidget.labelPaint.textSize="@dimen/range_label_font_size"
+            androidPlot.graphWidget.backgroundPaint.color="#FFFFFF"
+            androidPlot.graphWidget.gridBackgroundPaint.color="#fafafa"
+            androidPlot.graphWidget.marginTop="12dp"
+            androidPlot.graphWidget.marginLeft="10dp"
+            androidPlot.graphWidget.marginBottom="14dp"
+            androidPlot.graphWidget.marginRight="0dp"
+            androidPlot.graphWidget.rangeOriginLabelPaint.textSize="@dimen/range_tick_label_font_size"
+            androidPlot.graphWidget.domainOriginLabelPaint.textSize="@dimen/domain_tick_label_font_size"
+            />
+
+        <com.androidplot.xy.XYPlot
+            style="@style/simple_xy"
+            android:id="@+id/accelLevelsPlot"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:layout_margin="0dp"
+            android:layout_weight="3.5"
+            android:layout_marginTop="10px"
+            android:layout_marginLeft="10px"
+            android:layout_marginRight="10px"
+            androidPlot.backgroundPaint.color="#FFFFFF"
+            androidPlot.borderPaint.color="#FFFFFF"
+            androidplot.renderMode="use_background_thread"
+            androidPlot.title="Accelerometer Resultant"
+            androidPlot.titleWidget.labelPaint.textSize="@dimen/title_font_size"
+            androidPlot.domainLabelWidget.labelPaint.textSize="@dimen/domain_label_font_size"
+            androidPlot.rangeLabelWidget.labelPaint.textSize="@dimen/range_label_font_size"
+            androidPlot.graphWidget.backgroundPaint.color="#FFFFFF"
+            androidPlot.graphWidget.gridBackgroundPaint.color="#fafafa"
+            androidPlot.graphWidget.domainGridLinePaint.color="#CCCCCC"
+            androidPlot.graphWidget.domainOriginLinePaint.color="#CCCCCC"
+            androidPlot.graphWidget.domainOriginLabelPaint.color="#CCCCCC"
+            androidPlot.graphWidget.marginTop="15dp"
+            androidPlot.graphWidget.marginLeft="13dp"
+            androidPlot.graphWidget.marginBottom="12dp"
+            androidPlot.graphWidget.marginRight="7dp"
+            androidPlot.graphWidget.rangeOriginLabelPaint.textSize="@dimen/range_tick_label_font_size"
+            androidPlot.graphWidget.domainOriginLabelPaint.textSize="@dimen/domain_tick_label_font_size"
+            />
+
+        <!--<GridLayout
+            android:layout_width="81dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="center_vertical"
+            >
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:text="Small Text"
+                android:id="@+id/accelx"
+                android:layout_row="0"
+                android:layout_column="0"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:text="Small Text"
+                android:id="@+id/accely"
+                android:layout_row="1"
+                android:layout_column="0"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:text="Small Text"
+                android:id="@+id/accelz"
+                android:layout_row="2"
+                android:layout_column="0"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:text="Small Text"
+                android:id="@+id/gyrox"
+                android:layout_row="3"
+                android:layout_column="0"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:text="Small Text"
+                android:id="@+id/gyroy"
+                android:layout_row="4"
+                android:layout_column="0"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:text="Small Text"
+                android:id="@+id/gyroz"
+                android:layout_row="5"
+                android:layout_column="0"/>
+
+        </GridLayout>-->
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content">
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+        <Button
+            style="?android:attr/buttonStyleSmall"
+            android:layout_width="114dp"
+            android:layout_height="wrap_content"
+            android:text="Export"
+            android:id="@+id/button_export"
+            android:textColor="#000000"/>
+
+        <Switch
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Filter:"
+            android:id="@+id/filterSwitch"
+            android:checked="true"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="Current Value"
+            android:id="@+id/ecgValue"
+            android:textSize="16sp" />
+
+    </LinearLayout>
+
+</LinearLayout>
