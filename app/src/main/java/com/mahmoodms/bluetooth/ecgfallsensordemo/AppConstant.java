@@ -23,6 +23,18 @@ public final class AppConstant {
     public static final UUID CHAR_EMG_SIGNAL = UUID.fromString("00003261-0000-1000-8000-00805f9b34fb");
     //Char Data Rate:
     public static final UUID CHAR_EMG_DATARATE = UUID.fromString("00003262-0000-1000-8000-00805f9b34fb");
+
+    /**
+     * For EEG (new):
+     */
+    public static final UUID SERVICE_EEG_SIGNAL = UUID.fromString("228beef0-35fd-875f-39fe-b2a394d28057");
+    //Characteristic:
+    public static final UUID CHAR_EEG_CH1_SIGNAL = UUID.fromString("0000eef1-0000-1000-8000-00805f9b34fb");
+    public static final UUID CHAR_EEG_CH2_SIGNAL = UUID.fromString("0000eef2-0000-1000-8000-00805f9b34fb");
+    public static final UUID CHAR_EEG_CH3_SIGNAL = UUID.fromString("0000eef3-0000-1000-8000-00805f9b34fb");
+    public static final UUID CHAR_EEG_CH4_SIGNAL = UUID.fromString("0000eef4-0000-1000-8000-00805f9b34fb");
+    //Char Data Rate:
+    public static final UUID CHAR_EEG_DATARATE = UUID.fromString("0000eef7-0000-1000-8000-00805f9b34fb");
     /**
      * FOR MPU/MOTION SENSOR:
      */

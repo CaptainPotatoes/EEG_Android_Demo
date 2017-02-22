@@ -599,6 +599,15 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                         }
                     }*/
                 }
+
+                if(AppConstant.SERVICE_EEG_SIGNAL.equals(service.getUuid())) {
+                    makeFilterSwitchVisible(true);
+                    mBluetoothLe.setCharacteristicNotification(gatt, service.getCharacteristic(AppConstant.CHAR_EEG_CH1_SIGNAL), true);
+                    mBluetoothLe.setCharacteristicNotification(gatt, service.getCharacteristic(AppConstant.CHAR_EEG_CH2_SIGNAL), true);
+                    mBluetoothLe.setCharacteristicNotification(gatt, service.getCharacteristic(AppConstant.CHAR_EEG_CH3_SIGNAL), true);
+                    mBluetoothLe.setCharacteristicNotification(gatt, service.getCharacteristic(AppConstant.CHAR_EEG_CH4_SIGNAL), true);
+                }
+
                 if (AppConstant.SERVICE_BATTERY_LEVEL.equals(service.getUuid())) {
                     //Read the device battery percentage
                     mBluetoothLe.readCharacteristic(gatt, service.getCharacteristic(AppConstant.CHAR_BATTERY_LEVEL));
@@ -701,6 +710,46 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             }*/
             Log.i(TAG, "Battery Level :: " + batteryLevel);
         }
+
+        if (AppConstant.CHAR_EEG_CH1_SIGNAL.equals(characteristic.getUuid())) {
+            byte[] dataEmgBytes = characteristic.getValue();
+            int byteLength = dataEmgBytes.length;
+//            Log.i(TAG, "Len: "+String.valueOf(byteLength));
+//            Log.e(TAG, "DATA1: 0x"+toHexString(dataEmgBytes));
+            //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
+            Log.e("Data = ",String.valueOf(dataEmgBytes.length)+" # of bytes");
+            getDataRateBytes(dataEmgBytes.length);
+        }
+
+        if (AppConstant.CHAR_EEG_CH2_SIGNAL.equals(characteristic.getUuid())) {
+            byte[] dataEmgBytes = characteristic.getValue();
+            int byteLength = dataEmgBytes.length;
+//            Log.i(TAG, "Len: "+String.valueOf(byteLength));
+            Log.e(TAG, "DATA2: 0x"+toHexString(dataEmgBytes));
+            //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
+            //Log.e("Data = ",String.valueOf(dataEmgBytes.length)+" # of bytes");
+            getDataRateBytes(dataEmgBytes.length);
+        }
+
+        if (AppConstant.CHAR_EEG_CH3_SIGNAL.equals(characteristic.getUuid())) {
+            byte[] dataEmgBytes = characteristic.getValue();
+            int byteLength = dataEmgBytes.length;
+//            Log.i(TAG, "Len: "+String.valueOf(byteLength));
+            Log.e(TAG, "DATA3: 0x"+toHexString(dataEmgBytes));
+            //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
+            //Log.e("Data = ",String.valueOf(dataEmgBytes.length)+" # of bytes");
+            getDataRateBytes(dataEmgBytes.length);
+        }
+        if (AppConstant.CHAR_EEG_CH4_SIGNAL.equals(characteristic.getUuid())) {
+            byte[] dataEmgBytes = characteristic.getValue();
+            int byteLength = dataEmgBytes.length;
+//            Log.i(TAG, "Len: "+String.valueOf(byteLength));
+            Log.e(TAG, "DATA4: 0x"+toHexString(dataEmgBytes));
+            //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
+            //Log.e("Data = ",String.valueOf(dataEmgBytes.length)+" # of bytes");
+            getDataRateBytes(dataEmgBytes.length);
+        }
+
         if (AppConstant.CHAR_EMG_SIGNAL.equals(characteristic.getUuid())) {
             byte[] dataEmgBytes = characteristic.getValue();
             int byteLength = dataEmgBytes.length;
@@ -994,7 +1043,23 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 "Battery Status: " + androidDeviceBatteryStatus + "\r\n" + "\r\n" +
                 "";
     }
+    private void getDataRateBytes(int bytes) {
+        mCurrentTime = System.currentTimeMillis();
+        points += bytes;
+        if (mCurrentTime > (mLastTime + 5000)) {
+            dataRate = (points / 5);
+            points = 0;
+            mLastTime = mCurrentTime;
+            Log.e("ECG DataRate:", String.valueOf(dataRate) + " Bytes/s");
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
 
+                    mDataRate.setText(String.valueOf(dataRate)+ " Bytes/s");
+                }
+            });
+        }
+    }
     //Get Data Rate (assigned to ECG)
     private void getDataRate(int pointnum) {
         mCurrentTime = System.currentTimeMillis();
@@ -1108,8 +1173,6 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             v = bytes[j] & 0xFF;
             hexChars[j * 2] = HEX_CHARS[v >>> 4];
             hexChars[j * 2 + 1] = HEX_CHARS[v & 0x0F];
-//            hexChars[j * 2 + 1] = HEX_CHARS[v >>> 4];
-//            hexChars[j * 2] = HEX_CHARS[v & 0x0F];
         }
         return new String(hexChars);
     }
