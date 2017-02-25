@@ -45,7 +45,7 @@
 
         <com.androidplot.xy.XYPlot
             style="@style/APDefacto.Dark"
-            android:id="@+id/ecgPlot"
+            android:id="@+id/eegPlot"
             android:layout_width="fill_parent"
             android:layout_height="fill_parent"
             ap:label="EMG Data"

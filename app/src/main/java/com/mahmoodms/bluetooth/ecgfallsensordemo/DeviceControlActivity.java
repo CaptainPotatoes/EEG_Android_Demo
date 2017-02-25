@@ -100,22 +100,21 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private Menu menu;
     //RSSI Stuff:
     private static final int RSSI_UPDATE_TIME_INTERVAL = 2000;
-    private static final String BRADYCARDIA_WARNING = "Bradycardia Detected! - Low Heart Rate";
-    private static final String TACHYCARDIA_WARNING = "Tachycardia Detected! - High Heart Rate";
-    private static final String AFIB_WARNING = "Atrial Fibrillation Detected!";
-    private static final String AFLUTTER_WARNING = "Atrial Flutter Detected!";
     private Handler mTimerHandler = new Handler();
 
     private boolean mTimerEnabled = false;
     /**
      * Initialize Plot:
      */
-    private XYPlot ecgPlot;
+    private XYPlot eegPlot;
     private XYPlot accelerometerPlot;
     private Redrawer redrawer;
-    private SimpleXYSeries accelerometerDataSeries;
-    private SimpleXYSeries plotAccDataSeries;
-    private SimpleXYSeries ecgDataSeries;
+//    private SimpleXYSeries accelerometerDataSeries;
+//    private SimpleXYSeries plotAccDataSeries;
+    private SimpleXYSeries eegDataSeries1;
+    private SimpleXYSeries eegDataSeries2;
+    private SimpleXYSeries eegDataSeries3;
+    private SimpleXYSeries eegDataSeries4;
     private static final int HISTORY_SIZE = 1500;
     private static final int HISTORY_SIZE_2 = 1000;
     private static final int HISTORY_SECONDS = 6;
@@ -171,86 +170,86 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         ab.setSubtitle(mDeviceAddress);
         initializeBluetooth();
         // Initialize our XYPlot reference:
-        accelerometerDataSeries = new SimpleXYSeries("Motion Sensor Data (g)");
-        plotAccDataSeries = new SimpleXYSeries("MotionSensorData");
-        ecgDataSeries = new SimpleXYSeries("ECG Data (V)");
-        ecgPlot = (XYPlot) findViewById(R.id.ecgPlot);
+//        accelerometerDataSeries = new SimpleXYSeries("Motion Sensor Data (g)");
+//        plotAccDataSeries = new SimpleXYSeries("MotionSensorData");
+        eegDataSeries1 = new SimpleXYSeries("EEG Data Ch 1 (V)");
+        eegPlot = (XYPlot) findViewById(R.id.eegPlot);
         accelerometerPlot = (XYPlot) findViewById(R.id.accelLevelsPlot);
         //Todo: Graph temporarily uses data index - find alternative to implicit XVals→(seconds)
         if (plotImplicitXVals) {
-            ecgDataSeries.useImplicitXVals();
-            ecgPlot.setDomainBoundaries(0, HISTORY_SIZE_2, BoundaryMode.FIXED);
-            ecgPlot.setDomainStepMode(XYStepMode.INCREMENT_BY_VAL);
-            ecgPlot.setDomainStepValue(HISTORY_SIZE_2/5);
+            eegDataSeries1.useImplicitXVals();
+            eegPlot.setDomainBoundaries(0, HISTORY_SIZE_2, BoundaryMode.FIXED);
+            eegPlot.setDomainStepMode(XYStepMode.INCREMENT_BY_VAL);
+            eegPlot.setDomainStepValue(HISTORY_SIZE_2/5);
         } else {
-            ecgPlot.setDomainBoundaries(0, HISTORY_SECONDS_2, BoundaryMode.FIXED);
-            ecgPlot.setDomainStepMode(XYStepMode.INCREMENT_BY_VAL);
-            ecgPlot.setDomainStepValue(HISTORY_SECONDS_2 / 4);
+            eegPlot.setDomainBoundaries(0, HISTORY_SECONDS_2, BoundaryMode.FIXED);
+            eegPlot.setDomainStepMode(XYStepMode.INCREMENT_BY_VAL);
+            eegPlot.setDomainStepValue(HISTORY_SECONDS_2 / 4);
         }
 
         //TODO: Adaptive Range?, or some method of figuring out what is connected
         if(filterData) {
-            ecgPlot.setRangeBoundaries(-2.5, 2.5, BoundaryMode.AUTO); //EMG only!
-            ecgPlot.setRangeStepValue(1);
+            eegPlot.setRangeBoundaries(-2.5, 2.5, BoundaryMode.AUTO); //EMG only!
+            eegPlot.setRangeStepValue(1);
         } /*else {
-            ecgPlot.setRangeBoundaries(-2.5, 2.5, BoundaryMode.FIXED);
-            ecgPlot.setRangeStepValue(0.5);
+            eegPlot.setRangeBoundaries(-2.5, 2.5, BoundaryMode.FIXED);
+            eegPlot.setRangeStepValue(0.5);
         }*/
-        ecgPlot.setRangeStepMode(XYStepMode.INCREMENT_BY_VAL);
-        ecgPlot.setDomainLabel("Time (seconds)");
-        ecgPlot.getDomainLabelWidget().pack();
-        ecgPlot.setRangeLabel("Voltage (mV)");
-        ecgPlot.getRangeLabelWidget().pack();
-        ecgPlot.setRangeValueFormat(new DecimalFormat("#.###"));
-        ecgPlot.setDomainValueFormat(new DecimalFormat("#"));
-        ecgPlot.getDomainLabelWidget().getLabelPaint().setColor(Color.BLACK);
-        ecgPlot.getDomainLabelWidget().getLabelPaint().setTextSize(20);
-        ecgPlot.getRangeLabelWidget().getLabelPaint().setColor(Color.BLACK);
-        ecgPlot.getRangeLabelWidget().getLabelPaint().setTextSize(20);
-        ecgPlot.getGraphWidget().getDomainTickLabelPaint().setColor(Color.BLACK);
-        ecgPlot.getGraphWidget().getRangeTickLabelPaint().setColor(Color.BLACK);
-        ecgPlot.getGraphWidget().getDomainTickLabelPaint().setTextSize(23); //TODO: was 36
-        ecgPlot.getGraphWidget().getRangeTickLabelPaint().setTextSize(23);
-        ecgPlot.getGraphWidget().getDomainGridLinePaint().setColor(Color.WHITE);
-        ecgPlot.getGraphWidget().getRangeGridLinePaint().setColor(Color.WHITE);
-        ecgPlot.getLegendWidget().getTextPaint().setColor(Color.BLACK);
-        ecgPlot.getLegendWidget().getTextPaint().setTextSize(20);
-        ecgPlot.getTitleWidget().getLabelPaint().setTextSize(20);
-        ecgPlot.getTitleWidget().getLabelPaint().setColor(Color.BLACK);
+        eegPlot.setRangeStepMode(XYStepMode.INCREMENT_BY_VAL);
+        eegPlot.setDomainLabel("Time (seconds)");
+        eegPlot.getDomainLabelWidget().pack();
+        eegPlot.setRangeLabel("Voltage (mV)");
+        eegPlot.getRangeLabelWidget().pack();
+        eegPlot.setRangeValueFormat(new DecimalFormat("#.###"));
+        eegPlot.setDomainValueFormat(new DecimalFormat("#"));
+        eegPlot.getDomainLabelWidget().getLabelPaint().setColor(Color.BLACK);
+        eegPlot.getDomainLabelWidget().getLabelPaint().setTextSize(20);
+        eegPlot.getRangeLabelWidget().getLabelPaint().setColor(Color.BLACK);
+        eegPlot.getRangeLabelWidget().getLabelPaint().setTextSize(20);
+        eegPlot.getGraphWidget().getDomainTickLabelPaint().setColor(Color.BLACK);
+        eegPlot.getGraphWidget().getRangeTickLabelPaint().setColor(Color.BLACK);
+        eegPlot.getGraphWidget().getDomainTickLabelPaint().setTextSize(23); //TODO: was 36
+        eegPlot.getGraphWidget().getRangeTickLabelPaint().setTextSize(23);
+        eegPlot.getGraphWidget().getDomainGridLinePaint().setColor(Color.WHITE);
+        eegPlot.getGraphWidget().getRangeGridLinePaint().setColor(Color.WHITE);
+        eegPlot.getLegendWidget().getTextPaint().setColor(Color.BLACK);
+        eegPlot.getLegendWidget().getTextPaint().setTextSize(20);
+        eegPlot.getTitleWidget().getLabelPaint().setTextSize(20);
+        eegPlot.getTitleWidget().getLabelPaint().setColor(Color.BLACK);
         LineAndPointFormatter lineAndPointFormatter2 = new LineAndPointFormatter(Color.RED, null, null, null);
         lineAndPointFormatter2.getLinePaint().setStrokeWidth(4);
         LineAndPointFormatter lineAndPointFormatter1 = new LineAndPointFormatter(Color.BLACK, null, null, null);
         lineAndPointFormatter1.getLinePaint().setStrokeWidth(3);
-        ecgPlot.addSeries(ecgDataSeries, lineAndPointFormatter1);
-        if (plotImplicitXVals) ecgPlot.addSeries(plotAccDataSeries, lineAndPointFormatter2);
-        accelerometerPlot.setDomainStepValue(1);
-        accelerometerPlot.setTicksPerRangeLabel(1);
-        accelerometerPlot.setDomainBoundaries(-1, 1, BoundaryMode.FIXED);
-        accelerometerPlot.setRangeBoundaries(0, 3, BoundaryMode.FIXED);
-        accelerometerPlot.getGraphWidget().getDomainTickLabelPaint().setColor(Color.TRANSPARENT);
-        accelerometerPlot.getGraphWidget().getRangeTickLabelPaint().setColor(Color.BLACK);
-        accelerometerPlot.getGraphWidget().getRangeTickLabelPaint().setTextSize(36);
-        accelerometerPlot.setDomainLabel("");
-        accelerometerPlot.getDomainLabelWidget().pack();
-        accelerometerPlot.setRangeLabel("Resultant (g)");
-        accelerometerPlot.getRangeLabelWidget().pack();
-        accelerometerPlot.setRangeValueFormat(new DecimalFormat("#.#"));
-        accelerometerPlot.getRangeLabelWidget().getLabelPaint().setColor(Color.BLACK);
-        accelerometerPlot.getDomainLabelWidget().getLabelPaint().setColor(Color.BLACK);
-        accelerometerPlot.getRangeLabelWidget().getLabelPaint().setTextSize(20);
-        accelerometerPlot.getLegendWidget().getTextPaint().setColor(Color.BLACK);
-        accelerometerPlot.getLegendWidget().getTextPaint().setTextSize(20);
-        accelerometerPlot.getTitleWidget().getLabelPaint().setTextSize(20);
-        accelerometerPlot.getTitleWidget().getLabelPaint().setColor(Color.BLACK);
-        accelerometerPlot.addSeries(accelerometerDataSeries,
-                new BarFormatter(Color.rgb(200, 0, 0), Color.rgb(0, 80, 0)));
-
-        BarRenderer barRenderer = (BarRenderer) accelerometerPlot.getRenderer(BarRenderer.class);
-        if (barRenderer != null) {
-            barRenderer.setBarWidth(25);
-        }
+        eegPlot.addSeries(eegDataSeries1, lineAndPointFormatter1);
+//        if (plotImplicitXVals) eegPlot.addSeries(plotAccDataSeries, lineAndPointFormatter2);
+//        accelerometerPlot.setDomainStepValue(1);
+//        accelerometerPlot.setTicksPerRangeLabel(1);
+//        accelerometerPlot.setDomainBoundaries(-1, 1, BoundaryMode.FIXED);
+//        accelerometerPlot.setRangeBoundaries(0, 3, BoundaryMode.FIXED);
+//        accelerometerPlot.getGraphWidget().getDomainTickLabelPaint().setColor(Color.TRANSPARENT);
+//        accelerometerPlot.getGraphWidget().getRangeTickLabelPaint().setColor(Color.BLACK);
+//        accelerometerPlot.getGraphWidget().getRangeTickLabelPaint().setTextSize(36);
+//        accelerometerPlot.setDomainLabel("");
+//        accelerometerPlot.getDomainLabelWidget().pack();
+//        accelerometerPlot.setRangeLabel("Resultant (g)");
+//        accelerometerPlot.getRangeLabelWidget().pack();
+//        accelerometerPlot.setRangeValueFormat(new DecimalFormat("#.#"));
+//        accelerometerPlot.getRangeLabelWidget().getLabelPaint().setColor(Color.BLACK);
+//        accelerometerPlot.getDomainLabelWidget().getLabelPaint().setColor(Color.BLACK);
+//        accelerometerPlot.getRangeLabelWidget().getLabelPaint().setTextSize(20);
+//        accelerometerPlot.getLegendWidget().getTextPaint().setColor(Color.BLACK);
+//        accelerometerPlot.getLegendWidget().getTextPaint().setTextSize(20);
+//        accelerometerPlot.getTitleWidget().getLabelPaint().setTextSize(20);
+//        accelerometerPlot.getTitleWidget().getLabelPaint().setColor(Color.BLACK);
+//        accelerometerPlot.addSeries(accelerometerDataSeries,
+//                new BarFormatter(Color.rgb(200, 0, 0), Color.rgb(0, 80, 0)));
+//
+//        BarRenderer barRenderer = (BarRenderer) accelerometerPlot.getRenderer(BarRenderer.class);
+//        if (barRenderer != null) {
+//            barRenderer.setBarWidth(25);
+//        }
         redrawer = new Redrawer(
-                Arrays.asList(new Plot[]{ecgPlot, accelerometerPlot}),
+                Arrays.asList(new Plot[]{eegPlot}),
                 100, false);
         mExportButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -278,32 +277,32 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 //Nevermind, I'm an idiot:
                 filterData = isChecked;
                 if(filterData) {
-                    if(ecgDataSeries.size()>0) {
+                    if(eegDataSeries1.size()>0) {
                         double average = 0;
-                        for (int i = 0; i < ecgDataSeries.size(); i++) {
-                            average+=(double)ecgDataSeries.getY(i);
-                            average/=(ecgDataSeries.size());
+                        for (int i = 0; i < eegDataSeries1.size(); i++) {
+                            average+=(double)eegDataSeries1.getY(i);
+                            average/=(eegDataSeries1.size());
                         }
-                        ecgPlot.setRangeBoundaries(average-0.010, average+0.010, BoundaryMode.AUTO);
-                        ecgPlot.setRangeStepValue(0.4);
+                        eegPlot.setRangeBoundaries(average-0.010, average+0.010, BoundaryMode.AUTO);
+                        eegPlot.setRangeStepValue(0.4);
                     }
                 } else {
                     //TODO: ECG is in range of 1-5 mV
-                    if(ecgDataSeries.size()>0) {
+                    if(eegDataSeries1.size()>0) {
                         double average = 0;
-                        if(ecgDataSeries.size()>250) {
+                        if(eegDataSeries1.size()>250) {
                             for (int i = 0; i < 250; i++) {
-                                average+=(double)ecgDataSeries.getY(i);
+                                average+=(double)eegDataSeries1.getY(i);
                                 average/=(250.0);
                             }
                         } else {
-                            for (int i = 0; i < ecgDataSeries.size(); i++) {
-                                average+=(double)ecgDataSeries.getY(i);
-                                average/=(ecgDataSeries.size());
+                            for (int i = 0; i < eegDataSeries1.size(); i++) {
+                                average+=(double)eegDataSeries1.getY(i);
+                                average/=(eegDataSeries1.size());
                             }
                         }
-                        ecgPlot.setRangeBoundaries(average-0.010, average+0.010, BoundaryMode.AUTO);
-                        ecgPlot.setRangeStepValue(0.1);
+                        eegPlot.setRangeBoundaries(average-0.010, average+0.010, BoundaryMode.AUTO);
+                        eegPlot.setRangeStepValue(0.1);
                     }
                 }
             }
@@ -326,9 +325,9 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         this.registerReceiver(this.mBatInfoReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         if(mDeviceName.equals("ECG 1000Hz")) {
             DATA_RATE_SAMPLES_PER_SECOND = 1000;
-        } else if (mDeviceName.equals("ECG 500Hz")) {
+        } else if (mDeviceName.equals("ECG 500Hz")||mDeviceName.equals("EEG 500Hz")) {
             DATA_RATE_SAMPLES_PER_SECOND = 500;
-        } else if (mDeviceName.equals("ECG 250Hz")||mDeviceName.equals("ECGSensor")) {
+        } else if (mDeviceName.equals("ECG 250Hz")||mDeviceName.equals("ECGSensor")||mDeviceName.equals("EEG 250Hz")) {
             DATA_RATE_SAMPLES_PER_SECOND = 250;
         } else {
             DATA_RATE_SAMPLES_PER_SECOND = 250;
@@ -484,9 +483,6 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         int responsejmainFir = jmainFirFilter(terminate);
         Log.d("ResponseJmainInit:", String.valueOf(responsejmainFir));
         super.onPause();
-//        int tempvar = jmainAfibDetectionInit(terminate);
-//        stopMonitoringRssiValue();
-//        mBluetoothLe.disconnect(mBluetoothGatt);
     }
 
     private void initializeBluetooth() {
@@ -717,15 +713,28 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
 //            Log.i(TAG, "Len: "+String.valueOf(byteLength));
 //            Log.e(TAG, "DATA1: 0x"+toHexString(dataEmgBytes));
             //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
-            Log.e("Data = ",String.valueOf(dataEmgBytes.length)+" # of bytes");
+//            Log.e("Data = ",String.valueOf(dataEmgBytes.length)+" # of bytes");
             getDataRateBytes(dataEmgBytes.length);
+            if(!plotImplicitXVals) {
+                if(DATA_RATE_SAMPLES_PER_SECOND==250) {
+                    for (int i = 0; i < byteLength/3; i++) { //0→9
+                        dataCnt1000++;
+                        int data = unsignedBytesToInt(dataEmgBytes[3*i], dataEmgBytes[3*i+1], dataEmgBytes[3*i+2]);
+                        int dataSigned = unsignedToSigned(data, 24);
+                        updateEEG(dataSigned);
+//                        Log.e(TAG, "IntData: "+String.valueOf(dataSigned));
+//                        writeToDisk(( unsignedToSigned(unsignedBytesToInt(dataEmgBytes[2*i],dataEmgBytes[2*i+1]),16) ));
+//                        shortUpdateECGState( unsignedToSigned(unsignedBytesToInt(dataEmgBytes[2*i],dataEmgBytes[2*i+1]),16) );
+                    }
+                }
+            }
         }
 
         if (AppConstant.CHAR_EEG_CH2_SIGNAL.equals(characteristic.getUuid())) {
             byte[] dataEmgBytes = characteristic.getValue();
             int byteLength = dataEmgBytes.length;
 //            Log.i(TAG, "Len: "+String.valueOf(byteLength));
-            Log.e(TAG, "DATA2: 0x"+toHexString(dataEmgBytes));
+//            Log.e(TAG, "DATA2: 0x"+toHexString(dataEmgBytes));
             //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
             //Log.e("Data = ",String.valueOf(dataEmgBytes.length)+" # of bytes");
             getDataRateBytes(dataEmgBytes.length);
@@ -735,7 +744,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             byte[] dataEmgBytes = characteristic.getValue();
             int byteLength = dataEmgBytes.length;
 //            Log.i(TAG, "Len: "+String.valueOf(byteLength));
-            Log.e(TAG, "DATA3: 0x"+toHexString(dataEmgBytes));
+//            Log.e(TAG, "DATA3: 0x"+toHexString(dataEmgBytes));
             //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
             //Log.e("Data = ",String.valueOf(dataEmgBytes.length)+" # of bytes");
             getDataRateBytes(dataEmgBytes.length);
@@ -744,7 +753,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             byte[] dataEmgBytes = characteristic.getValue();
             int byteLength = dataEmgBytes.length;
 //            Log.i(TAG, "Len: "+String.valueOf(byteLength));
-            Log.e(TAG, "DATA4: 0x"+toHexString(dataEmgBytes));
+//            Log.e(TAG, "DATA4: 0x"+toHexString(dataEmgBytes));
             //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
             //Log.e("Data = ",String.valueOf(dataEmgBytes.length)+" # of bytes");
             getDataRateBytes(dataEmgBytes.length);
@@ -858,6 +867,85 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         }
     }
 
+    private void updateEEG(final int value) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                //Add to Back:
+                mEcgValues.setText(" " + " Voltage="+String.valueOf(value)+"V");
+                double dividedInt = (double) value / 8388607.0;
+                double dataVoltage = (dividedInt * 2.42);
+                //TODO: Exporting unfiltered data to drive.
+                unfilteredEcgSignal[unfiltIndex] = dataVoltage;
+
+                if((unfiltIndex % 249==0) && unfiltIndex!=0) { //SAMPLES_PER_SECOND - 1
+                    for (int i = 0; i < 750; i++) {
+                        //Shift Back ECGBuffer2
+                        ECGBufferUnfiltered[i] = ECGBufferUnfiltered[i+250];
+                        //Shift Back ExplicitX;
+                        explicitXValsLong[i] = explicitXValsLong[250+i];
+                    }
+
+                    for (int i = 0; i < 250; i++) {
+                        //Add to front (ECGBufferUnfiltered):
+                        ECGBufferUnfiltered[750+i] = unfilteredEcgSignal[i];
+                        //Add to front (explicitX)
+                        explicitXValsLong[750+i] = ((double) mTimeSeconds) + ((double)i/250);
+                    }
+                    //filter:
+//                ECGBufferFiltered2 = jFirFilter(ECGBufferUnfiltered);
+                    ECGBufferFiltered2 = jBwFilter(ECGBufferUnfiltered);
+                    //Todo: adjust Range Step Value every 1 s:
+                    //Every 4 seconds elapsed:
+                    //TODO: Now Analyze filtered data (after plot)
+                    if(eegDataSeries1.size()>249) {
+                        double max = findGraphMax(eegDataSeries1);
+                        double min = findGraphMin(eegDataSeries1);
+                        if((max-min)!=0) {
+                            if(currentBM!=BoundaryMode.AUTO) {
+                                eegPlot.setRangeBoundaries(-2.5, 2.5, BoundaryMode.AUTO);
+                                currentBM = BoundaryMode.AUTO;
+                            }
+                            eegPlot.setRangeStepValue((max-min)/5);
+                        } else {
+                            if(currentBM!=BoundaryMode.FIXED) {
+                                eegPlot.setRangeBoundaries(min-1, max+1, BoundaryMode.FIXED);
+                                currentBM = BoundaryMode.FIXED;
+                            }
+                            eegPlot.setRangeStepValue(2.0/5.0);
+                        }
+                    }
+                    //TODO: Now plot:
+                    //The idea is that every time this thing is triggered, we want to plot the entirety
+                    //of [explicitXValsLong, ECGBufferFiltered2] BEFORE the next second occurs.
+                    if(mTimeSeconds == HISTORY_SECONDS_2) {
+                        newMinX = Math.floor(explicitXValsLong[0]);
+                        newMaxX = Math.floor(explicitXValsLong[999]);
+                        eegPlot.setDomainBoundaries(newMinX, newMaxX, BoundaryMode.AUTO);
+                    }
+                    /**
+                     * TODO: Probably set graph so that it plots at 1ms.??
+                     * clearGraph(), and plotGraph() work, but doesn't look good
+                     */
+                    if(!plotImplicitXVals) {
+                        if (!startedGraphingEcgData) {
+                            if (!initExecutor) {
+                                startGraphEcgData3();
+                                initExecutor = true;
+                            }
+                            startedGraphingEcgData = true;
+                        }
+                    }
+                    mTimeSeconds++;
+                    unfiltIndex=0;
+                } else {
+                    unfiltIndex++;
+                }
+//                mEcgValues.setText(" " + " Voltage="+String.format("%1.4f",dataVoltage)+"V");
+            }
+        });
+    }
+
     /**
      * ### This method is for <b>250SPS</b> only
      * @param value Single ECG value
@@ -892,21 +980,21 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 //Todo: adjust Range Step Value every 1 s:
                 //Every 4 seconds elapsed:
                 //TODO: Now Analyze filtered data (after plot)
-                if(ecgDataSeries.size()>249) {
-                    double max = findGraphMax(ecgDataSeries);
-                    double min = findGraphMin(ecgDataSeries);
+                if(eegDataSeries1.size()>249) {
+                    double max = findGraphMax(eegDataSeries1);
+                    double min = findGraphMin(eegDataSeries1);
                     if((max-min)!=0) {
                         if(currentBM!=BoundaryMode.AUTO) {
-                            ecgPlot.setRangeBoundaries(-2.5, 2.5, BoundaryMode.AUTO);
+                            eegPlot.setRangeBoundaries(-2.5, 2.5, BoundaryMode.AUTO);
                             currentBM = BoundaryMode.AUTO;
                         }
-                        ecgPlot.setRangeStepValue((max-min)/5);
+                        eegPlot.setRangeStepValue((max-min)/5);
                     } else {
                         if(currentBM!=BoundaryMode.FIXED) {
-                            ecgPlot.setRangeBoundaries(min-1, max+1, BoundaryMode.FIXED);
+                            eegPlot.setRangeBoundaries(min-1, max+1, BoundaryMode.FIXED);
                             currentBM = BoundaryMode.FIXED;
                         }
-                        ecgPlot.setRangeStepValue(2.0/5.0);
+                        eegPlot.setRangeStepValue(2.0/5.0);
                     }
                 }
                 //TODO: Now plot:
@@ -915,7 +1003,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 if(mTimeSeconds == HISTORY_SECONDS_2) {
                     newMinX = Math.floor(explicitXValsLong[0]);
                     newMaxX = Math.floor(explicitXValsLong[999]);
-                    ecgPlot.setDomainBoundaries(newMinX, newMaxX, BoundaryMode.AUTO);
+                    eegPlot.setDomainBoundaries(newMinX, newMaxX, BoundaryMode.AUTO);
                 }
                 /**
                  * TODO: Probably set graph so that it plots at 1ms.??
@@ -972,33 +1060,32 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     }
 
     class graphEcgData3 implements Runnable {
-
         @Override
         public void run() {
             if (startedGraphingEcgData) {
                 if (ecgIndex < 1000) {
-                    if (ecgDataSeries.size() > 1000) {
-                        ecgDataSeries.removeFirst();
+                    if (eegDataSeries1.size() > 1000) {
+                        eegDataSeries1.removeFirst();
                     }
                     if (plotImplicitXVals) {
                         if (filterData) {
-                            ecgDataSeries.addLast(null, ECGBufferFiltered2[ecgIndex]);
+                            eegDataSeries1.addLast(null, ECGBufferFiltered2[ecgIndex]);
                             /*if(!filterType){
                             } else {
-                                ecgDataSeries.addLast(null, ECGBufferFiltered3[ecgIndex]);
+                                eegDataSeries1.addLast(null, ECGBufferFiltered3[ecgIndex]);
                             }*/
                         } else {
-                            ecgDataSeries.addLast(null, ECGBufferUnfiltered[ecgIndex]);
+                            eegDataSeries1.addLast(null, ECGBufferUnfiltered[ecgIndex]);
                         }
                     } else {
                         if (filterData) {
-                            ecgDataSeries.addLast(explicitXValsLong[ecgIndex], ECGBufferFiltered2[ecgIndex]);
+                            eegDataSeries1.addLast(explicitXValsLong[ecgIndex], ECGBufferFiltered2[ecgIndex]);
                             /*if(!filterType){
                             } else {
-                                ecgDataSeries.addLast(explicitXValsLong[ecgIndex], ECGBufferFiltered3[ecgIndex]);
+                                eegDataSeries1.addLast(explicitXValsLong[ecgIndex], ECGBufferFiltered3[ecgIndex]);
                             }*/
                         } else {
-                            ecgDataSeries.addLast(explicitXValsLong[ecgIndex], ECGBufferUnfiltered[ecgIndex]);
+                            eegDataSeries1.addLast(explicitXValsLong[ecgIndex], ECGBufferUnfiltered[ecgIndex]);
                         }
                     }
                     ecgIndex++;
@@ -1163,6 +1250,11 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private int unsignedBytesToInt(byte b0, byte b1) {
         return (unsignedByteToInt(b0) + (unsignedByteToInt(b1) << 8));
     }
+
+    private int unsignedBytesToInt(byte b0, byte b1, byte b2) {
+        return (unsignedByteToInt(b0) + (unsignedByteToInt(b1) << 8) + (unsignedByteToInt(b2) << 16));
+    }
+
 
     private static final char[] HEX_CHARS = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A',
             'B', 'C', 'D', 'E', 'F' };
