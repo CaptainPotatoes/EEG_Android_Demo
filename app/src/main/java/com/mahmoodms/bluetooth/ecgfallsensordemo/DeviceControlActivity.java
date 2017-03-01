@@ -77,6 +77,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private BluetoothManager mBluetoothManager = null;
     private BluetoothGatt mBluetoothGatt = null;
     private BluetoothDevice mBluetoothDevice;
+    private BluetoothDevice mBluetoothDevice2;
     //Layout - TextViews and Buttons
 
     private TextView mEcgValues;
@@ -488,6 +489,8 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private void initializeBluetooth() {
         mBluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothDevice = mBluetoothManager.getAdapter().getRemoteDevice(mDeviceAddress);
+        //TODO: Connect To Another Device.
+        //mBluetoothDevice2 = mBluetoothManager.getAdapter().getRemoteDevice(mDeviceAddress);
         mBluetoothLe = new BluetoothLe(this, mBluetoothManager, this);
         mBluetoothGatt = mBluetoothLe.connect(mBluetoothDevice, false);
     }
