@@ -113,9 +113,9 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
 //    private SimpleXYSeries accelerometerDataSeries;
 //    private SimpleXYSeries plotAccDataSeries;
     private SimpleXYSeries eegDataSeries1;
-    private SimpleXYSeries eegDataSeries2;
-    private SimpleXYSeries eegDataSeries3;
-    private SimpleXYSeries eegDataSeries4;
+//    private SimpleXYSeries eegDataSeries2;
+//    private SimpleXYSeries eegDataSeries3;
+//    private SimpleXYSeries eegDataSeries4;
     private static final int HISTORY_SIZE = 1500;
     private static final int HISTORY_SIZE_2 = 1000;
     private static final int HISTORY_SECONDS = 6;
@@ -174,7 +174,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
 //        accelerometerDataSeries = new SimpleXYSeries("Motion Sensor Data (g)");
 //        plotAccDataSeries = new SimpleXYSeries("MotionSensorData");
         eegDataSeries1 = new SimpleXYSeries("EEG Data Ch 1 (V)");
-        eegDataSeries2 = new SimpleXYSeries("EEG Data Ch 2 (V)");
+//        eegDataSeries2 = new SimpleXYSeries("EEG Data Ch 2 (V)");
         eegPlot = (XYPlot) findViewById(R.id.eegPlot);
         accelerometerPlot = (XYPlot) findViewById(R.id.accelLevelsPlot);
         //Todo: Graph temporarily uses data index - find alternative to implicit XVals→(seconds)
@@ -229,9 +229,9 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         LineAndPointFormatter lineAndPointFormatter4 = new LineAndPointFormatter(Color.parseColor("#19B52C"), null, null, null);
         lineAndPointFormatter4.getLinePaint().setStrokeWidth(3);
         eegPlot.addSeries(eegDataSeries1, lineAndPointFormatter1);
-        eegPlot.addSeries(eegDataSeries2, lineAndPointFormatter2);
-        eegPlot.addSeries(eegDataSeries3, lineAndPointFormatter3);
-        eegPlot.addSeries(eegDataSeries4, lineAndPointFormatter4);
+//        eegPlot.addSeries(eegDataSeries2, lineAndPointFormatter2);
+//        eegPlot.addSeries(eegDataSeries3, lineAndPointFormatter3);
+//        eegPlot.addSeries(eegDataSeries4, lineAndPointFormatter4);
         redrawer = new Redrawer(
                 Arrays.asList(new Plot[]{eegPlot}),
                 100, false);
@@ -875,7 +875,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private double[] EEGBufferCh4Unfiltered = new double[1000];
     private double[] EEGBufferCh4Filtered = new double[1000];
 
-    private void updateEEG(final int value, final int channelNum) {
+   /* private void updateEEG(final int value, final int channelNum) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -952,7 +952,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 }
             }
         });
-    }
+    }*/
 
     private void updateEEG(final int value) {
         runOnUiThread(new Runnable() {
