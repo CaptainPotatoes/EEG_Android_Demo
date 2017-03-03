@@ -50,3 +50,4 @@ app/build/outputs/apk/app-debug.apk
 app/build/outputs/logs/manifest-merger-debug-report.txt
 build/generated/mockable-android-23.jar
 build/intermediates/dex-cache/cache.xml
+.idea/
