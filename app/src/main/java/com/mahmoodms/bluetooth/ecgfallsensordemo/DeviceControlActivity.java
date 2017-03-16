@@ -1655,7 +1655,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     //ECG FIR FILTER:
     private native int jmainFirFilter(boolean b);
 
-    private native double[] jFirFilter(double[] ecg); //size = 1000
+//    private native double[] jFirFilter(double[] ecg); //size = 1000
 
     //ECG BW Filter:
 
