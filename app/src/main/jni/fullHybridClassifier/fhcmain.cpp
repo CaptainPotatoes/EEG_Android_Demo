@@ -40,7 +40,7 @@
 #include <jni.h>
 #include <android/log.h>
 
-#define  LOG_TAG "fullHybridClassifier-cpp"
+#define  LOG_TAG "fullHybridClassifierMain-cpp"
 #define  LOGI(...)  __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define  LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
@@ -122,8 +122,10 @@ static void main_fullHybridClassifier()
   ch4 = argInit_d4996x1_real_T();
 
   // Call the entry-point 'fullHybridClassifier'.
+   LOGE("RUNNING FHC STARTUP TEST!");
   fullHybridClassifier(ch1, ch2, ch3, ch4, argInit_real_T(), argInit_boolean_T(),
                        Y);
+    LOGE("Y:[ %f %f %f %f %f %f %f ]",Y[0],Y[1],Y[2],Y[3],Y[4],Y[5],Y[6]);
   emxDestroyArray_real_T(ch4);
   emxDestroyArray_real_T(ch3);
   emxDestroyArray_real_T(ch2);
@@ -157,11 +159,12 @@ Java_com_mahmoodms_bluetooth_ecgfallsensordemo_DeviceControlActivity_jmainFHC(
         JNIEnv *env, jobject obj, jboolean terminate) {
   if(!(bool)terminate) {
     fullHybridClassifier_initialize();
-
+    main_fullHybridClassifier();
 //    fir_combined_initialize();
 //    main_fir_combined();
     return 0;
   } else {
+      fullHybridClassifier_terminate();
 //    fir_combined_terminate();
     return -1;
   }

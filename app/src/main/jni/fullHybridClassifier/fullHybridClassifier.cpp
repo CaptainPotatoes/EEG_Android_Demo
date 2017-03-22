@@ -67,7 +67,7 @@ Java_com_mahmoodms_bluetooth_ecgfallsensordemo_DeviceControlActivity_jfullHybrid
   boolean_T c_eogOnly = eogOnly;
     double r_array[RETURN_LEN];
     fullHybridClassifier(ch1, ch2, ch3, ch4, SAMPLING_RATE, c_eogOnly, r_array);
-    //TODO: Call function fullHybridClassifier2
+    //TODO: Call function fullHybridClassifier
     double *result = r_array;
   jdoubleArray m_result;
   m_result = env->NewDoubleArray(RETURN_LEN);
@@ -17644,7 +17644,6 @@ void fullHybridClassifier(const emxArray_real_T *ch1, const emxArray_real_T *ch2
     emxFree_real_T(&sch2f);
     emxFree_real_T(&sch1f);
   }
-
   emxFree_real_T(&F2);
 }
 

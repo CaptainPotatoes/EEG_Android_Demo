@@ -316,6 +316,20 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         } else {
             DATA_RATE_SAMPLES_PER_SECOND = 250;
         }
+        //TODO: Test fHC with dummy data:
+        double[] ch1 = new double[1000];
+        double[] ch2 = new double[1000];
+        double[] ch3 = new double[1000];
+        double[] ch4 = new double[1000];
+        boolean eogOnly = false;
+        for (int i = 0; i < 1000; i++) {
+            ch1[i] = 0.0;
+            ch2[i] = 0.0;
+            ch3[i] = 0.0;
+            ch4[i] = 0.0;
+        }
+        double[] yfit = jfullHybridClassifier(ch1, ch2, ch3, ch4, eogOnly);
+        Log.e(TAG, "fHC TEST ARRAY: "+Arrays.toString(yfit));
 //        mDataRate.setText("Data Rate: "+String.valueOf(DATA_RATE_SAMPLES_PER_SECOND)+"Hz");
     }
 
@@ -434,12 +448,15 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             exportData.setType("text/html");
             startActivity(exportData);
         }
+
     }
 
     @Override
     public void onResume() {
         makeFilterSwitchVisible(true);
         makeFallSensorVisible(false);
+        int fHCMain = jmainFHC(initialize);
+        Log.i("fHCMain","INITIALIZED");
         int responsejmainFir = jmainFirFilter(initialize);
         Log.d("ResponseJmainInit:", String.valueOf(responsejmainFir));
         String fileTimeStampConcat = "ECGSensorData_" + getTimeStamp();
