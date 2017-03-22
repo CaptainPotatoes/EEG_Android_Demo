@@ -2,15 +2,79 @@
 // Academic License - for use in teaching, academic research, and meeting
 // course requirements at degree granting institutions only.  Not for
 // government, commercial, or other organizational use.
-// File: fullHybridClassifier2.cpp
+// File: fullHybridClassifier.cpp
 //
 // MATLAB Coder version            : 3.1
-// C/C++ source code generated on  : 16-Mar-2017 10:57:23
+// C/C++ source code generated on  : 22-Mar-2017 11:10:49
 //
 
 // Include Files
 #include "rt_nonfinite.h"
-#include "fullHybridClassifier2.h"
+#include "fullHybridClassifier.h"
+#include <cstdlib>
+/*Additional Includes*/
+#include <jni.h>
+#include <android/log.h>
+
+#define  LOG_TAG "fullHybridClassifier-cpp"
+#define  LOGI(...)  __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+#define  LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
+#define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+#define SAMPLING_RATE   250.0
+#define  RETURN_LEN     7
+//TODO: Will need to pass all data (4 arrays), and length of array.
+// How do I get array length in C++?
+
+static emxArray_real_T *argInit_Array_real_T(int size, jdouble *array) {
+  emxArray_real_T *result;
+  result = emxCreateND_real_T(1, &size);
+  result->size[0U] = size;
+  for (int i=0; i<size; i++) {
+    result->data[i] = array[i];
+  }
+    return result;
+}
+
+extern "C" {
+JNIEXPORT jdoubleArray JNICALL
+//Call this function with (data, data, data, data, datalen, Fs);
+//Don't need array size; can check size array in C.
+Java_com_mahmoodms_bluetooth_ecgfallsensordemo_DeviceControlActivity_jfullHybridClassifier(
+        JNIEnv *env, jobject jobject1, jdoubleArray array1, jdoubleArray array2, jdoubleArray array3, jdoubleArray array4, jboolean eogOnly) {
+  jdouble  *c_array_ch1;
+  jdouble  *c_array_ch2;
+  jdouble  *c_array_ch3;
+  jdouble  *c_array_ch4;
+  c_array_ch1 = env->GetDoubleArrayElements(array1, NULL);
+  c_array_ch2 = env->GetDoubleArrayElements(array2, NULL);
+  c_array_ch3 = env->GetDoubleArrayElements(array3, NULL);
+  c_array_ch4 = env->GetDoubleArrayElements(array4, NULL);
+  if (c_array_ch1==NULL) LOGE("ERROR - C_ARRAY IS NULL");
+  if (c_array_ch2==NULL) LOGE("ERROR - C_ARRAY IS NULL");
+  if (c_array_ch3==NULL) LOGE("ERROR - C_ARRAY IS NULL");
+  if (c_array_ch4==NULL) LOGE("ERROR - C_ARRAY IS NULL");
+  int len = sizeof(c_array_ch1)/sizeof(c_array_ch1[0]);
+  /*emxArray_real_T *rch1 = emxCreateND_real_T(1, &len);
+  rch1->size[0U] = len;
+  for (int i=0;i<rch1->size[0U];i++) {
+    rch1->data[i] = c_array_ch1[i];
+  }*/
+  emxArray_real_T *ch1 = argInit_Array_real_T(len, c_array_ch1);
+  emxArray_real_T *ch2 = argInit_Array_real_T(len, c_array_ch2);
+  emxArray_real_T *ch3 = argInit_Array_real_T(len, c_array_ch3);
+  emxArray_real_T *ch4 = argInit_Array_real_T(len, c_array_ch4);
+  //Easy way :: Or Create own function:
+  boolean_T c_eogOnly = eogOnly;
+    double r_array[RETURN_LEN];
+    fullHybridClassifier(ch1, ch2, ch3, ch4, SAMPLING_RATE, c_eogOnly, r_array);
+    //TODO: Call function fullHybridClassifier2
+    double *result = r_array;
+  jdoubleArray m_result;
+  m_result = env->NewDoubleArray(RETURN_LEN);
+  env->SetDoubleArrayRegion(m_result, 0, RETURN_LEN, result);
+  return m_result;
+}
+}
 
 // Type Definitions
 #ifndef struct_emxArray__common
@@ -69,112 +133,52 @@ struct emxArray_int32_T
 
 #endif                                 //struct_emxArray_int32_T
 
-#ifndef struct_emxArray_real_T
-#define struct_emxArray_real_T
-
-struct emxArray_real_T
-{
-  double *data;
-  int *size;
-  int allocatedSize;
-  int numDimensions;
-  boolean_T canFreeData;
-};
-
-#endif                                 //struct_emxArray_real_T
-
 // Variable Definitions
-omp_nest_lock_t emlrtNestLockGlobal;
+//omp_nest_lock_t emlrtNestLockGlobal;
 
 // Function Declarations
-static double WCountMax(const double X[250]);
-static double WCountMin(const double X[250]);
-static double Wmax(const double X[250]);
-static double Wmean(const double X[250]);
-static double Wmin(const double X[250]);
-static double Wstd(const double X[250]);
-static void assignOutputs(const double y[250], const double x[250], const double
-  iPk_data[], const int iPk_size[1], double YpkOut_data[], int YpkOut_size[2],
-  double XpkOut_data[], int XpkOut_size[2]);
 static void b_abs(const creal_T x[2048], double y[2048]);
-static void b_assignOutputs(const double y[1025], const double x[1025], const
-  double iPk_data[], const int iPk_size[1], double YpkOut_data[], int
-  YpkOut_size[2], double XpkOut_data[], int XpkOut_size[2]);
-static void b_fft(const emxArray_real_T *x, emxArray_creal_T *y);
-static void b_filter(const double x_data[], const int x_size[1], const double
-                     zi[10], double y_data[], int y_size[1]);
+static void b_filter(const emxArray_real_T *x, const double zi[10],
+                     emxArray_real_T *y);
 static void b_filtfilt(const double x_in[250], double y_out[250]);
-static void b_findLocalMaxima(const double yTemp[1025], double iPk_data[], int
-  iPk_size[1], double iInflect_data[], int iInflect_size[1]);
-static void b_findpeaks(const double Yin[1025], double Ypk_data[], int Ypk_size
-  [2], double Xpk_data[], int Xpk_size[2]);
-static void b_fix(double *x);
-static void b_getAllPeaks(const double y[1025], double iPk_data[], int iPk_size
-  [1], double iInf_data[], int iInf_size[1], double iInflect_data[], int
-  iInflect_size[1]);
-static void b_keepAtMostNpPeaks(double idx_data[], int idx_size[1]);
-static void b_log10(const emxArray_real_T *x, emxArray_real_T *b_x);
-static double b_mean(const double x[4]);
+static void b_findLocalMaxima(const double yTemp[1025], emxArray_real_T *iPk,
+  emxArray_real_T *iInflect);
+static void b_findpeaks(const double Yin[1025], emxArray_real_T *Ypk,
+  emxArray_real_T *Xpk);
+static boolean_T b_isequal(const emxArray_real_T *varargin_1, const
+  emxArray_real_T *varargin_2);
+static void b_log10(emxArray_real_T *x);
 static void b_merge(emxArray_int32_T *idx, emxArray_real_T *x, int offset, int
                     np, int nq, emxArray_int32_T *iwork, emxArray_real_T *xwork);
 static void b_merge_block(emxArray_int32_T *idx, emxArray_real_T *x, int offset,
   int n, int preSortLevel, emxArray_int32_T *iwork, emxArray_real_T *xwork);
-static void b_merge_pow2_block(emxArray_int32_T *idx, emxArray_real_T *x, int
-  offset);
-static void b_power(const emxArray_real_T *a, emxArray_real_T *y);
-static void b_r2br_r2dit_trig(const emxArray_real_T *x, int n1_unsigned, const
-  emxArray_real_T *costab, const emxArray_real_T *sintab, emxArray_creal_T *y);
-static void b_removePeaksBelowMinPeakHeight(const double Y[1025], double
-  iPk_data[], int iPk_size[1]);
-static void b_removePeaksBelowThreshold(const double Y[1025], double iPk_data[],
-  int iPk_size[1]);
-static void b_repmat(double a, double varargin_1, emxArray_real_T *b);
+static double b_mod(double x, double y);
 static void b_sign(emxArray_real_T *x);
 static void b_sort(emxArray_real_T *x, emxArray_int32_T *idx);
-static void b_sortIdx(emxArray_real_T *x, emxArray_int32_T *idx);
-static void b_sum(const double x[28480], double y[712]);
+static double b_sum(const double x[4]);
 static void bluestein_setup(int nRows, emxArray_creal_T *wwc);
 static void c_abs(const emxArray_creal_T *x, emxArray_real_T *y);
-static void c_assignOutputs(const emxArray_real_T *y, const emxArray_real_T *x,
-  const emxArray_real_T *iPk, emxArray_real_T *YpkOut, emxArray_real_T *XpkOut);
-static void c_fft(const double x[256], creal_T y[2048]);
 static void c_findLocalMaxima(emxArray_real_T *yTemp, emxArray_real_T *iPk,
   emxArray_real_T *iInflect);
-static void c_findPeaksSeparatedByMoreThanM(const int iPk_size[1], double
-  idx_data[], int idx_size[1]);
+static void c_findPeaksSeparatedByMoreThanM(const emxArray_real_T *iPk,
+  emxArray_real_T *idx);
 static void c_findpeaks(const emxArray_real_T *Yin, emxArray_real_T *Ypk,
   emxArray_real_T *Xpk);
-static void c_getAllPeaks(const emxArray_real_T *y, emxArray_real_T *iPk,
-  emxArray_real_T *iInf, emxArray_real_T *iInflect);
-static void c_keepAtMostNpPeaks(emxArray_real_T *idx, double Np);
-static void c_log10(emxArray_real_T *x);
-static void c_r2br_r2dit_trig(const emxArray_creal_T *x, int n1_unsigned, const
-  emxArray_real_T *costab, const emxArray_real_T *sintab, emxArray_creal_T *y);
-static void c_removePeaksBelowMinPeakHeight(const emxArray_real_T *Y,
-  emxArray_real_T *iPk);
-static void c_removePeaksBelowThreshold(const emxArray_real_T *Y,
-  emxArray_real_T *iPk);
 static void c_sort(emxArray_real_T *x, int dim, emxArray_int32_T *idx);
-static double c_sum(const emxArray_real_T *x);
-static void count_nonfinites(const double b_data[], int *nMInf, int *nFinite,
-  int *nPInf, int *nNaN);
-static void d_abs(const emxArray_creal_T *x, emxArray_real_T *y);
-static void d_findPeaksSeparatedByMoreThanM(const int iPk_size[1], double
-  idx_data[], int idx_size[1]);
-static void d_log10(emxArray_real_T *x);
-static void d_r2br_r2dit_trig(const emxArray_creal_T *x, int n1_unsigned, const
-  emxArray_real_T *costab, const emxArray_real_T *sintab, emxArray_creal_T *y);
-static double d_sum(const double x[4]);
+static void c_sum(const boolean_T x[16], double y[4]);
+static void combinePeaks(const emxArray_real_T *iPk, const emxArray_real_T *iInf,
+  emxArray_real_T *iPkOut);
+static void d_findpeaks(const emxArray_real_T *Yin, emxArray_real_T *Ypk,
+  emxArray_real_T *Xpk);
+static double d_sum(const boolean_T x[4]);
 static void diff(const emxArray_real_T *x, emxArray_real_T *y);
 static void do_vectors(const emxArray_real_T *a, const emxArray_real_T *b,
   emxArray_real_T *c, emxArray_int32_T *ia, emxArray_int32_T *ib);
 static void dobluesteinfft(const emxArray_real_T *x, int N2, int n1, const
   emxArray_real_T *costab, const emxArray_real_T *sintab, const emxArray_real_T *
   sintabinv, emxArray_creal_T *y);
-static void e_findPeaksSeparatedByMoreThanM(const emxArray_real_T *iPk,
-  emxArray_real_T *idx);
-static void eegcfilt(double X_data[], int X_size[1], emxArray_real_T *Y);
-static void eml_fft(const emxArray_real_T *x, creal_T y[2048]);
+static void e_sum(const double x[16], double y[4]);
+static void eegcfilt(emxArray_real_T *X, emxArray_real_T *Y);
 static void emxEnsureCapacity(emxArray__common *emxArray, int oldNumel, int
   elementSize);
 static void emxFree_boolean_T(emxArray_boolean_T **pEmxArray);
@@ -182,279 +186,67 @@ static void emxFree_creal_T(emxArray_creal_T **pEmxArray);
 static void emxFree_int32_T(emxArray_int32_T **pEmxArray);
 static void emxFree_real_T(emxArray_real_T **pEmxArray);
 static void emxInit_boolean_T(emxArray_boolean_T **pEmxArray, int numDimensions);
+static void emxInit_boolean_T1(emxArray_boolean_T **pEmxArray, int numDimensions);
 static void emxInit_creal_T(emxArray_creal_T **pEmxArray, int numDimensions);
 static void emxInit_creal_T1(emxArray_creal_T **pEmxArray, int numDimensions);
 static void emxInit_int32_T(emxArray_int32_T **pEmxArray, int numDimensions);
+static void emxInit_int32_T1(emxArray_int32_T **pEmxArray, int numDimensions);
 static void emxInit_real_T(emxArray_real_T **pEmxArray, int numDimensions);
 static void emxInit_real_T1(emxArray_real_T **pEmxArray, int numDimensions);
-static void eogcfilt(const double X[250], double Y[250]);
 static double eps(double x);
-static void featureExtractionEOG(const double samplesX[250], double F_data[],
-  int F_size[2]);
-static void featureExtractionSSVEP2(const emxArray_real_T *fch1, const
+static void fSSVEPnew(const emxArray_real_T *fch1, const emxArray_real_T *fch2,
+                      const emxArray_real_T *fch3, double Fs, emxArray_real_T *F);
+static void featureExtractionEOG(const double samplesX[250], emxArray_real_T *F);
+static void featureExtractionSSVEP(const emxArray_real_T *fch1, const
   emxArray_real_T *fch2, const emxArray_real_T *fch3, double Fs, double F[30]);
-static void fft(const emxArray_real_T *x, creal_T y[2048]);
-static void filter(const double b[4], const double a[4], const double x[268],
-                   const double zi[3], double y[268]);
+static void fft(const emxArray_real_T *x, emxArray_creal_T *y);
+static void filter(double b[4], double a[4], const double x[268], const double
+                   zi[3], double y[268]);
 static void filtfilt(const double x_in[250], double y_out[250]);
-static void findLocalMaxima(const double yTemp[250], double iPk_data[], int
-  iPk_size[1], double iInflect_data[], int iInflect_size[1]);
-static int findbin(double x, const double bin_edges_data[], const int
-                   bin_edges_size[2]);
-static void findpeaks(const double Yin[250], double Ypk_data[], int Ypk_size[2],
-                      double Xpk_data[], int Xpk_size[2]);
-static void flipud(double x_data[], int x_size[1]);
-static void generate_twiddle_tables(int nRows, boolean_T useRadix2,
-  emxArray_real_T *costab, emxArray_real_T *sintab, emxArray_real_T *sintabinv);
-static void getAllPeaks(const double y[250], double iPk_data[], int iPk_size[1],
-  double iInf_data[], int iInf_size[1], double iInflect_data[], int
-  iInflect_size[1]);
-static void get_algo_sizes(int n1, boolean_T useRadix2, int *N2blue, int *nRows);
+static void findLocalMaxima(const double yTemp[250], emxArray_real_T *iPk,
+  emxArray_real_T *iInflect);
+static int findbin(double x, const emxArray_real_T *bin_edges);
+static void findpeaks(const double Yin[250], emxArray_real_T *Ypk,
+                      emxArray_real_T *Xpk);
+static void getAllPeaks(const emxArray_real_T *y, emxArray_real_T *iPk,
+  emxArray_real_T *iInf, emxArray_real_T *iInflect);
 static void get_nfft_data(const emxArray_real_T *X, double Fs, double f[1025],
   double C[1025]);
 static void hannWin(double x, emxArray_real_T *w);
-static void hist(const double Y[3], const double X_data[], const int X_size[1],
-                 double no_data[], int no_size[2]);
-static void histc(const double X[3], const double edges_data[], const int
-                  edges_size[2], double N_data[], int N_size[1]);
 static boolean_T isequal(const double varargin_1[4], const double varargin_2[4]);
-static void keepAtMostNpPeaks(double idx_data[], int idx_size[1]);
+static void keepAtMostNpPeaks(emxArray_real_T *idx, double Np);
 static double knn(const double tsX[40]);
-static double mean(const emxArray_real_T *x);
+static double mean(const double x[4]);
 static void merge(int idx[712], double x[712], int offset, int np, int nq, int
                   iwork[712], double xwork[712]);
 static void merge_block(int idx[712], double x[712], int offset, int n, int
   preSortLevel, int iwork[712], double xwork[712]);
 static void merge_pow2_block(int idx[712], double x[712], int offset);
-static void orderPeaks(const double Y[1025], const double iPk_data[], double
-  idx_data[], int idx_size[1]);
-static void parse_inputs(const emxArray_real_T *Yin, emxArray_real_T *y,
-  emxArray_real_T *x, double *NpOut);
-static void power(const double a[28480], double y[28480]);
-static void r2br_r2dit_trig(const emxArray_real_T *x, const double costab[1025],
-  const double sintab[1025], creal_T y[2048]);
-static void r2br_r2dit_trig_impl(const emxArray_creal_T *x, int unsigned_nRows,
-  const emxArray_real_T *costab, const emxArray_real_T *sintab, emxArray_creal_T
-  *y);
-static void removePeaksBelowMinPeakHeight(const double Y[250], double iPk_data[],
-  int iPk_size[1]);
-static void removePeaksBelowThreshold(const double Y[250], double iPk_data[],
-  int iPk_size[1]);
-static void repmat(const emxArray_real_T *a, emxArray_real_T *b);
+static void orderPeaks(const emxArray_real_T *Y, const emxArray_real_T *iPk,
+  emxArray_real_T *idx);
+static void r2br_r2dit_trig_impl(const emxArray_creal_T *x, int xoffInit, int
+  unsigned_nRows, const emxArray_real_T *costab, const emxArray_real_T *sintab,
+  emxArray_creal_T *y);
+static void removePeaksBelowMinPeakHeight(const emxArray_real_T *Y,
+  emxArray_real_T *iPk, double Ph);
+static void removePeaksBelowThreshold(const emxArray_real_T *Y, emxArray_real_T *
+  iPk, double Th);
 static double rt_hypotd_snf(double u0, double u1);
+static double rt_roundd_snf(double u);
+static void scaleAbs(emxArray_real_T *X, emxArray_real_T *Y);
 static double skip_to_last_equal_value(int *k, const emxArray_real_T *x);
 static void sort(double x[712], int idx[712]);
-static void sortIdx(const double x[712], int idx[712]);
+static void sortIdx(emxArray_real_T *x, emxArray_int32_T *idx);
 static void stft(const emxArray_real_T *x, double fs, emxArray_creal_T *s,
                  double f[1025], emxArray_real_T *t);
-static double sum(const boolean_T x[250]);
-static double trapz(const double x[250]);
-static void treeClassifier(const double F[30], double Y[5]);
+static void sum(const emxArray_real_T *x, emxArray_real_T *y);
+static void treeClassifier(const double F[30], const emxArray_real_T *F2, double
+  Y[7]);
 static void welch_psd(const emxArray_real_T *signals, double fs, emxArray_real_T
                       *window, emxArray_real_T *CSM, emxArray_real_T
                       *frequencies);
 
 // Function Definitions
-
-//
-// Arguments    : const double X[250]
-// Return Type  : double
-//
-static double WCountMax(const double X[250])
-{
-  double Y;
-  boolean_T x[250];
-  int k;
-  for (k = 0; k < 250; k++) {
-    x[k] = (X[k] > 8.4999999999999993E-5);
-  }
-
-  Y = x[0];
-  for (k = 0; k < 249; k++) {
-    Y += (double)x[k + 1];
-  }
-
-  return Y;
-}
-
-//
-// Arguments    : const double X[250]
-// Return Type  : double
-//
-static double WCountMin(const double X[250])
-{
-  double Y;
-  boolean_T x[250];
-  int k;
-  for (k = 0; k < 250; k++) {
-    x[k] = (X[k] < -0.0001);
-  }
-
-  Y = x[0];
-  for (k = 0; k < 249; k++) {
-    Y += (double)x[k + 1];
-  }
-
-  return Y;
-}
-
-//
-// Arguments    : const double X[250]
-// Return Type  : double
-//
-static double Wmax(const double X[250])
-{
-  int ixstart;
-  double mtmp;
-  int ix;
-  boolean_T exitg1;
-  ixstart = 1;
-  mtmp = X[0];
-  if (rtIsNaN(X[0])) {
-    ix = 2;
-    exitg1 = false;
-    while ((!exitg1) && (ix < 251)) {
-      ixstart = ix;
-      if (!rtIsNaN(X[ix - 1])) {
-        mtmp = X[ix - 1];
-        exitg1 = true;
-      } else {
-        ix++;
-      }
-    }
-  }
-
-  if (ixstart < 250) {
-    while (ixstart + 1 < 251) {
-      if (X[ixstart] > mtmp) {
-        mtmp = X[ixstart];
-      }
-
-      ixstart++;
-    }
-  }
-
-  return mtmp;
-}
-
-//
-// Arguments    : const double X[250]
-// Return Type  : double
-//
-static double Wmean(const double X[250])
-{
-  double y;
-  int k;
-  y = X[0];
-  for (k = 0; k < 249; k++) {
-    y += X[k + 1];
-  }
-
-  return y / 250.0;
-}
-
-//
-// Arguments    : const double X[250]
-// Return Type  : double
-//
-static double Wmin(const double X[250])
-{
-  int ixstart;
-  double mtmp;
-  int ix;
-  boolean_T exitg1;
-  ixstart = 1;
-  mtmp = X[0];
-  if (rtIsNaN(X[0])) {
-    ix = 2;
-    exitg1 = false;
-    while ((!exitg1) && (ix < 251)) {
-      ixstart = ix;
-      if (!rtIsNaN(X[ix - 1])) {
-        mtmp = X[ix - 1];
-        exitg1 = true;
-      } else {
-        ix++;
-      }
-    }
-  }
-
-  if (ixstart < 250) {
-    while (ixstart + 1 < 251) {
-      if (X[ixstart] < mtmp) {
-        mtmp = X[ixstart];
-      }
-
-      ixstart++;
-    }
-  }
-
-  return mtmp;
-}
-
-//
-// Arguments    : const double X[250]
-// Return Type  : double
-//
-static double Wstd(const double X[250])
-{
-  int ix;
-  double xbar;
-  int k;
-  double r;
-  double y;
-  ix = 0;
-  xbar = X[0];
-  for (k = 0; k < 249; k++) {
-    ix++;
-    xbar += X[ix];
-  }
-
-  xbar /= 250.0;
-  ix = 0;
-  r = X[0] - xbar;
-  y = r * r;
-  for (k = 0; k < 249; k++) {
-    ix++;
-    r = X[ix] - xbar;
-    y += r * r;
-  }
-
-  y /= 249.0;
-  return std::sqrt(y);
-}
-
-//
-// Arguments    : const double y[250]
-//                const double x[250]
-//                const double iPk_data[]
-//                const int iPk_size[1]
-//                double YpkOut_data[]
-//                int YpkOut_size[2]
-//                double XpkOut_data[]
-//                int XpkOut_size[2]
-// Return Type  : void
-//
-static void assignOutputs(const double y[250], const double x[250], const double
-  iPk_data[], const int iPk_size[1], double YpkOut_data[], int YpkOut_size[2],
-  double XpkOut_data[], int XpkOut_size[2])
-{
-  int loop_ub;
-  int i5;
-  YpkOut_size[0] = 1;
-  YpkOut_size[1] = iPk_size[0];
-  loop_ub = iPk_size[0];
-  for (i5 = 0; i5 < loop_ub; i5++) {
-    YpkOut_data[i5] = y[(int)iPk_data[i5] - 1];
-  }
-
-  XpkOut_size[0] = 1;
-  XpkOut_size[1] = iPk_size[0];
-  loop_ub = iPk_size[0];
-  for (i5 = 0; i5 < loop_ub; i5++) {
-    XpkOut_data[i5] = x[(int)iPk_data[i5] - 1];
-  }
-}
 
 //
 // Arguments    : const creal_T x[2048]
@@ -470,112 +262,48 @@ static void b_abs(const creal_T x[2048], double y[2048])
 }
 
 //
-// Arguments    : const double y[1025]
-//                const double x[1025]
-//                const double iPk_data[]
-//                const int iPk_size[1]
-//                double YpkOut_data[]
-//                int YpkOut_size[2]
-//                double XpkOut_data[]
-//                int XpkOut_size[2]
-// Return Type  : void
-//
-static void b_assignOutputs(const double y[1025], const double x[1025], const
-  double iPk_data[], const int iPk_size[1], double YpkOut_data[], int
-  YpkOut_size[2], double XpkOut_data[], int XpkOut_size[2])
-{
-  int loop_ub;
-  int i13;
-  YpkOut_size[0] = 1;
-  YpkOut_size[1] = iPk_size[0];
-  loop_ub = iPk_size[0];
-  for (i13 = 0; i13 < loop_ub; i13++) {
-    YpkOut_data[i13] = y[(int)iPk_data[i13] - 1];
-  }
-
-  XpkOut_size[0] = 1;
-  XpkOut_size[1] = iPk_size[0];
-  loop_ub = iPk_size[0];
-  for (i13 = 0; i13 < loop_ub; i13++) {
-    XpkOut_data[i13] = x[(int)iPk_data[i13] - 1];
-  }
-}
-
-//
 // Arguments    : const emxArray_real_T *x
-//                emxArray_creal_T *y
-// Return Type  : void
-//
-static void b_fft(const emxArray_real_T *x, emxArray_creal_T *y)
-{
-  emxArray_real_T *costab;
-  emxArray_real_T *sintab;
-  int N2blue;
-  emxArray_real_T *sintabinv;
-  boolean_T useRadix2;
-  int nRows;
-  if (x->size[0] == 0) {
-    N2blue = y->size[0];
-    y->size[0] = 0;
-    emxEnsureCapacity((emxArray__common *)y, N2blue, (int)sizeof(creal_T));
-  } else {
-    emxInit_real_T(&costab, 2);
-    emxInit_real_T(&sintab, 2);
-    emxInit_real_T(&sintabinv, 2);
-    useRadix2 = ((x->size[0] & (x->size[0] - 1)) == 0);
-    get_algo_sizes(x->size[0], useRadix2, &N2blue, &nRows);
-    generate_twiddle_tables(nRows, useRadix2, costab, sintab, sintabinv);
-    if (useRadix2) {
-      b_r2br_r2dit_trig(x, x->size[0], costab, sintab, y);
-    } else {
-      dobluesteinfft(x, N2blue, x->size[0], costab, sintab, sintabinv, y);
-    }
-
-    emxFree_real_T(&sintabinv);
-    emxFree_real_T(&sintab);
-    emxFree_real_T(&costab);
-  }
-}
-
-//
-// Arguments    : const double x_data[]
-//                const int x_size[1]
 //                const double zi[10]
-//                double y_data[]
-//                int y_size[1]
+//                emxArray_real_T *y
 // Return Type  : void
 //
-static void b_filter(const double x_data[], const int x_size[1], const double
-                     zi[10], double y_data[], int y_size[1])
+static void b_filter(const emxArray_real_T *x, const double zi[10],
+                     emxArray_real_T *y)
 {
-  double dbuffer[11];
+  unsigned int unnamed_idx_0;
   int j;
+  double dbuffer[11];
   int k;
-  static const double dv7[11] = { 2.13961520749732E-5, 0.0,
+  double b_dbuffer;
+  static const double dv14[11] = { 2.13961520749732E-5, 0.0,
     -0.000106980760374866, 0.0, 0.000213961520749732, 0.0, -0.000213961520749732,
     0.0, 0.000106980760374866, 0.0, -2.13961520749732E-5 };
 
-  static const double dv8[11] = { 1.0, -8.77043379286888, 35.0068378010024,
+  static const double dv15[11] = { 1.0, -8.77043379286888, 35.0068378010024,
     -83.7229808056309, 132.845833785487, -146.117834417428, 112.823239428442,
     -60.389449129414, 21.4471017127118, -4.56451967201817, 0.442209182399621 };
 
-  y_size[0] = (short)x_size[0];
+  unnamed_idx_0 = (unsigned int)x->size[0];
+  j = y->size[0];
+  y->size[0] = (int)unnamed_idx_0;
+  emxEnsureCapacity((emxArray__common *)y, j, (int)sizeof(double));
   memcpy(&dbuffer[1], &zi[0], 10U * sizeof(double));
-  for (j = 0; j + 1 <= x_size[0]; j++) {
+  for (j = 0; j + 1 <= x->size[0]; j++) {
     for (k = 0; k < 10; k++) {
       dbuffer[k] = dbuffer[k + 1];
     }
 
     dbuffer[10] = 0.0;
     for (k = 0; k < 11; k++) {
-      dbuffer[k] += x_data[j] * dv7[k];
+      b_dbuffer = dbuffer[k] + x->data[j] * dv14[k];
+      dbuffer[k] = b_dbuffer;
     }
 
     for (k = 0; k < 10; k++) {
-      dbuffer[k + 1] -= dbuffer[0] * dv8[k + 1];
+      dbuffer[k + 1] -= dbuffer[0] * dv15[k + 1];
     }
 
-    y_data[j] = dbuffer[0];
+    y->data[j] = dbuffer[0];
   }
 }
 
@@ -590,16 +318,18 @@ static void b_filtfilt(const double x_in[250], double y_out[250])
   double d1;
   int i;
   double y[268];
+  double dv10[4];
+  double dv11[4];
   double a[3];
+  static const double dv12[4] = { 0.950971887923409, -2.85291566377023,
+    2.85291566377023, -0.950971887923409 };
+
+  static const double dv13[4] = { 1.0, -2.89947959461186, 2.803947977383,
+    -0.904347531392409 };
+
   double b_y[268];
   static const double b_a[3] = { -0.95097188792826548, 1.9019437758560462,
     -0.95097188792780118 };
-
-  static const double dv4[4] = { 0.950971887923409, -2.85291566377023,
-    2.85291566377023, -0.950971887923409 };
-
-  static const double dv5[4] = { 1.0, -2.89947959461186, 2.803947977383,
-    -0.904347531392409 };
 
   double c_y[268];
   xtmp = 2.0 * x_in[0];
@@ -613,16 +343,26 @@ static void b_filtfilt(const double x_in[250], double y_out[250])
     y[i + 259] = d1 - x_in[248 - i];
   }
 
+  for (i = 0; i < 4; i++) {
+    dv10[i] = dv12[i];
+    dv11[i] = dv13[i];
+  }
+
   for (i = 0; i < 3; i++) {
     a[i] = b_a[i] * y[0];
   }
 
   memcpy(&b_y[0], &y[0], 268U * sizeof(double));
-  filter(dv4, dv5, b_y, a, y);
+  filter(dv10, dv11, b_y, a, y);
   for (i = 0; i < 134; i++) {
     xtmp = y[i];
     y[i] = y[267 - i];
     y[267 - i] = xtmp;
+  }
+
+  for (i = 0; i < 4; i++) {
+    dv10[i] = dv12[i];
+    dv11[i] = dv13[i];
   }
 
   for (i = 0; i < 3; i++) {
@@ -630,7 +370,7 @@ static void b_filtfilt(const double x_in[250], double y_out[250])
   }
 
   memcpy(&c_y[0], &y[0], 268U * sizeof(double));
-  filter(dv4, dv5, c_y, a, y);
+  filter(dv10, dv11, c_y, a, y);
   for (i = 0; i < 134; i++) {
     xtmp = y[i];
     y[i] = y[267 - i];
@@ -642,37 +382,29 @@ static void b_filtfilt(const double x_in[250], double y_out[250])
 
 //
 // Arguments    : const double yTemp[1025]
-//                double iPk_data[]
-//                int iPk_size[1]
-//                double iInflect_data[]
-//                int iInflect_size[1]
+//                emxArray_real_T *iPk
+//                emxArray_real_T *iInflect
 // Return Type  : void
 //
-static void b_findLocalMaxima(const double yTemp[1025], double iPk_data[], int
-  iPk_size[1], double iInflect_data[], int iInflect_size[1])
+static void b_findLocalMaxima(const double yTemp[1025], emxArray_real_T *iPk,
+  emxArray_real_T *iInflect)
 {
   double b_yTemp[1027];
   boolean_T yFinite[1027];
   int ii;
   boolean_T x[1026];
-  int idx;
-  short ii_data[1026];
-  boolean_T exitg3;
-  boolean_T guard3 = false;
-  int nx;
-  short tmp_data[1027];
-  int i11;
-  int i12;
-  double yTemp_data[1027];
-  short iTemp_data[1027];
-  int yTemp_size[1];
-  emxArray_real_T *r3;
-  emxArray_real_T b_yTemp_data;
-  int s_size[1];
-  emxArray_boolean_T *b_x;
-  double s_data[1026];
-  emxArray_real_T b_s_data;
   emxArray_int32_T *b_ii;
+  int idx;
+  int i4;
+  boolean_T exitg3;
+  emxArray_int32_T *r9;
+  boolean_T guard3 = false;
+  emxArray_real_T *iTemp;
+  emxArray_real_T *c_yTemp;
+  emxArray_real_T *s;
+  emxArray_boolean_T *b_x;
+  emxArray_real_T *r10;
+  int nx;
   boolean_T exitg2;
   boolean_T guard2 = false;
   emxArray_int32_T *c_ii;
@@ -689,14 +421,18 @@ static void b_findLocalMaxima(const double yTemp[1025], double iPk_data[], int
     x[ii] = ((b_yTemp[ii] != b_yTemp[ii + 1]) && (yFinite[ii] || yFinite[ii + 1]));
   }
 
+  emxInit_int32_T(&b_ii, 1);
   idx = 0;
+  i4 = b_ii->size[0];
+  b_ii->size[0] = 1026;
+  emxEnsureCapacity((emxArray__common *)b_ii, i4, (int)sizeof(int));
   ii = 1;
   exitg3 = false;
   while ((!exitg3) && (ii < 1027)) {
     guard3 = false;
     if (x[ii - 1]) {
       idx++;
-      ii_data[idx - 1] = (short)ii;
+      b_ii->data[idx - 1] = ii;
       if (idx >= 1026) {
         exitg3 = true;
       } else {
@@ -711,70 +447,64 @@ static void b_findLocalMaxima(const double yTemp[1025], double iPk_data[], int
     }
   }
 
+  emxInit_int32_T(&r9, 1);
+  i4 = b_ii->size[0];
   if (1 > idx) {
-    nx = 0;
+    b_ii->size[0] = 0;
   } else {
-    nx = idx;
+    b_ii->size[0] = idx;
   }
 
-  tmp_data[0] = 1;
-  for (i11 = 0; i11 < nx; i11++) {
-    tmp_data[i11 + 1] = (short)(ii_data[i11] + 1);
+  emxEnsureCapacity((emxArray__common *)b_ii, i4, (int)sizeof(int));
+  i4 = r9->size[0];
+  r9->size[0] = 1 + b_ii->size[0];
+  emxEnsureCapacity((emxArray__common *)r9, i4, (int)sizeof(int));
+  r9->data[0] = 1;
+  ii = b_ii->size[0];
+  for (i4 = 0; i4 < ii; i4++) {
+    r9->data[i4 + 1] = b_ii->data[i4] + 1;
   }
 
-  if (1 > idx) {
-    i12 = 0;
-  } else {
-    i12 = idx;
+  emxInit_real_T1(&iTemp, 1);
+  i4 = iTemp->size[0];
+  iTemp->size[0] = r9->size[0];
+  emxEnsureCapacity((emxArray__common *)iTemp, i4, (int)sizeof(double));
+  ii = r9->size[0];
+  for (i4 = 0; i4 < ii; i4++) {
+    iTemp->data[i4] = 1.0 + (double)(r9->data[i4] - 1);
   }
 
-  ii = 1 + i12;
-  for (i11 = 0; i11 < ii; i11++) {
-    iTemp_data[i11] = tmp_data[i11];
+  emxFree_int32_T(&r9);
+  emxInit_real_T1(&c_yTemp, 1);
+  i4 = c_yTemp->size[0];
+  c_yTemp->size[0] = iTemp->size[0];
+  emxEnsureCapacity((emxArray__common *)c_yTemp, i4, (int)sizeof(double));
+  ii = iTemp->size[0];
+  for (i4 = 0; i4 < ii; i4++) {
+    c_yTemp->data[i4] = b_yTemp[(int)iTemp->data[i4] - 1];
   }
 
-  yTemp_size[0] = 1 + nx;
-  nx++;
-  for (i11 = 0; i11 < nx; i11++) {
-    yTemp_data[i11] = b_yTemp[iTemp_data[i11] - 1];
-  }
-
-  emxInit_real_T1(&r3, 1);
-  b_yTemp_data.data = (double *)&yTemp_data;
-  b_yTemp_data.size = (int *)&yTemp_size;
-  b_yTemp_data.allocatedSize = 1027;
-  b_yTemp_data.numDimensions = 1;
-  b_yTemp_data.canFreeData = false;
-  diff(&b_yTemp_data, r3);
-  b_sign(r3);
-  s_size[0] = r3->size[0];
-  nx = r3->size[0];
-  for (i11 = 0; i11 < nx; i11++) {
-    s_data[i11] = r3->data[i11];
-  }
-
+  emxInit_real_T1(&s, 1);
   emxInit_boolean_T(&b_x, 1);
-  b_s_data.data = (double *)&s_data;
-  b_s_data.size = (int *)&s_size;
-  b_s_data.allocatedSize = 1026;
-  b_s_data.numDimensions = 1;
-  b_s_data.canFreeData = false;
-  diff(&b_s_data, r3);
-  i11 = b_x->size[0];
-  b_x->size[0] = r3->size[0];
-  emxEnsureCapacity((emxArray__common *)b_x, i11, (int)sizeof(boolean_T));
-  nx = r3->size[0];
-  for (i11 = 0; i11 < nx; i11++) {
-    b_x->data[i11] = (r3->data[i11] < 0.0);
+  emxInit_real_T1(&r10, 1);
+  diff(c_yTemp, s);
+  b_sign(s);
+  diff(s, r10);
+  i4 = b_x->size[0];
+  b_x->size[0] = r10->size[0];
+  emxEnsureCapacity((emxArray__common *)b_x, i4, (int)sizeof(boolean_T));
+  ii = r10->size[0];
+  emxFree_real_T(&c_yTemp);
+  for (i4 = 0; i4 < ii; i4++) {
+    b_x->data[i4] = (r10->data[i4] < 0.0);
   }
 
-  emxFree_real_T(&r3);
-  emxInit_int32_T(&b_ii, 1);
+  emxFree_real_T(&r10);
   nx = b_x->size[0];
   idx = 0;
-  i11 = b_ii->size[0];
+  i4 = b_ii->size[0];
   b_ii->size[0] = b_x->size[0];
-  emxEnsureCapacity((emxArray__common *)b_ii, i11, (int)sizeof(int));
+  emxEnsureCapacity((emxArray__common *)b_ii, i4, (int)sizeof(int));
   ii = 1;
   exitg2 = false;
   while ((!exitg2) && (ii <= nx)) {
@@ -798,46 +528,47 @@ static void b_findLocalMaxima(const double yTemp[1025], double iPk_data[], int
 
   if (b_x->size[0] == 1) {
     if (idx == 0) {
-      i11 = b_ii->size[0];
+      i4 = b_ii->size[0];
       b_ii->size[0] = 0;
-      emxEnsureCapacity((emxArray__common *)b_ii, i11, (int)sizeof(int));
+      emxEnsureCapacity((emxArray__common *)b_ii, i4, (int)sizeof(int));
     }
   } else {
-    i11 = b_ii->size[0];
+    i4 = b_ii->size[0];
     if (1 > idx) {
       b_ii->size[0] = 0;
     } else {
       b_ii->size[0] = idx;
     }
 
-    emxEnsureCapacity((emxArray__common *)b_ii, i11, (int)sizeof(int));
+    emxEnsureCapacity((emxArray__common *)b_ii, i4, (int)sizeof(int));
   }
 
-  if (1 > s_size[0] - 1) {
-    nx = 0;
+  if (1.0 > (double)s->size[0] - 1.0) {
+    ii = 0;
   } else {
-    nx = s_size[0] - 1;
+    ii = (int)((double)s->size[0] - 1.0);
   }
 
-  if (2 > s_size[0]) {
-    i11 = 0;
+  if (2 > s->size[0]) {
+    i4 = 0;
   } else {
-    i11 = 1;
+    i4 = 1;
   }
 
-  ii = b_x->size[0];
-  b_x->size[0] = nx;
-  emxEnsureCapacity((emxArray__common *)b_x, ii, (int)sizeof(boolean_T));
-  for (ii = 0; ii < nx; ii++) {
-    b_x->data[ii] = (s_data[ii] != s_data[i11 + ii]);
+  idx = b_x->size[0];
+  b_x->size[0] = ii;
+  emxEnsureCapacity((emxArray__common *)b_x, idx, (int)sizeof(boolean_T));
+  for (idx = 0; idx < ii; idx++) {
+    b_x->data[idx] = (s->data[idx] != s->data[i4 + idx]);
   }
 
+  emxFree_real_T(&s);
   emxInit_int32_T(&c_ii, 1);
   nx = b_x->size[0];
   idx = 0;
-  i11 = c_ii->size[0];
+  i4 = c_ii->size[0];
   c_ii->size[0] = b_x->size[0];
-  emxEnsureCapacity((emxArray__common *)c_ii, i11, (int)sizeof(int));
+  emxEnsureCapacity((emxArray__common *)c_ii, i4, (int)sizeof(int));
   ii = 1;
   exitg1 = false;
   while ((!exitg1) && (ii <= nx)) {
@@ -861,168 +592,87 @@ static void b_findLocalMaxima(const double yTemp[1025], double iPk_data[], int
 
   if (b_x->size[0] == 1) {
     if (idx == 0) {
-      i11 = c_ii->size[0];
+      i4 = c_ii->size[0];
       c_ii->size[0] = 0;
-      emxEnsureCapacity((emxArray__common *)c_ii, i11, (int)sizeof(int));
+      emxEnsureCapacity((emxArray__common *)c_ii, i4, (int)sizeof(int));
     }
   } else {
-    i11 = c_ii->size[0];
+    i4 = c_ii->size[0];
     if (1 > idx) {
       c_ii->size[0] = 0;
     } else {
       c_ii->size[0] = idx;
     }
 
-    emxEnsureCapacity((emxArray__common *)c_ii, i11, (int)sizeof(int));
+    emxEnsureCapacity((emxArray__common *)c_ii, i4, (int)sizeof(int));
   }
 
   emxFree_boolean_T(&b_x);
-  iInflect_size[0] = c_ii->size[0];
-  nx = c_ii->size[0];
-  for (i11 = 0; i11 < nx; i11++) {
-    iInflect_data[i11] = (double)iTemp_data[c_ii->data[i11]] - 1.0;
+  i4 = iInflect->size[0];
+  iInflect->size[0] = c_ii->size[0];
+  emxEnsureCapacity((emxArray__common *)iInflect, i4, (int)sizeof(double));
+  ii = c_ii->size[0];
+  for (i4 = 0; i4 < ii; i4++) {
+    iInflect->data[i4] = iTemp->data[c_ii->data[i4]] - 1.0;
   }
 
   emxFree_int32_T(&c_ii);
-  iPk_size[0] = b_ii->size[0];
-  nx = b_ii->size[0];
-  for (i11 = 0; i11 < nx; i11++) {
-    iPk_data[i11] = (double)iTemp_data[b_ii->data[i11]] - 1.0;
+  i4 = iPk->size[0];
+  iPk->size[0] = b_ii->size[0];
+  emxEnsureCapacity((emxArray__common *)iPk, i4, (int)sizeof(double));
+  ii = b_ii->size[0];
+  for (i4 = 0; i4 < ii; i4++) {
+    iPk->data[i4] = iTemp->data[b_ii->data[i4]] - 1.0;
   }
 
   emxFree_int32_T(&b_ii);
+  emxFree_real_T(&iTemp);
 }
 
 //
 // Arguments    : const double Yin[1025]
-//                double Ypk_data[]
-//                int Ypk_size[2]
-//                double Xpk_data[]
-//                int Xpk_size[2]
+//                emxArray_real_T *Ypk
+//                emxArray_real_T *Xpk
 // Return Type  : void
 //
-static void b_findpeaks(const double Yin[1025], double Ypk_data[], int Ypk_size
-  [2], double Xpk_data[], int Xpk_size[2])
-{
-  double iFinite_data[1025];
-  int iFinite_size[1];
-  double iInfite_data[1025];
-  int iInfite_size[1];
-  double iInflect_data[1025];
-  int iInflect_size[1];
-  int iPk_size[1];
-  int loop_ub;
-  int i10;
-  double iPk_data[2050];
-  emxArray_real_T *iPkOut;
-  emxArray_int32_T *ia;
-  emxArray_int32_T *ib;
-  emxArray_real_T b_iPk_data;
-  emxArray_real_T b_iInfite_data;
-  double iPkOut_data[2050];
-  int iPkOut_size[1];
-  b_getAllPeaks(Yin, iFinite_data, iFinite_size, iInfite_data, iInfite_size,
-                iInflect_data, iInflect_size);
-  b_removePeaksBelowMinPeakHeight(Yin, iFinite_data, iFinite_size);
-  iPk_size[0] = iFinite_size[0];
-  loop_ub = iFinite_size[0];
-  for (i10 = 0; i10 < loop_ub; i10++) {
-    iPk_data[i10] = iFinite_data[i10];
-  }
-
-  iFinite_size[0] = iPk_size[0];
-  loop_ub = iPk_size[0];
-  for (i10 = 0; i10 < loop_ub; i10++) {
-    iFinite_data[i10] = iPk_data[i10];
-  }
-
-  b_removePeaksBelowThreshold(Yin, iFinite_data, iFinite_size);
-  iPk_size[0] = iFinite_size[0];
-  loop_ub = iFinite_size[0];
-  for (i10 = 0; i10 < loop_ub; i10++) {
-    iPk_data[i10] = iFinite_data[i10];
-  }
-
-  emxInit_real_T1(&iPkOut, 1);
-  emxInit_int32_T(&ia, 1);
-  emxInit_int32_T(&ib, 1);
-  b_iPk_data.data = (double *)&iPk_data;
-  b_iPk_data.size = (int *)&iPk_size;
-  b_iPk_data.allocatedSize = 2050;
-  b_iPk_data.numDimensions = 1;
-  b_iPk_data.canFreeData = false;
-  b_iInfite_data.data = (double *)&iInfite_data;
-  b_iInfite_data.size = (int *)&iInfite_size;
-  b_iInfite_data.allocatedSize = 1025;
-  b_iInfite_data.numDimensions = 1;
-  b_iInfite_data.canFreeData = false;
-  do_vectors(&b_iPk_data, &b_iInfite_data, iPkOut, ia, ib);
-  d_findPeaksSeparatedByMoreThanM(iPkOut->size, iPk_data, iPk_size);
-  orderPeaks(Yin, iPkOut->data, iPk_data, iPk_size);
-  b_keepAtMostNpPeaks(iPk_data, iPk_size);
-  emxFree_int32_T(&ib);
-  emxFree_int32_T(&ia);
-  for (i10 = 0; i10 < 1025; i10++) {
-    iFinite_data[i10] = 1.0 + (double)i10;
-  }
-
-  iPkOut_size[0] = iPk_size[0];
-  loop_ub = iPk_size[0];
-  for (i10 = 0; i10 < loop_ub; i10++) {
-    iPkOut_data[i10] = iPkOut->data[(int)iPk_data[i10] - 1];
-  }
-
-  emxFree_real_T(&iPkOut);
-  b_assignOutputs(Yin, iFinite_data, iPkOut_data, iPkOut_size, Ypk_data,
-                  Ypk_size, Xpk_data, Xpk_size);
-}
-
-//
-// Arguments    : double *x
-// Return Type  : void
-//
-static void b_fix(double *x)
-{
-  if (*x < 0.0) {
-    *x = std::ceil(*x);
-  } else {
-    *x = std::floor(*x);
-  }
-}
-
-//
-// Arguments    : const double y[1025]
-//                double iPk_data[]
-//                int iPk_size[1]
-//                double iInf_data[]
-//                int iInf_size[1]
-//                double iInflect_data[]
-//                int iInflect_size[1]
-// Return Type  : void
-//
-static void b_getAllPeaks(const double y[1025], double iPk_data[], int iPk_size
-  [1], double iInf_data[], int iInf_size[1], double iInflect_data[], int
-  iInflect_size[1])
+static void b_findpeaks(const double Yin[1025], emxArray_real_T *Ypk,
+  emxArray_real_T *Xpk)
 {
   boolean_T x[1025];
+  int k;
+  emxArray_int32_T *ii;
   int idx;
-  short ii_data[1025];
-  int ii;
+  int cdiff;
   boolean_T exitg1;
+  emxArray_real_T *iInfite;
   boolean_T guard1 = false;
   double yTemp[1025];
-  for (idx = 0; idx < 1025; idx++) {
-    x[idx] = (rtIsInf(y[idx]) && (y[idx] > 0.0));
+  emxArray_real_T *iPk;
+  emxArray_real_T *iInflect;
+  int ndbl;
+  emxArray_real_T *base;
+  double extremum;
+  int apnd;
+  emxArray_real_T *y;
+  emxArray_real_T *b_idx;
+  emxArray_real_T *c_idx;
+  emxArray_real_T *d_idx;
+  for (k = 0; k < 1025; k++) {
+    x[k] = (rtIsInf(Yin[k]) && (Yin[k] > 0.0));
   }
 
+  emxInit_int32_T(&ii, 1);
   idx = 0;
-  ii = 1;
+  k = ii->size[0];
+  ii->size[0] = 1025;
+  emxEnsureCapacity((emxArray__common *)ii, k, (int)sizeof(int));
+  cdiff = 1;
   exitg1 = false;
-  while ((!exitg1) && (ii < 1026)) {
+  while ((!exitg1) && (cdiff < 1026)) {
     guard1 = false;
-    if (x[ii - 1]) {
+    if (x[cdiff - 1]) {
       idx++;
-      ii_data[idx - 1] = (short)ii;
+      ii->data[idx - 1] = cdiff;
       if (idx >= 1025) {
         exitg1 = true;
       } else {
@@ -1033,85 +683,306 @@ static void b_getAllPeaks(const double y[1025], double iPk_data[], int iPk_size
     }
 
     if (guard1) {
-      ii++;
+      cdiff++;
     }
   }
 
+  emxInit_real_T1(&iInfite, 1);
+  k = ii->size[0];
   if (1 > idx) {
-    idx = 0;
+    ii->size[0] = 0;
+  } else {
+    ii->size[0] = idx;
   }
 
-  iInf_size[0] = idx;
-  for (ii = 0; ii < idx; ii++) {
-    iInf_data[ii] = ii_data[ii];
+  emxEnsureCapacity((emxArray__common *)ii, k, (int)sizeof(int));
+  k = iInfite->size[0];
+  iInfite->size[0] = ii->size[0];
+  emxEnsureCapacity((emxArray__common *)iInfite, k, (int)sizeof(double));
+  cdiff = ii->size[0];
+  for (k = 0; k < cdiff; k++) {
+    iInfite->data[k] = ii->data[k];
   }
 
-  memcpy(&yTemp[0], &y[0], 1025U * sizeof(double));
-  for (ii = 0; ii < idx; ii++) {
-    ii_data[ii] = (short)iInf_data[ii];
+  memcpy(&yTemp[0], &Yin[0], 1025U * sizeof(double));
+  k = ii->size[0];
+  ii->size[0] = iInfite->size[0];
+  emxEnsureCapacity((emxArray__common *)ii, k, (int)sizeof(int));
+  cdiff = iInfite->size[0];
+  for (k = 0; k < cdiff; k++) {
+    ii->data[k] = (int)iInfite->data[k];
   }
 
-  for (ii = 0; ii < idx; ii++) {
-    yTemp[ii_data[ii] - 1] = rtNaN;
+  cdiff = ii->size[0];
+  for (k = 0; k < cdiff; k++) {
+    yTemp[ii->data[k] - 1] = rtNaN;
   }
 
-  b_findLocalMaxima(yTemp, iPk_data, iPk_size, iInflect_data, iInflect_size);
-}
+  emxInit_real_T1(&iPk, 1);
+  emxInit_real_T1(&iInflect, 1);
+  b_findLocalMaxima(yTemp, iPk, iInflect);
+  if (!(iPk->size[0] == 0)) {
+    cdiff = iPk->size[0] - 1;
+    ndbl = 0;
+    for (idx = 0; idx <= cdiff; idx++) {
+      if (Yin[(int)iPk->data[idx] - 1] > rtMinusInf) {
+        ndbl++;
+      }
+    }
 
-//
-// Arguments    : double idx_data[]
-//                int idx_size[1]
-// Return Type  : void
-//
-static void b_keepAtMostNpPeaks(double idx_data[], int idx_size[1])
-{
-  double b_idx_data[2050];
-  int i27;
-  if (idx_size[0] > 1025) {
-    memcpy(&b_idx_data[0], &idx_data[0], 1025U * sizeof(double));
-    idx_size[0] = 1025;
-    for (i27 = 0; i27 < 1025; i27++) {
-      idx_data[i27] = b_idx_data[i27];
+    k = 0;
+    for (idx = 0; idx <= cdiff; idx++) {
+      if (Yin[(int)iPk->data[idx] - 1] > rtMinusInf) {
+        iPk->data[k] = iPk->data[idx];
+        k++;
+      }
+    }
+
+    k = iPk->size[0];
+    iPk->size[0] = ndbl;
+    emxEnsureCapacity((emxArray__common *)iPk, k, (int)sizeof(double));
+  }
+
+  cdiff = iPk->size[0];
+  emxInit_real_T1(&base, 1);
+  k = base->size[0];
+  base->size[0] = cdiff;
+  emxEnsureCapacity((emxArray__common *)base, k, (int)sizeof(double));
+  for (k = 0; k + 1 <= cdiff; k++) {
+    if ((Yin[(int)(iPk->data[k] - 1.0) - 1] >= Yin[(int)(iPk->data[k] + 1.0) - 1])
+        || rtIsNaN(Yin[(int)(iPk->data[k] + 1.0) - 1])) {
+      extremum = Yin[(int)(iPk->data[k] - 1.0) - 1];
+    } else {
+      extremum = Yin[(int)(iPk->data[k] + 1.0) - 1];
+    }
+
+    base->data[k] = extremum;
+  }
+
+  cdiff = iPk->size[0] - 1;
+  ndbl = 0;
+  for (idx = 0; idx <= cdiff; idx++) {
+    if (Yin[(int)iPk->data[idx] - 1] - base->data[idx] >= 0.0) {
+      ndbl++;
     }
   }
+
+  k = 0;
+  for (idx = 0; idx <= cdiff; idx++) {
+    if (Yin[(int)iPk->data[idx] - 1] - base->data[idx] >= 0.0) {
+      iPk->data[k] = iPk->data[idx];
+      k++;
+    }
+  }
+
+  k = iPk->size[0];
+  iPk->size[0] = ndbl;
+  emxEnsureCapacity((emxArray__common *)iPk, k, (int)sizeof(double));
+  combinePeaks(iPk, iInfite, base);
+  emxFree_real_T(&iInfite);
+  if (base->size[0] < 1) {
+    ndbl = 0;
+    apnd = 0;
+  } else {
+    ndbl = (int)std::floor(((double)base->size[0] - 1.0) + 0.5);
+    apnd = ndbl + 1;
+    cdiff = (ndbl - base->size[0]) + 1;
+    idx = base->size[0];
+    if (std::abs((double)cdiff) < 4.4408920985006262E-16 * (double)idx) {
+      ndbl++;
+      apnd = base->size[0];
+    } else if (cdiff > 0) {
+      apnd = ndbl;
+    } else {
+      ndbl++;
+    }
+  }
+
+  emxInit_real_T(&y, 2);
+  k = y->size[0] * y->size[1];
+  y->size[0] = 1;
+  y->size[1] = ndbl;
+  emxEnsureCapacity((emxArray__common *)y, k, (int)sizeof(double));
+  if (ndbl > 0) {
+    y->data[0] = 1.0;
+    if (ndbl > 1) {
+      y->data[ndbl - 1] = apnd;
+      idx = (ndbl - 1) / 2;
+      for (k = 1; k < idx; k++) {
+        y->data[k] = 1.0 + (double)k;
+        y->data[(ndbl - k) - 1] = apnd - k;
+      }
+
+      if (idx << 1 == ndbl - 1) {
+        y->data[idx] = (1.0 + (double)apnd) / 2.0;
+      } else {
+        y->data[idx] = 1.0 + (double)idx;
+        y->data[idx + 1] = apnd - idx;
+      }
+    }
+  }
+
+  emxInit_real_T1(&b_idx, 1);
+  k = b_idx->size[0];
+  b_idx->size[0] = y->size[1];
+  emxEnsureCapacity((emxArray__common *)b_idx, k, (int)sizeof(double));
+  cdiff = y->size[1];
+  for (k = 0; k < cdiff; k++) {
+    b_idx->data[k] = y->data[y->size[0] * k];
+  }
+
+  emxFree_real_T(&y);
+  if (b_idx->size[0] == 0) {
+  } else {
+    k = iInflect->size[0];
+    iInflect->size[0] = b_idx->size[0];
+    emxEnsureCapacity((emxArray__common *)iInflect, k, (int)sizeof(double));
+    cdiff = b_idx->size[0];
+    for (k = 0; k < cdiff; k++) {
+      iInflect->data[k] = Yin[(int)base->data[(int)b_idx->data[k] - 1] - 1];
+    }
+
+    emxInit_real_T1(&d_idx, 1);
+    b_sort(iInflect, ii);
+    k = d_idx->size[0];
+    d_idx->size[0] = ii->size[0];
+    emxEnsureCapacity((emxArray__common *)d_idx, k, (int)sizeof(double));
+    cdiff = ii->size[0];
+    for (k = 0; k < cdiff; k++) {
+      d_idx->data[k] = b_idx->data[ii->data[k] - 1];
+    }
+
+    k = b_idx->size[0];
+    b_idx->size[0] = d_idx->size[0];
+    emxEnsureCapacity((emxArray__common *)b_idx, k, (int)sizeof(double));
+    cdiff = d_idx->size[0];
+    for (k = 0; k < cdiff; k++) {
+      b_idx->data[k] = d_idx->data[k];
+    }
+
+    emxFree_real_T(&d_idx);
+  }
+
+  emxFree_int32_T(&ii);
+  emxFree_real_T(&iInflect);
+  if (b_idx->size[0] > 1025) {
+    emxInit_real_T1(&c_idx, 1);
+    k = c_idx->size[0];
+    c_idx->size[0] = 1025;
+    emxEnsureCapacity((emxArray__common *)c_idx, k, (int)sizeof(double));
+    for (k = 0; k < 1025; k++) {
+      c_idx->data[k] = b_idx->data[k];
+    }
+
+    k = b_idx->size[0];
+    b_idx->size[0] = c_idx->size[0];
+    emxEnsureCapacity((emxArray__common *)b_idx, k, (int)sizeof(double));
+    cdiff = c_idx->size[0];
+    for (k = 0; k < cdiff; k++) {
+      b_idx->data[k] = c_idx->data[k];
+    }
+
+    emxFree_real_T(&c_idx);
+  }
+
+  k = iPk->size[0];
+  iPk->size[0] = b_idx->size[0];
+  emxEnsureCapacity((emxArray__common *)iPk, k, (int)sizeof(double));
+  cdiff = b_idx->size[0];
+  for (k = 0; k < cdiff; k++) {
+    iPk->data[k] = base->data[(int)b_idx->data[k] - 1];
+  }
+
+  emxFree_real_T(&base);
+  emxFree_real_T(&b_idx);
+  k = Ypk->size[0] * Ypk->size[1];
+  Ypk->size[0] = 1;
+  Ypk->size[1] = iPk->size[0];
+  emxEnsureCapacity((emxArray__common *)Ypk, k, (int)sizeof(double));
+  cdiff = iPk->size[0];
+  for (k = 0; k < cdiff; k++) {
+    Ypk->data[Ypk->size[0] * k] = Yin[(int)iPk->data[k] - 1];
+  }
+
+  k = Xpk->size[0] * Xpk->size[1];
+  Xpk->size[0] = 1;
+  Xpk->size[1] = iPk->size[0];
+  emxEnsureCapacity((emxArray__common *)Xpk, k, (int)sizeof(double));
+  cdiff = iPk->size[0];
+  for (k = 0; k < cdiff; k++) {
+    Xpk->data[Xpk->size[0] * k] = 1.0 + (double)((int)iPk->data[k] - 1);
+  }
+
+  emxFree_real_T(&iPk);
 }
 
 //
-// Arguments    : const emxArray_real_T *x
-//                emxArray_real_T *b_x
+// Arguments    : const emxArray_real_T *varargin_1
+//                const emxArray_real_T *varargin_2
+// Return Type  : boolean_T
+//
+static boolean_T b_isequal(const emxArray_real_T *varargin_1, const
+  emxArray_real_T *varargin_2)
+{
+  boolean_T p;
+  boolean_T b_p;
+  int k;
+  int exitg2;
+  int i11;
+  int i12;
+  boolean_T exitg1;
+  p = false;
+  b_p = false;
+  k = 0;
+  do {
+    exitg2 = 0;
+    if (k < 2) {
+      i11 = varargin_1->size[k];
+      i12 = varargin_2->size[k];
+      if (i11 != i12) {
+        exitg2 = 1;
+      } else {
+        k++;
+      }
+    } else {
+      b_p = true;
+      exitg2 = 1;
+    }
+  } while (exitg2 == 0);
+
+  if (b_p && (!(varargin_1->size[1] == 0)) && (!(varargin_2->size[1] == 0))) {
+    k = 0;
+    exitg1 = false;
+    while ((!exitg1) && (k <= varargin_2->size[1] - 1)) {
+      if (!(varargin_1->data[k] == varargin_2->data[k])) {
+        b_p = false;
+        exitg1 = true;
+      } else {
+        k++;
+      }
+    }
+  }
+
+  if (!b_p) {
+  } else {
+    p = true;
+  }
+
+  return p;
+}
+
+//
+// Arguments    : emxArray_real_T *x
 // Return Type  : void
 //
-static void b_log10(const emxArray_real_T *x, emxArray_real_T *b_x)
+static void b_log10(emxArray_real_T *x)
 {
-  int i22;
-  int loop_ub;
-  i22 = b_x->size[0] * b_x->size[1];
-  b_x->size[0] = 1025;
-  b_x->size[1] = x->size[1];
-  emxEnsureCapacity((emxArray__common *)b_x, i22, (int)sizeof(double));
-  loop_ub = x->size[0] * x->size[1];
-  for (i22 = 0; i22 < loop_ub; i22++) {
-    b_x->data[i22] = x->data[i22];
-  }
-
-  c_log10(b_x);
-}
-
-//
-// Arguments    : const double x[4]
-// Return Type  : double
-//
-static double b_mean(const double x[4])
-{
-  double y;
+  int nx;
   int k;
-  y = x[0];
-  for (k = 0; k < 3; k++) {
-    y += x[k + 1];
+  nx = x->size[0] * x->size[1];
+  for (k = 0; k + 1 <= nx; k++) {
+    x->data[k] = std::log10(x->data[k]);
   }
-
-  y /= 4.0;
-  return y;
 }
 
 //
@@ -1132,7 +1003,7 @@ static void b_merge(emxArray_int32_T *idx, emxArray_real_T *x, int offset, int
   int p;
   int iout;
   int exitg1;
-  if (nq == 0) {
+  if ((np == 0) || (nq == 0)) {
   } else {
     n = np + nq;
     for (qend = 0; qend + 1 <= n; qend++) {
@@ -1161,10 +1032,10 @@ static void b_merge(emxArray_int32_T *idx, emxArray_real_T *x, int offset, int
         if (n + 1 < qend) {
           n++;
         } else {
-          n = (iout - p) + 1;
+          n = iout - p;
           while (p + 1 <= np) {
-            idx->data[n + p] = iwork->data[p];
-            x->data[n + p] = xwork->data[p];
+            idx->data[(n + p) + 1] = iwork->data[p];
+            x->data[(n + p) + 1] = xwork->data[p];
             p++;
           }
 
@@ -1220,328 +1091,28 @@ static void b_merge_block(emxArray_int32_T *idx, emxArray_real_T *x, int offset,
 }
 
 //
-// Arguments    : emxArray_int32_T *idx
-//                emxArray_real_T *x
-//                int offset
-// Return Type  : void
+// Arguments    : double x
+//                double y
+// Return Type  : double
 //
-static void b_merge_pow2_block(emxArray_int32_T *idx, emxArray_real_T *x, int
-  offset)
+static double b_mod(double x, double y)
 {
-  int iwork[256];
-  double xwork[256];
-  int b;
-  int bLen;
-  int bLen2;
-  int nPairs;
-  int k;
-  int blockOffset;
-  int q;
-  int p;
-  int exitg1;
-  for (b = 0; b < 6; b++) {
-    bLen = 1 << (b + 2);
-    bLen2 = bLen << 1;
-    nPairs = 256 >> (b + 3);
-    for (k = 1; k <= nPairs; k++) {
-      blockOffset = (offset + (k - 1) * bLen2) - 1;
-      for (q = 1; q <= bLen2; q++) {
-        iwork[q - 1] = idx->data[blockOffset + q];
-        xwork[q - 1] = x->data[blockOffset + q];
-      }
-
-      p = 0;
-      q = bLen;
-      do {
-        exitg1 = 0;
-        blockOffset++;
-        if (xwork[p] >= xwork[q]) {
-          idx->data[blockOffset] = iwork[p];
-          x->data[blockOffset] = xwork[p];
-          if (p + 1 < bLen) {
-            p++;
-          } else {
-            exitg1 = 1;
-          }
-        } else {
-          idx->data[blockOffset] = iwork[q];
-          x->data[blockOffset] = xwork[q];
-          if (q + 1 < bLen2) {
-            q++;
-          } else {
-            q = blockOffset - p;
-            while (p + 1 <= bLen) {
-              idx->data[(q + p) + 1] = iwork[p];
-              x->data[(q + p) + 1] = xwork[p];
-              p++;
-            }
-
-            exitg1 = 1;
-          }
-        }
-      } while (exitg1 == 0);
-    }
-  }
-}
-
-//
-// Arguments    : const emxArray_real_T *a
-//                emxArray_real_T *y
-// Return Type  : void
-//
-static void b_power(const emxArray_real_T *a, emxArray_real_T *y)
-{
-  emxArray_real_T *x;
-  int i17;
-  int loop_ub;
-  int k;
-  int b_k;
-  emxInit_real_T1(&x, 1);
-  i17 = x->size[0];
-  x->size[0] = a->size[0];
-  emxEnsureCapacity((emxArray__common *)x, i17, (int)sizeof(double));
-  loop_ub = a->size[0];
-  for (i17 = 0; i17 < loop_ub; i17++) {
-    x->data[i17] = a->data[i17];
-  }
-
-  loop_ub = a->size[0];
-  i17 = y->size[0];
-  y->size[0] = loop_ub;
-  emxEnsureCapacity((emxArray__common *)y, i17, (int)sizeof(double));
-  loop_ub = a->size[0];
-
-#pragma omp parallel for \
- num_threads(omp_get_max_threads()) \
- private(b_k)
-
-  for (k = 1; k <= loop_ub; k++) {
-    b_k = k;
-    y->data[b_k - 1] = x->data[b_k - 1] * x->data[b_k - 1];
-  }
-
-  emxFree_real_T(&x);
-}
-
-//
-// Arguments    : const emxArray_real_T *x
-//                int n1_unsigned
-//                const emxArray_real_T *costab
-//                const emxArray_real_T *sintab
-//                emxArray_creal_T *y
-// Return Type  : void
-//
-static void b_r2br_r2dit_trig(const emxArray_real_T *x, int n1_unsigned, const
-  emxArray_real_T *costab, const emxArray_real_T *sintab, emxArray_creal_T *y)
-{
-  int j;
-  int nRowsD2;
-  int nRowsD4;
-  int iy;
-  int iDelta;
-  int ix;
-  int ju;
-  int i;
-  boolean_T tst;
-  double temp_re;
-  double temp_im;
-  double twid_re;
-  double twid_im;
-  int ihi;
-  if (x->size[0] <= n1_unsigned) {
-    j = x->size[0];
+  double r;
+  if (y == 0.0) {
+    r = x;
+  } else if (y == std::floor(y)) {
+    r = x - std::floor(x / y) * y;
   } else {
-    j = n1_unsigned;
-  }
-
-  nRowsD2 = n1_unsigned / 2;
-  nRowsD4 = nRowsD2 / 2;
-  iy = y->size[0];
-  y->size[0] = n1_unsigned;
-  emxEnsureCapacity((emxArray__common *)y, iy, (int)sizeof(creal_T));
-  if (n1_unsigned > x->size[0]) {
-    iDelta = y->size[0];
-    iy = y->size[0];
-    y->size[0] = iDelta;
-    emxEnsureCapacity((emxArray__common *)y, iy, (int)sizeof(creal_T));
-    for (iy = 0; iy < iDelta; iy++) {
-      y->data[iy].re = 0.0;
-      y->data[iy].im = 0.0;
-    }
-  }
-
-  ix = 0;
-  ju = 0;
-  iy = 0;
-  for (i = 1; i < j; i++) {
-    y->data[iy].re = x->data[ix];
-    y->data[iy].im = 0.0;
-    iDelta = n1_unsigned;
-    tst = true;
-    while (tst) {
-      iDelta >>= 1;
-      ju ^= iDelta;
-      tst = ((ju & iDelta) == 0);
-    }
-
-    iy = ju;
-    ix++;
-  }
-
-  y->data[iy].re = x->data[ix];
-  y->data[iy].im = 0.0;
-  if (n1_unsigned > 1) {
-    for (i = 0; i <= n1_unsigned - 2; i += 2) {
-      temp_re = y->data[i + 1].re;
-      temp_im = y->data[i + 1].im;
-      y->data[i + 1].re = y->data[i].re - y->data[i + 1].re;
-      y->data[i + 1].im = y->data[i].im - y->data[i + 1].im;
-      y->data[i].re += temp_re;
-      y->data[i].im += temp_im;
-    }
-  }
-
-  iDelta = 2;
-  iy = 4;
-  ix = 1 + ((nRowsD4 - 1) << 2);
-  while (nRowsD4 > 0) {
-    for (i = 0; i < ix; i += iy) {
-      temp_re = y->data[i + iDelta].re;
-      temp_im = y->data[i + iDelta].im;
-      y->data[i + iDelta].re = y->data[i].re - temp_re;
-      y->data[i + iDelta].im = y->data[i].im - temp_im;
-      y->data[i].re += temp_re;
-      y->data[i].im += temp_im;
-    }
-
-    ju = 1;
-    for (j = nRowsD4; j < nRowsD2; j += nRowsD4) {
-      twid_re = costab->data[j];
-      twid_im = sintab->data[j];
-      i = ju;
-      ihi = ju + ix;
-      while (i < ihi) {
-        temp_re = twid_re * y->data[i + iDelta].re - twid_im * y->data[i +
-          iDelta].im;
-        temp_im = twid_re * y->data[i + iDelta].im + twid_im * y->data[i +
-          iDelta].re;
-        y->data[i + iDelta].re = y->data[i].re - temp_re;
-        y->data[i + iDelta].im = y->data[i].im - temp_im;
-        y->data[i].re += temp_re;
-        y->data[i].im += temp_im;
-        i += iy;
-      }
-
-      ju++;
-    }
-
-    nRowsD4 /= 2;
-    iDelta = iy;
-    iy <<= 1;
-    ix -= iDelta;
-  }
-}
-
-//
-// Arguments    : const double Y[1025]
-//                double iPk_data[]
-//                int iPk_size[1]
-// Return Type  : void
-//
-static void b_removePeaksBelowMinPeakHeight(const double Y[1025], double
-  iPk_data[], int iPk_size[1])
-{
-  int end;
-  int trueCount;
-  int i;
-  int partialTrueCount;
-  if (!(iPk_size[0] == 0)) {
-    end = iPk_size[0] - 1;
-    trueCount = 0;
-    for (i = 0; i <= end; i++) {
-      if (Y[(int)iPk_data[i] - 1] > rtMinusInf) {
-        trueCount++;
-      }
-    }
-
-    partialTrueCount = 0;
-    for (i = 0; i <= end; i++) {
-      if (Y[(int)iPk_data[i] - 1] > rtMinusInf) {
-        iPk_data[partialTrueCount] = iPk_data[i];
-        partialTrueCount++;
-      }
-    }
-
-    iPk_size[0] = trueCount;
-  }
-}
-
-//
-// Arguments    : const double Y[1025]
-//                double iPk_data[]
-//                int iPk_size[1]
-// Return Type  : void
-//
-static void b_removePeaksBelowThreshold(const double Y[1025], double iPk_data[],
-  int iPk_size[1])
-{
-  emxArray_real_T *maxval;
-  short csz_idx_0;
-  int k;
-  int trueCount;
-  int i;
-  int partialTrueCount;
-  emxInit_real_T1(&maxval, 1);
-  csz_idx_0 = (short)iPk_size[0];
-  k = maxval->size[0];
-  maxval->size[0] = (short)iPk_size[0];
-  emxEnsureCapacity((emxArray__common *)maxval, k, (int)sizeof(double));
-  for (k = 0; k + 1 <= csz_idx_0; k++) {
-    if ((Y[(int)(iPk_data[k] - 1.0) - 1] >= Y[(int)(iPk_data[k] + 1.0) - 1]) ||
-        rtIsNaN(Y[(int)(iPk_data[k] + 1.0) - 1])) {
-      maxval->data[k] = Y[(int)(iPk_data[k] - 1.0) - 1];
+    r = x / y;
+    if (std::abs(r - rt_roundd_snf(r)) <= 2.2204460492503131E-16 * std::abs(r))
+    {
+      r = 0.0;
     } else {
-      maxval->data[k] = Y[(int)(iPk_data[k] + 1.0) - 1];
+      r = (r - std::floor(r)) * y;
     }
   }
 
-  k = iPk_size[0] - 1;
-  trueCount = 0;
-  for (i = 0; i <= k; i++) {
-    if (Y[(int)iPk_data[i] - 1] - maxval->data[i] >= 0.0) {
-      trueCount++;
-    }
-  }
-
-  partialTrueCount = 0;
-  for (i = 0; i <= k; i++) {
-    if (Y[(int)iPk_data[i] - 1] - maxval->data[i] >= 0.0) {
-      iPk_data[partialTrueCount] = iPk_data[i];
-      partialTrueCount++;
-    }
-  }
-
-  emxFree_real_T(&maxval);
-  iPk_size[0] = trueCount;
-}
-
-//
-// Arguments    : double a
-//                double varargin_1
-//                emxArray_real_T *b
-// Return Type  : void
-//
-static void b_repmat(double a, double varargin_1, emxArray_real_T *b)
-{
-  int i16;
-  int loop_ub;
-  i16 = b->size[0];
-  b->size[0] = (int)varargin_1;
-  emxEnsureCapacity((emxArray__common *)b, i16, (int)sizeof(double));
-  loop_ub = (int)varargin_1;
-  for (i16 = 0; i16 < loop_ub; i16++) {
-    b->data[i16] = a;
-  }
+  return r;
 }
 
 //
@@ -1586,286 +1157,19 @@ static void b_sort(emxArray_real_T *x, emxArray_int32_T *idx)
 }
 
 //
-// Arguments    : emxArray_real_T *x
-//                emxArray_int32_T *idx
-// Return Type  : void
+// Arguments    : const double x[4]
+// Return Type  : double
 //
-static void b_sortIdx(emxArray_real_T *x, emxArray_int32_T *idx)
+static double b_sum(const double x[4])
 {
-  emxArray_real_T *b_x;
-  int ib;
-  int wOffset;
-  int m;
-  int n;
-  double x4[4];
-  int idx4[4];
-  emxArray_int32_T *iwork;
-  emxArray_real_T *xwork;
-  int nNaNs;
+  double y;
   int k;
-  signed char perm[4];
-  int i3;
-  int i4;
-  emxInit_real_T1(&b_x, 1);
-  ib = x->size[0];
-  wOffset = b_x->size[0];
-  b_x->size[0] = x->size[0];
-  emxEnsureCapacity((emxArray__common *)b_x, wOffset, (int)sizeof(double));
-  m = x->size[0];
-  for (wOffset = 0; wOffset < m; wOffset++) {
-    b_x->data[wOffset] = x->data[wOffset];
+  y = x[0];
+  for (k = 0; k < 3; k++) {
+    y += x[k + 1];
   }
 
-  wOffset = idx->size[0];
-  idx->size[0] = ib;
-  emxEnsureCapacity((emxArray__common *)idx, wOffset, (int)sizeof(int));
-  for (wOffset = 0; wOffset < ib; wOffset++) {
-    idx->data[wOffset] = 0;
-  }
-
-  n = x->size[0];
-  for (m = 0; m < 4; m++) {
-    x4[m] = 0.0;
-    idx4[m] = 0;
-  }
-
-  emxInit_int32_T(&iwork, 1);
-  wOffset = iwork->size[0];
-  iwork->size[0] = ib;
-  emxEnsureCapacity((emxArray__common *)iwork, wOffset, (int)sizeof(int));
-  m = iwork->size[0];
-  wOffset = iwork->size[0];
-  iwork->size[0] = m;
-  emxEnsureCapacity((emxArray__common *)iwork, wOffset, (int)sizeof(int));
-  for (wOffset = 0; wOffset < m; wOffset++) {
-    iwork->data[wOffset] = 0;
-  }
-
-  emxInit_real_T1(&xwork, 1);
-  m = x->size[0];
-  wOffset = xwork->size[0];
-  xwork->size[0] = m;
-  emxEnsureCapacity((emxArray__common *)xwork, wOffset, (int)sizeof(double));
-  m = xwork->size[0];
-  wOffset = xwork->size[0];
-  xwork->size[0] = m;
-  emxEnsureCapacity((emxArray__common *)xwork, wOffset, (int)sizeof(double));
-  for (wOffset = 0; wOffset < m; wOffset++) {
-    xwork->data[wOffset] = 0.0;
-  }
-
-  nNaNs = 0;
-  ib = 0;
-  for (k = 0; k + 1 <= n; k++) {
-    if (rtIsNaN(b_x->data[k])) {
-      idx->data[(n - nNaNs) - 1] = k + 1;
-      xwork->data[(n - nNaNs) - 1] = b_x->data[k];
-      nNaNs++;
-    } else {
-      ib++;
-      idx4[ib - 1] = k + 1;
-      x4[ib - 1] = b_x->data[k];
-      if (ib == 4) {
-        ib = k - nNaNs;
-        if (x4[0] >= x4[1]) {
-          m = 1;
-          wOffset = 2;
-        } else {
-          m = 2;
-          wOffset = 1;
-        }
-
-        if (x4[2] >= x4[3]) {
-          i3 = 3;
-          i4 = 4;
-        } else {
-          i3 = 4;
-          i4 = 3;
-        }
-
-        if (x4[m - 1] >= x4[i3 - 1]) {
-          if (x4[wOffset - 1] >= x4[i3 - 1]) {
-            perm[0] = (signed char)m;
-            perm[1] = (signed char)wOffset;
-            perm[2] = (signed char)i3;
-            perm[3] = (signed char)i4;
-          } else if (x4[wOffset - 1] >= x4[i4 - 1]) {
-            perm[0] = (signed char)m;
-            perm[1] = (signed char)i3;
-            perm[2] = (signed char)wOffset;
-            perm[3] = (signed char)i4;
-          } else {
-            perm[0] = (signed char)m;
-            perm[1] = (signed char)i3;
-            perm[2] = (signed char)i4;
-            perm[3] = (signed char)wOffset;
-          }
-        } else if (x4[m - 1] >= x4[i4 - 1]) {
-          if (x4[wOffset - 1] >= x4[i4 - 1]) {
-            perm[0] = (signed char)i3;
-            perm[1] = (signed char)m;
-            perm[2] = (signed char)wOffset;
-            perm[3] = (signed char)i4;
-          } else {
-            perm[0] = (signed char)i3;
-            perm[1] = (signed char)m;
-            perm[2] = (signed char)i4;
-            perm[3] = (signed char)wOffset;
-          }
-        } else {
-          perm[0] = (signed char)i3;
-          perm[1] = (signed char)i4;
-          perm[2] = (signed char)m;
-          perm[3] = (signed char)wOffset;
-        }
-
-        idx->data[ib - 3] = idx4[perm[0] - 1];
-        idx->data[ib - 2] = idx4[perm[1] - 1];
-        idx->data[ib - 1] = idx4[perm[2] - 1];
-        idx->data[ib] = idx4[perm[3] - 1];
-        b_x->data[ib - 3] = x4[perm[0] - 1];
-        b_x->data[ib - 2] = x4[perm[1] - 1];
-        b_x->data[ib - 1] = x4[perm[2] - 1];
-        b_x->data[ib] = x4[perm[3] - 1];
-        ib = 0;
-      }
-    }
-  }
-
-  wOffset = (x->size[0] - nNaNs) - 1;
-  if (ib > 0) {
-    for (m = 0; m < 4; m++) {
-      perm[m] = 0;
-    }
-
-    if (ib == 1) {
-      perm[0] = 1;
-    } else if (ib == 2) {
-      if (x4[0] >= x4[1]) {
-        perm[0] = 1;
-        perm[1] = 2;
-      } else {
-        perm[0] = 2;
-        perm[1] = 1;
-      }
-    } else if (x4[0] >= x4[1]) {
-      if (x4[1] >= x4[2]) {
-        perm[0] = 1;
-        perm[1] = 2;
-        perm[2] = 3;
-      } else if (x4[0] >= x4[2]) {
-        perm[0] = 1;
-        perm[1] = 3;
-        perm[2] = 2;
-      } else {
-        perm[0] = 3;
-        perm[1] = 1;
-        perm[2] = 2;
-      }
-    } else if (x4[0] >= x4[2]) {
-      perm[0] = 2;
-      perm[1] = 1;
-      perm[2] = 3;
-    } else if (x4[1] >= x4[2]) {
-      perm[0] = 2;
-      perm[1] = 3;
-      perm[2] = 1;
-    } else {
-      perm[0] = 3;
-      perm[1] = 2;
-      perm[2] = 1;
-    }
-
-    for (k = 1; k <= ib; k++) {
-      idx->data[(wOffset - ib) + k] = idx4[perm[k - 1] - 1];
-      b_x->data[(wOffset - ib) + k] = x4[perm[k - 1] - 1];
-    }
-  }
-
-  m = nNaNs >> 1;
-  for (k = 1; k <= m; k++) {
-    ib = idx->data[wOffset + k];
-    idx->data[wOffset + k] = idx->data[n - k];
-    idx->data[n - k] = ib;
-    b_x->data[wOffset + k] = xwork->data[n - k];
-    b_x->data[n - k] = xwork->data[wOffset + k];
-  }
-
-  if ((nNaNs & 1) != 0) {
-    b_x->data[(wOffset + m) + 1] = xwork->data[(wOffset + m) + 1];
-  }
-
-  wOffset = x->size[0] - nNaNs;
-  m = 2;
-  if (wOffset > 1) {
-    if (x->size[0] >= 256) {
-      ib = wOffset >> 8;
-      if (ib > 0) {
-        for (m = 1; m <= ib; m++) {
-          b_merge_pow2_block(idx, b_x, (m - 1) << 8);
-        }
-
-        m = ib << 8;
-        ib = wOffset - m;
-        if (ib > 0) {
-          b_merge_block(idx, b_x, m, ib, 2, iwork, xwork);
-        }
-
-        m = 8;
-      }
-    }
-
-    b_merge_block(idx, b_x, 0, wOffset, m, iwork, xwork);
-  }
-
-  if ((nNaNs > 0) && (wOffset > 0)) {
-    for (k = 0; k + 1 <= nNaNs; k++) {
-      xwork->data[k] = b_x->data[wOffset + k];
-      iwork->data[k] = idx->data[wOffset + k];
-    }
-
-    for (k = wOffset - 1; k + 1 > 0; k--) {
-      b_x->data[nNaNs + k] = b_x->data[k];
-      idx->data[nNaNs + k] = idx->data[k];
-    }
-
-    for (k = 0; k + 1 <= nNaNs; k++) {
-      b_x->data[k] = xwork->data[k];
-      idx->data[k] = iwork->data[k];
-    }
-  }
-
-  emxFree_real_T(&xwork);
-  emxFree_int32_T(&iwork);
-  wOffset = x->size[0];
-  x->size[0] = b_x->size[0];
-  emxEnsureCapacity((emxArray__common *)x, wOffset, (int)sizeof(double));
-  m = b_x->size[0];
-  for (wOffset = 0; wOffset < m; wOffset++) {
-    x->data[wOffset] = b_x->data[wOffset];
-  }
-
-  emxFree_real_T(&b_x);
-}
-
-//
-// Arguments    : const double x[28480]
-//                double y[712]
-// Return Type  : void
-//
-static void b_sum(const double x[28480], double y[712])
-{
-  int j;
-  double s;
-  int k;
-  for (j = 0; j < 712; j++) {
-    s = x[j];
-    for (k = 0; k < 39; k++) {
-      s += x[j + (k + 1) * 712];
-    }
-
-    y[j] = s;
-  }
+  return y;
 }
 
 //
@@ -1919,826 +1223,20 @@ static void bluestein_setup(int nRows, emxArray_creal_T *wwc)
 //
 static void c_abs(const emxArray_creal_T *x, emxArray_real_T *y)
 {
+  unsigned int uv0[2];
   int n;
   int k;
+  for (n = 0; n < 2; n++) {
+    uv0[n] = (unsigned int)x->size[n];
+  }
+
   n = y->size[0] * y->size[1];
-  y->size[0] = 1025;
-  y->size[1] = x->size[1];
+  y->size[0] = (int)uv0[0];
+  y->size[1] = (int)uv0[1];
   emxEnsureCapacity((emxArray__common *)y, n, (int)sizeof(double));
-  n = 1025 * x->size[1];
+  n = x->size[0] * x->size[1];
   for (k = 0; k + 1 <= n; k++) {
     y->data[k] = rt_hypotd_snf(x->data[k].re, x->data[k].im);
-  }
-}
-
-//
-// Arguments    : const emxArray_real_T *y
-//                const emxArray_real_T *x
-//                const emxArray_real_T *iPk
-//                emxArray_real_T *YpkOut
-//                emxArray_real_T *XpkOut
-// Return Type  : void
-//
-static void c_assignOutputs(const emxArray_real_T *y, const emxArray_real_T *x,
-  const emxArray_real_T *iPk, emxArray_real_T *YpkOut, emxArray_real_T *XpkOut)
-{
-  int i21;
-  int loop_ub;
-  i21 = YpkOut->size[0] * YpkOut->size[1];
-  YpkOut->size[0] = 1;
-  YpkOut->size[1] = iPk->size[0];
-  emxEnsureCapacity((emxArray__common *)YpkOut, i21, (int)sizeof(double));
-  loop_ub = iPk->size[0];
-  for (i21 = 0; i21 < loop_ub; i21++) {
-    YpkOut->data[YpkOut->size[0] * i21] = y->data[(int)iPk->data[i21] - 1];
-  }
-
-  i21 = XpkOut->size[0] * XpkOut->size[1];
-  XpkOut->size[0] = 1;
-  XpkOut->size[1] = iPk->size[0];
-  emxEnsureCapacity((emxArray__common *)XpkOut, i21, (int)sizeof(double));
-  loop_ub = iPk->size[0];
-  for (i21 = 0; i21 < loop_ub; i21++) {
-    XpkOut->data[XpkOut->size[0] * i21] = x->data[(int)iPk->data[i21] - 1];
-  }
-}
-
-//
-// Arguments    : const double x[256]
-//                creal_T y[2048]
-// Return Type  : void
-//
-static void c_fft(const double x[256], creal_T y[2048])
-{
-  int i;
-  int ix;
-  int ju;
-  int iy;
-  boolean_T tst;
-  double temp_re;
-  double temp_im;
-  int iheight;
-  int istart;
-  int j;
-  double twid_re;
-  static const double dv13[1025] = { 1.0, 0.99999529380957619,
-    0.99998117528260111, 0.9999576445519639, 0.9999247018391445,
-    0.99988234745421256, 0.9998305817958234, 0.99976940535121528,
-    0.99969881869620425, 0.99961882249517864, 0.99952941750109314,
-    0.99943060455546173, 0.99932238458834954, 0.99920475861836389,
-    0.99907772775264536, 0.99894129318685687, 0.99879545620517241,
-    0.99864021818026527, 0.99847558057329477, 0.99830154493389289,
-    0.99811811290014918, 0.997925286198596, 0.99772306664419164,
-    0.99751145614030345, 0.99729045667869021, 0.997060070339483,
-    0.99682029929116567, 0.99657114579055484, 0.996312612182778,
-    0.996044700901252, 0.99576741446765982, 0.99548075549192694,
-    0.99518472667219693, 0.99487933079480562, 0.99456457073425542,
-    0.9942404494531879, 0.99390697000235606, 0.9935641355205953,
-    0.9932119492347945, 0.9928504144598651, 0.99247953459871, 0.9920993131421918,
-    0.99170975366909953, 0.99131085984611544, 0.99090263542778,
-    0.99048508425645709, 0.99005821026229712, 0.98962201746320089,
-    0.989176509964781, 0.98872169196032378, 0.98825756773074946,
-    0.98778414164457218, 0.98730141815785843, 0.98680940181418553,
-    0.98630809724459867, 0.98579750916756748, 0.98527764238894122,
-    0.98474850180190421, 0.984210092386929, 0.98366241921173025,
-    0.98310548743121629, 0.98253930228744124, 0.98196386910955524,
-    0.98137919331375456, 0.98078528040323043, 0.98018213596811743,
-    0.97956976568544052, 0.9789481753190622, 0.97831737071962765,
-    0.97767735782450993, 0.97702814265775439, 0.97636973133002114,
-    0.97570213003852857, 0.97502534506699412, 0.97433938278557586,
-    0.973644249650812, 0.97293995220556018, 0.97222649707893627,
-    0.97150389098625178, 0.97077214072895035, 0.970031253194544,
-    0.96928123535654853, 0.96852209427441727, 0.96775383709347551,
-    0.96697647104485207, 0.9661900034454125, 0.9653944416976894,
-    0.96458979328981276, 0.96377606579543984, 0.96295326687368388,
-    0.96212140426904158, 0.96128048581132064, 0.96043051941556579,
-    0.95957151308198452, 0.9587034748958716, 0.95782641302753291,
-    0.95694033573220882, 0.95604525134999641, 0.95514116830577078,
-    0.95422809510910567, 0.95330604035419386, 0.95237501271976588,
-    0.95143502096900834, 0.9504860739494817, 0.94952818059303667,
-    0.94856134991573027, 0.94758559101774109, 0.94660091308328353,
-    0.94560732538052128, 0.94460483726148026, 0.94359345816196039,
-    0.94257319760144687, 0.94154406518302081, 0.9405060705932683,
-    0.93945922360218992, 0.93840353406310806, 0.937339011912575,
-    0.93626566717027826, 0.93518350993894761, 0.93409255040425887,
-    0.932992798834739, 0.93188426558166815, 0.93076696107898371,
-    0.92964089584318121, 0.92850608047321559, 0.92736252565040111,
-    0.92621024213831138, 0.92504924078267758, 0.92387953251128674,
-    0.92270112833387863, 0.9215140393420419, 0.92031827670911059,
-    0.91911385169005777, 0.9179007756213905, 0.9166790599210427,
-    0.91544871608826783, 0.91420975570353069, 0.91296219042839821,
-    0.91170603200542988, 0.91044129225806725, 0.90916798309052238,
-    0.90788611648766626, 0.90659570451491533, 0.90529675931811882,
-    0.90398929312344334, 0.90267331823725883, 0.901348847046022,
-    0.90001589201616017, 0.89867446569395382, 0.89732458070541832,
-    0.89596624975618522, 0.8945994856313827, 0.89322430119551532,
-    0.89184070939234272, 0.89044872324475788, 0.88904835585466457,
-    0.88763962040285393, 0.88622253014888064, 0.88479709843093779,
-    0.88336333866573158, 0.881921264348355, 0.88047088905216075,
-    0.87901222642863353, 0.87754529020726135, 0.8760700941954066,
-    0.87458665227817611, 0.87309497841829009, 0.87159508665595109,
-    0.87008699110871146, 0.8685707059713409, 0.86704624551569265,
-    0.86551362409056909, 0.8639728561215867, 0.8624239561110405,
-    0.86086693863776731, 0.85930181835700847, 0.85772861000027212,
-    0.85614732837519447, 0.85455798836540053, 0.85296060493036363,
-    0.8513551931052652, 0.84974176800085255, 0.84812034480329723,
-    0.84649093877405213, 0.84485356524970712, 0.84320823964184544,
-    0.84155497743689844, 0.83989379419599952, 0.83822470555483808,
-    0.836547727223512, 0.83486287498638, 0.83317016470191319,
-    0.83146961230254524, 0.829761233794523, 0.8280450452577558,
-    0.82632106284566353, 0.82458930278502529, 0.82284978137582643,
-    0.82110251499110465, 0.819347520076797, 0.81758481315158371,
-    0.81581441080673378, 0.81403632970594841, 0.81225058658520388,
-    0.81045719825259477, 0.808656181588175, 0.80684755354379933,
-    0.80503133114296366, 0.80320753148064494, 0.80137617172314024,
-    0.799537269107905, 0.79769084094339116, 0.79583690460888357,
-    0.79397547755433717, 0.79210657730021239, 0.79023022143731,
-    0.78834642762660634, 0.78645521359908577, 0.78455659715557524,
-    0.78265059616657573, 0.78073722857209449, 0.778816512381476,
-    0.77688846567323244, 0.77495310659487393, 0.773010453362737,
-    0.77106052426181382, 0.7691033376455797, 0.7671389119358204,
-    0.765167265622459, 0.76318841726338127, 0.76120238548426178,
-    0.759209188978388, 0.75720884650648457, 0.75520137689653655,
-    0.75318679904361252, 0.75116513190968637, 0.74913639452345937,
-    0.74710060598018013, 0.745057785441466, 0.74300795213512172,
-    0.74095112535495922, 0.73888732446061511, 0.73681656887736979,
-    0.7347388780959635, 0.73265427167241282, 0.73056276922782759,
-    0.7284643904482252, 0.726359155084346, 0.724247082951467,
-    0.72212819392921535, 0.72000250796138165, 0.71787004505573171,
-    0.71573082528381859, 0.71358486878079352, 0.71143219574521643,
-    0.70927282643886569, 0.70710678118654757, 0.70493408037590488,
-    0.7027547444572253, 0.70056879394324834, 0.69837624940897292,
-    0.696177131491463, 0.69397146088965389, 0.69175925836415775,
-    0.68954054473706683, 0.687315340891759, 0.68508366777270036,
-    0.68284554638524808, 0.680600997795453, 0.67835004312986147,
-    0.67609270357531592, 0.673829000378756, 0.67155895484701833,
-    0.669282588346636, 0.66699992230363747, 0.66471097820334479,
-    0.66241577759017178, 0.66011434206742048, 0.65780669329707864,
-    0.65549285299961535, 0.65317284295377676, 0.650846684996381,
-    0.64851440102211244, 0.64617601298331628, 0.64383154288979139,
-    0.641481012808583, 0.63912444486377573, 0.6367618612362842,
-    0.63439328416364549, 0.63201873593980906, 0.629638238914927,
-    0.62725181549514408, 0.62485948814238634, 0.62246127937415,
-    0.6200572117632891, 0.61764730793780387, 0.61523159058062682,
-    0.61281008242940971, 0.61038280627630948, 0.60794978496777363,
-    0.60551104140432555, 0.60306659854034816, 0.600616479383869,
-    0.59816070699634238, 0.59569930449243336, 0.5932322950397998,
-    0.59075970185887416, 0.58828154822264522, 0.58579785745643886,
-    0.58330865293769829, 0.58081395809576453, 0.57831379641165559,
-    0.57580819141784534, 0.5732971666980422, 0.57078074588696726,
-    0.56825895267013149, 0.56573181078361312, 0.56319934401383409,
-    0.560661576197336, 0.5581185312205561, 0.55557023301960218,
-    0.55301670558002747, 0.55045797293660481, 0.54789405917310019,
-    0.54532498842204646, 0.54275078486451589, 0.54017147272989285,
-    0.53758707629564539, 0.53499761988709715, 0.5324031278771979,
-    0.52980362468629461, 0.52719913478190128, 0.524589682678469,
-    0.52197529293715439, 0.51935599016558964, 0.51673179901764987,
-    0.51410274419322166, 0.5114688504379703, 0.508830142543107,
-    0.50618664534515523, 0.50353838372571758, 0.50088538261124071,
-    0.49822766697278181, 0.49556526182577254, 0.49289819222978404,
-    0.49022648328829116, 0.487550160148436, 0.48486924800079106,
-    0.48218377207912272, 0.47949375766015295, 0.47679923006332209,
-    0.47410021465054997, 0.47139673682599764, 0.46868882203582796,
-    0.46597649576796618, 0.46325978355186015, 0.46053871095824,
-    0.45781330359887717, 0.45508358712634384, 0.45234958723377089,
-    0.44961132965460654, 0.44686884016237416, 0.4441221445704292,
-    0.44137126873171667, 0.43861623853852766, 0.43585707992225547,
-    0.43309381885315196, 0.43032648134008261, 0.42755509343028208,
-    0.42477968120910881, 0.42200027079979968, 0.41921688836322391,
-    0.41642956009763715, 0.4136383122384345, 0.41084317105790391,
-    0.40804416286497869, 0.40524131400498986, 0.40243465085941843,
-    0.39962419984564679, 0.39680998741671031, 0.3939920400610481,
-    0.39117038430225387, 0.38834504669882625, 0.38551605384391885,
-    0.38268343236508978, 0.37984720892405116, 0.37700741021641826,
-    0.37416406297145793, 0.37131719395183749, 0.36846682995337232,
-    0.36561299780477385, 0.36275572436739723, 0.35989503653498811,
-    0.35703096123343, 0.35416352542049034, 0.35129275608556709,
-    0.34841868024943456, 0.34554132496398909, 0.34266071731199438,
-    0.33977688440682685, 0.33688985339222005, 0.33399965144200938,
-    0.33110630575987643, 0.3282098435790925, 0.32531029216226293,
-    0.32240767880106985, 0.31950203081601569, 0.31659337555616585,
-    0.31368174039889152, 0.31076715274961147, 0.30784964004153487,
-    0.30492922973540237, 0.30200594931922808, 0.29907982630804048,
-    0.29615088824362379, 0.29321916269425863, 0.29028467725446233,
-    0.28734745954472951, 0.28440753721127188, 0.28146493792575794,
-    0.27851968938505306, 0.27557181931095814, 0.272621355449949,
-    0.26966832557291509, 0.26671275747489837, 0.26375467897483135,
-    0.26079411791527551, 0.257831102162159, 0.25486565960451457,
-    0.25189781815421697, 0.24892760574572015, 0.24595505033579459,
-    0.24298017990326387, 0.2400030224487415, 0.2370236059943672,
-    0.23404195858354343, 0.23105810828067111, 0.22807208317088573,
-    0.22508391135979283, 0.22209362097320351, 0.2191012401568698,
-    0.21610679707621952, 0.21311031991609136, 0.21011183688046961,
-    0.20711137619221856, 0.20410896609281687, 0.2011046348420919,
-    0.19809841071795356, 0.19509032201612825, 0.19208039704989244,
-    0.18906866414980619, 0.18605515166344663, 0.18303988795514095,
-    0.18002290140569951, 0.17700422041214875, 0.17398387338746382,
-    0.17096188876030122, 0.16793829497473117, 0.16491312048996992,
-    0.16188639378011183, 0.15885814333386145, 0.15582839765426523,
-    0.15279718525844344, 0.14976453467732151, 0.14673047445536175,
-    0.14369503315029447, 0.14065823933284921, 0.13762012158648604,
-    0.13458070850712617, 0.13154002870288312, 0.12849811079379317,
-    0.12545498341154623, 0.1224106751992162, 0.11936521481099135,
-    0.11631863091190475, 0.11327095217756435, 0.11022220729388306,
-    0.10717242495680884, 0.10412163387205459, 0.10106986275482782,
-    0.0980171403295606, 0.094963495329638992, 0.091908956497132724,
-    0.0888535525825246, 0.0857973123444399, 0.082740264549375692,
-    0.079682437971430126, 0.076623861392031492, 0.073564563599667426,
-    0.070504573389613856, 0.067443919563664051, 0.064382630929857465,
-    0.061320736302208578, 0.058258264500435752, 0.055195244349689941,
-    0.052131704680283324, 0.049067674327418015, 0.046003182130914623,
-    0.04293825693494082, 0.039872927587739811, 0.036807222941358832,
-    0.03374117185137758, 0.030674803176636626, 0.02760814577896574,
-    0.024541228522912288, 0.021474080275469508, 0.01840672990580482,
-    0.0153392062849881, 0.012271538285719925, 0.00920375478205982,
-    0.0061358846491544753, 0.0030679567629659761, 0.0, -0.0030679567629659761,
-    -0.0061358846491544753, -0.00920375478205982, -0.012271538285719925,
-    -0.0153392062849881, -0.01840672990580482, -0.021474080275469508,
-    -0.024541228522912288, -0.02760814577896574, -0.030674803176636626,
-    -0.03374117185137758, -0.036807222941358832, -0.039872927587739811,
-    -0.04293825693494082, -0.046003182130914623, -0.049067674327418015,
-    -0.052131704680283324, -0.055195244349689941, -0.058258264500435752,
-    -0.061320736302208578, -0.064382630929857465, -0.067443919563664051,
-    -0.070504573389613856, -0.073564563599667426, -0.076623861392031492,
-    -0.079682437971430126, -0.082740264549375692, -0.0857973123444399,
-    -0.0888535525825246, -0.091908956497132724, -0.094963495329638992,
-    -0.0980171403295606, -0.10106986275482782, -0.10412163387205459,
-    -0.10717242495680884, -0.11022220729388306, -0.11327095217756435,
-    -0.11631863091190475, -0.11936521481099135, -0.1224106751992162,
-    -0.12545498341154623, -0.12849811079379317, -0.13154002870288312,
-    -0.13458070850712617, -0.13762012158648604, -0.14065823933284921,
-    -0.14369503315029447, -0.14673047445536175, -0.14976453467732151,
-    -0.15279718525844344, -0.15582839765426523, -0.15885814333386145,
-    -0.16188639378011183, -0.16491312048996992, -0.16793829497473117,
-    -0.17096188876030122, -0.17398387338746382, -0.17700422041214875,
-    -0.18002290140569951, -0.18303988795514095, -0.18605515166344663,
-    -0.18906866414980619, -0.19208039704989244, -0.19509032201612825,
-    -0.19809841071795356, -0.2011046348420919, -0.20410896609281687,
-    -0.20711137619221856, -0.21011183688046961, -0.21311031991609136,
-    -0.21610679707621952, -0.2191012401568698, -0.22209362097320351,
-    -0.22508391135979283, -0.22807208317088573, -0.23105810828067111,
-    -0.23404195858354343, -0.2370236059943672, -0.2400030224487415,
-    -0.24298017990326387, -0.24595505033579459, -0.24892760574572015,
-    -0.25189781815421697, -0.25486565960451457, -0.257831102162159,
-    -0.26079411791527551, -0.26375467897483135, -0.26671275747489837,
-    -0.26966832557291509, -0.272621355449949, -0.27557181931095814,
-    -0.27851968938505306, -0.28146493792575794, -0.28440753721127188,
-    -0.28734745954472951, -0.29028467725446233, -0.29321916269425863,
-    -0.29615088824362379, -0.29907982630804048, -0.30200594931922808,
-    -0.30492922973540237, -0.30784964004153487, -0.31076715274961147,
-    -0.31368174039889152, -0.31659337555616585, -0.31950203081601569,
-    -0.32240767880106985, -0.32531029216226293, -0.3282098435790925,
-    -0.33110630575987643, -0.33399965144200938, -0.33688985339222005,
-    -0.33977688440682685, -0.34266071731199438, -0.34554132496398909,
-    -0.34841868024943456, -0.35129275608556709, -0.35416352542049034,
-    -0.35703096123343, -0.35989503653498811, -0.36275572436739723,
-    -0.36561299780477385, -0.36846682995337232, -0.37131719395183749,
-    -0.37416406297145793, -0.37700741021641826, -0.37984720892405116,
-    -0.38268343236508978, -0.38551605384391885, -0.38834504669882625,
-    -0.39117038430225387, -0.3939920400610481, -0.39680998741671031,
-    -0.39962419984564679, -0.40243465085941843, -0.40524131400498986,
-    -0.40804416286497869, -0.41084317105790391, -0.4136383122384345,
-    -0.41642956009763715, -0.41921688836322391, -0.42200027079979968,
-    -0.42477968120910881, -0.42755509343028208, -0.43032648134008261,
-    -0.43309381885315196, -0.43585707992225547, -0.43861623853852766,
-    -0.44137126873171667, -0.4441221445704292, -0.44686884016237416,
-    -0.44961132965460654, -0.45234958723377089, -0.45508358712634384,
-    -0.45781330359887717, -0.46053871095824, -0.46325978355186015,
-    -0.46597649576796618, -0.46868882203582796, -0.47139673682599764,
-    -0.47410021465054997, -0.47679923006332209, -0.47949375766015295,
-    -0.48218377207912272, -0.48486924800079106, -0.487550160148436,
-    -0.49022648328829116, -0.49289819222978404, -0.49556526182577254,
-    -0.49822766697278181, -0.50088538261124071, -0.50353838372571758,
-    -0.50618664534515523, -0.508830142543107, -0.5114688504379703,
-    -0.51410274419322166, -0.51673179901764987, -0.51935599016558964,
-    -0.52197529293715439, -0.524589682678469, -0.52719913478190128,
-    -0.52980362468629461, -0.5324031278771979, -0.53499761988709715,
-    -0.53758707629564539, -0.54017147272989285, -0.54275078486451589,
-    -0.54532498842204646, -0.54789405917310019, -0.55045797293660481,
-    -0.55301670558002747, -0.55557023301960218, -0.5581185312205561,
-    -0.560661576197336, -0.56319934401383409, -0.56573181078361312,
-    -0.56825895267013149, -0.57078074588696726, -0.5732971666980422,
-    -0.57580819141784534, -0.57831379641165559, -0.58081395809576453,
-    -0.58330865293769829, -0.58579785745643886, -0.58828154822264522,
-    -0.59075970185887416, -0.5932322950397998, -0.59569930449243336,
-    -0.59816070699634238, -0.600616479383869, -0.60306659854034816,
-    -0.60551104140432555, -0.60794978496777363, -0.61038280627630948,
-    -0.61281008242940971, -0.61523159058062682, -0.61764730793780387,
-    -0.6200572117632891, -0.62246127937415, -0.62485948814238634,
-    -0.62725181549514408, -0.629638238914927, -0.63201873593980906,
-    -0.63439328416364549, -0.6367618612362842, -0.63912444486377573,
-    -0.641481012808583, -0.64383154288979139, -0.64617601298331628,
-    -0.64851440102211244, -0.650846684996381, -0.65317284295377676,
-    -0.65549285299961535, -0.65780669329707864, -0.66011434206742048,
-    -0.66241577759017178, -0.66471097820334479, -0.66699992230363747,
-    -0.669282588346636, -0.67155895484701833, -0.673829000378756,
-    -0.67609270357531592, -0.67835004312986147, -0.680600997795453,
-    -0.68284554638524808, -0.68508366777270036, -0.687315340891759,
-    -0.68954054473706683, -0.69175925836415775, -0.69397146088965389,
-    -0.696177131491463, -0.69837624940897292, -0.70056879394324834,
-    -0.7027547444572253, -0.70493408037590488, -0.70710678118654757,
-    -0.70927282643886569, -0.71143219574521643, -0.71358486878079352,
-    -0.71573082528381859, -0.71787004505573171, -0.72000250796138165,
-    -0.72212819392921535, -0.724247082951467, -0.726359155084346,
-    -0.7284643904482252, -0.73056276922782759, -0.73265427167241282,
-    -0.7347388780959635, -0.73681656887736979, -0.73888732446061511,
-    -0.74095112535495922, -0.74300795213512172, -0.745057785441466,
-    -0.74710060598018013, -0.74913639452345937, -0.75116513190968637,
-    -0.75318679904361252, -0.75520137689653655, -0.75720884650648457,
-    -0.759209188978388, -0.76120238548426178, -0.76318841726338127,
-    -0.765167265622459, -0.7671389119358204, -0.7691033376455797,
-    -0.77106052426181382, -0.773010453362737, -0.77495310659487393,
-    -0.77688846567323244, -0.778816512381476, -0.78073722857209449,
-    -0.78265059616657573, -0.78455659715557524, -0.78645521359908577,
-    -0.78834642762660634, -0.79023022143731, -0.79210657730021239,
-    -0.79397547755433717, -0.79583690460888357, -0.79769084094339116,
-    -0.799537269107905, -0.80137617172314024, -0.80320753148064494,
-    -0.80503133114296366, -0.80684755354379933, -0.808656181588175,
-    -0.81045719825259477, -0.81225058658520388, -0.81403632970594841,
-    -0.81581441080673378, -0.81758481315158371, -0.819347520076797,
-    -0.82110251499110465, -0.82284978137582643, -0.82458930278502529,
-    -0.82632106284566353, -0.8280450452577558, -0.829761233794523,
-    -0.83146961230254524, -0.83317016470191319, -0.83486287498638,
-    -0.836547727223512, -0.83822470555483808, -0.83989379419599952,
-    -0.84155497743689844, -0.84320823964184544, -0.84485356524970712,
-    -0.84649093877405213, -0.84812034480329723, -0.84974176800085255,
-    -0.8513551931052652, -0.85296060493036363, -0.85455798836540053,
-    -0.85614732837519447, -0.85772861000027212, -0.85930181835700847,
-    -0.86086693863776731, -0.8624239561110405, -0.8639728561215867,
-    -0.86551362409056909, -0.86704624551569265, -0.8685707059713409,
-    -0.87008699110871146, -0.87159508665595109, -0.87309497841829009,
-    -0.87458665227817611, -0.8760700941954066, -0.87754529020726135,
-    -0.87901222642863353, -0.88047088905216075, -0.881921264348355,
-    -0.88336333866573158, -0.88479709843093779, -0.88622253014888064,
-    -0.88763962040285393, -0.88904835585466457, -0.89044872324475788,
-    -0.89184070939234272, -0.89322430119551532, -0.8945994856313827,
-    -0.89596624975618522, -0.89732458070541832, -0.89867446569395382,
-    -0.90001589201616017, -0.901348847046022, -0.90267331823725883,
-    -0.90398929312344334, -0.90529675931811882, -0.90659570451491533,
-    -0.90788611648766626, -0.90916798309052238, -0.91044129225806725,
-    -0.91170603200542988, -0.91296219042839821, -0.91420975570353069,
-    -0.91544871608826783, -0.9166790599210427, -0.9179007756213905,
-    -0.91911385169005777, -0.92031827670911059, -0.9215140393420419,
-    -0.92270112833387863, -0.92387953251128674, -0.92504924078267758,
-    -0.92621024213831138, -0.92736252565040111, -0.92850608047321559,
-    -0.92964089584318121, -0.93076696107898371, -0.93188426558166815,
-    -0.932992798834739, -0.93409255040425887, -0.93518350993894761,
-    -0.93626566717027826, -0.937339011912575, -0.93840353406310806,
-    -0.93945922360218992, -0.9405060705932683, -0.94154406518302081,
-    -0.94257319760144687, -0.94359345816196039, -0.94460483726148026,
-    -0.94560732538052128, -0.94660091308328353, -0.94758559101774109,
-    -0.94856134991573027, -0.94952818059303667, -0.9504860739494817,
-    -0.95143502096900834, -0.95237501271976588, -0.95330604035419386,
-    -0.95422809510910567, -0.95514116830577078, -0.95604525134999641,
-    -0.95694033573220882, -0.95782641302753291, -0.9587034748958716,
-    -0.95957151308198452, -0.96043051941556579, -0.96128048581132064,
-    -0.96212140426904158, -0.96295326687368388, -0.96377606579543984,
-    -0.96458979328981276, -0.9653944416976894, -0.9661900034454125,
-    -0.96697647104485207, -0.96775383709347551, -0.96852209427441727,
-    -0.96928123535654853, -0.970031253194544, -0.97077214072895035,
-    -0.97150389098625178, -0.97222649707893627, -0.97293995220556018,
-    -0.973644249650812, -0.97433938278557586, -0.97502534506699412,
-    -0.97570213003852857, -0.97636973133002114, -0.97702814265775439,
-    -0.97767735782450993, -0.97831737071962765, -0.9789481753190622,
-    -0.97956976568544052, -0.98018213596811743, -0.98078528040323043,
-    -0.98137919331375456, -0.98196386910955524, -0.98253930228744124,
-    -0.98310548743121629, -0.98366241921173025, -0.984210092386929,
-    -0.98474850180190421, -0.98527764238894122, -0.98579750916756748,
-    -0.98630809724459867, -0.98680940181418553, -0.98730141815785843,
-    -0.98778414164457218, -0.98825756773074946, -0.98872169196032378,
-    -0.989176509964781, -0.98962201746320089, -0.99005821026229712,
-    -0.99048508425645709, -0.99090263542778, -0.99131085984611544,
-    -0.99170975366909953, -0.9920993131421918, -0.99247953459871,
-    -0.9928504144598651, -0.9932119492347945, -0.9935641355205953,
-    -0.99390697000235606, -0.9942404494531879, -0.99456457073425542,
-    -0.99487933079480562, -0.99518472667219693, -0.99548075549192694,
-    -0.99576741446765982, -0.996044700901252, -0.996312612182778,
-    -0.99657114579055484, -0.99682029929116567, -0.997060070339483,
-    -0.99729045667869021, -0.99751145614030345, -0.99772306664419164,
-    -0.997925286198596, -0.99811811290014918, -0.99830154493389289,
-    -0.99847558057329477, -0.99864021818026527, -0.99879545620517241,
-    -0.99894129318685687, -0.99907772775264536, -0.99920475861836389,
-    -0.99932238458834954, -0.99943060455546173, -0.99952941750109314,
-    -0.99961882249517864, -0.99969881869620425, -0.99976940535121528,
-    -0.9998305817958234, -0.99988234745421256, -0.9999247018391445,
-    -0.9999576445519639, -0.99998117528260111, -0.99999529380957619, -1.0 };
-
-  double twid_im;
-  static const double dv14[1025] = { 0.0, -0.0030679567629659761,
-    -0.0061358846491544753, -0.00920375478205982, -0.012271538285719925,
-    -0.0153392062849881, -0.01840672990580482, -0.021474080275469508,
-    -0.024541228522912288, -0.02760814577896574, -0.030674803176636626,
-    -0.03374117185137758, -0.036807222941358832, -0.039872927587739811,
-    -0.04293825693494082, -0.046003182130914623, -0.049067674327418015,
-    -0.052131704680283324, -0.055195244349689941, -0.058258264500435752,
-    -0.061320736302208578, -0.064382630929857465, -0.067443919563664051,
-    -0.070504573389613856, -0.073564563599667426, -0.076623861392031492,
-    -0.079682437971430126, -0.082740264549375692, -0.0857973123444399,
-    -0.0888535525825246, -0.091908956497132724, -0.094963495329638992,
-    -0.0980171403295606, -0.10106986275482782, -0.10412163387205459,
-    -0.10717242495680884, -0.11022220729388306, -0.11327095217756435,
-    -0.11631863091190475, -0.11936521481099135, -0.1224106751992162,
-    -0.12545498341154623, -0.12849811079379317, -0.13154002870288312,
-    -0.13458070850712617, -0.13762012158648604, -0.14065823933284921,
-    -0.14369503315029447, -0.14673047445536175, -0.14976453467732151,
-    -0.15279718525844344, -0.15582839765426523, -0.15885814333386145,
-    -0.16188639378011183, -0.16491312048996992, -0.16793829497473117,
-    -0.17096188876030122, -0.17398387338746382, -0.17700422041214875,
-    -0.18002290140569951, -0.18303988795514095, -0.18605515166344663,
-    -0.18906866414980619, -0.19208039704989244, -0.19509032201612825,
-    -0.19809841071795356, -0.2011046348420919, -0.20410896609281687,
-    -0.20711137619221856, -0.21011183688046961, -0.21311031991609136,
-    -0.21610679707621952, -0.2191012401568698, -0.22209362097320351,
-    -0.22508391135979283, -0.22807208317088573, -0.23105810828067111,
-    -0.23404195858354343, -0.2370236059943672, -0.2400030224487415,
-    -0.24298017990326387, -0.24595505033579459, -0.24892760574572015,
-    -0.25189781815421697, -0.25486565960451457, -0.257831102162159,
-    -0.26079411791527551, -0.26375467897483135, -0.26671275747489837,
-    -0.26966832557291509, -0.272621355449949, -0.27557181931095814,
-    -0.27851968938505306, -0.28146493792575794, -0.28440753721127188,
-    -0.28734745954472951, -0.29028467725446233, -0.29321916269425863,
-    -0.29615088824362379, -0.29907982630804048, -0.30200594931922808,
-    -0.30492922973540237, -0.30784964004153487, -0.31076715274961147,
-    -0.31368174039889152, -0.31659337555616585, -0.31950203081601569,
-    -0.32240767880106985, -0.32531029216226293, -0.3282098435790925,
-    -0.33110630575987643, -0.33399965144200938, -0.33688985339222005,
-    -0.33977688440682685, -0.34266071731199438, -0.34554132496398909,
-    -0.34841868024943456, -0.35129275608556709, -0.35416352542049034,
-    -0.35703096123343, -0.35989503653498811, -0.36275572436739723,
-    -0.36561299780477385, -0.36846682995337232, -0.37131719395183749,
-    -0.37416406297145793, -0.37700741021641826, -0.37984720892405116,
-    -0.38268343236508978, -0.38551605384391885, -0.38834504669882625,
-    -0.39117038430225387, -0.3939920400610481, -0.39680998741671031,
-    -0.39962419984564679, -0.40243465085941843, -0.40524131400498986,
-    -0.40804416286497869, -0.41084317105790391, -0.4136383122384345,
-    -0.41642956009763715, -0.41921688836322391, -0.42200027079979968,
-    -0.42477968120910881, -0.42755509343028208, -0.43032648134008261,
-    -0.43309381885315196, -0.43585707992225547, -0.43861623853852766,
-    -0.44137126873171667, -0.4441221445704292, -0.44686884016237416,
-    -0.44961132965460654, -0.45234958723377089, -0.45508358712634384,
-    -0.45781330359887717, -0.46053871095824, -0.46325978355186015,
-    -0.46597649576796618, -0.46868882203582796, -0.47139673682599764,
-    -0.47410021465054997, -0.47679923006332209, -0.47949375766015295,
-    -0.48218377207912272, -0.48486924800079106, -0.487550160148436,
-    -0.49022648328829116, -0.49289819222978404, -0.49556526182577254,
-    -0.49822766697278181, -0.50088538261124071, -0.50353838372571758,
-    -0.50618664534515523, -0.508830142543107, -0.5114688504379703,
-    -0.51410274419322166, -0.51673179901764987, -0.51935599016558964,
-    -0.52197529293715439, -0.524589682678469, -0.52719913478190128,
-    -0.52980362468629461, -0.5324031278771979, -0.53499761988709715,
-    -0.53758707629564539, -0.54017147272989285, -0.54275078486451589,
-    -0.54532498842204646, -0.54789405917310019, -0.55045797293660481,
-    -0.55301670558002747, -0.55557023301960218, -0.5581185312205561,
-    -0.560661576197336, -0.56319934401383409, -0.56573181078361312,
-    -0.56825895267013149, -0.57078074588696726, -0.5732971666980422,
-    -0.57580819141784534, -0.57831379641165559, -0.58081395809576453,
-    -0.58330865293769829, -0.58579785745643886, -0.58828154822264522,
-    -0.59075970185887416, -0.5932322950397998, -0.59569930449243336,
-    -0.59816070699634238, -0.600616479383869, -0.60306659854034816,
-    -0.60551104140432555, -0.60794978496777363, -0.61038280627630948,
-    -0.61281008242940971, -0.61523159058062682, -0.61764730793780387,
-    -0.6200572117632891, -0.62246127937415, -0.62485948814238634,
-    -0.62725181549514408, -0.629638238914927, -0.63201873593980906,
-    -0.63439328416364549, -0.6367618612362842, -0.63912444486377573,
-    -0.641481012808583, -0.64383154288979139, -0.64617601298331628,
-    -0.64851440102211244, -0.650846684996381, -0.65317284295377676,
-    -0.65549285299961535, -0.65780669329707864, -0.66011434206742048,
-    -0.66241577759017178, -0.66471097820334479, -0.66699992230363747,
-    -0.669282588346636, -0.67155895484701833, -0.673829000378756,
-    -0.67609270357531592, -0.67835004312986147, -0.680600997795453,
-    -0.68284554638524808, -0.68508366777270036, -0.687315340891759,
-    -0.68954054473706683, -0.69175925836415775, -0.69397146088965389,
-    -0.696177131491463, -0.69837624940897292, -0.70056879394324834,
-    -0.7027547444572253, -0.70493408037590488, -0.70710678118654757,
-    -0.70927282643886569, -0.71143219574521643, -0.71358486878079352,
-    -0.71573082528381859, -0.71787004505573171, -0.72000250796138165,
-    -0.72212819392921535, -0.724247082951467, -0.726359155084346,
-    -0.7284643904482252, -0.73056276922782759, -0.73265427167241282,
-    -0.7347388780959635, -0.73681656887736979, -0.73888732446061511,
-    -0.74095112535495922, -0.74300795213512172, -0.745057785441466,
-    -0.74710060598018013, -0.74913639452345937, -0.75116513190968637,
-    -0.75318679904361252, -0.75520137689653655, -0.75720884650648457,
-    -0.759209188978388, -0.76120238548426178, -0.76318841726338127,
-    -0.765167265622459, -0.7671389119358204, -0.7691033376455797,
-    -0.77106052426181382, -0.773010453362737, -0.77495310659487393,
-    -0.77688846567323244, -0.778816512381476, -0.78073722857209449,
-    -0.78265059616657573, -0.78455659715557524, -0.78645521359908577,
-    -0.78834642762660634, -0.79023022143731, -0.79210657730021239,
-    -0.79397547755433717, -0.79583690460888357, -0.79769084094339116,
-    -0.799537269107905, -0.80137617172314024, -0.80320753148064494,
-    -0.80503133114296366, -0.80684755354379933, -0.808656181588175,
-    -0.81045719825259477, -0.81225058658520388, -0.81403632970594841,
-    -0.81581441080673378, -0.81758481315158371, -0.819347520076797,
-    -0.82110251499110465, -0.82284978137582643, -0.82458930278502529,
-    -0.82632106284566353, -0.8280450452577558, -0.829761233794523,
-    -0.83146961230254524, -0.83317016470191319, -0.83486287498638,
-    -0.836547727223512, -0.83822470555483808, -0.83989379419599952,
-    -0.84155497743689844, -0.84320823964184544, -0.84485356524970712,
-    -0.84649093877405213, -0.84812034480329723, -0.84974176800085255,
-    -0.8513551931052652, -0.85296060493036363, -0.85455798836540053,
-    -0.85614732837519447, -0.85772861000027212, -0.85930181835700847,
-    -0.86086693863776731, -0.8624239561110405, -0.8639728561215867,
-    -0.86551362409056909, -0.86704624551569265, -0.8685707059713409,
-    -0.87008699110871146, -0.87159508665595109, -0.87309497841829009,
-    -0.87458665227817611, -0.8760700941954066, -0.87754529020726135,
-    -0.87901222642863353, -0.88047088905216075, -0.881921264348355,
-    -0.88336333866573158, -0.88479709843093779, -0.88622253014888064,
-    -0.88763962040285393, -0.88904835585466457, -0.89044872324475788,
-    -0.89184070939234272, -0.89322430119551532, -0.8945994856313827,
-    -0.89596624975618522, -0.89732458070541832, -0.89867446569395382,
-    -0.90001589201616017, -0.901348847046022, -0.90267331823725883,
-    -0.90398929312344334, -0.90529675931811882, -0.90659570451491533,
-    -0.90788611648766626, -0.90916798309052238, -0.91044129225806725,
-    -0.91170603200542988, -0.91296219042839821, -0.91420975570353069,
-    -0.91544871608826783, -0.9166790599210427, -0.9179007756213905,
-    -0.91911385169005777, -0.92031827670911059, -0.9215140393420419,
-    -0.92270112833387863, -0.92387953251128674, -0.92504924078267758,
-    -0.92621024213831138, -0.92736252565040111, -0.92850608047321559,
-    -0.92964089584318121, -0.93076696107898371, -0.93188426558166815,
-    -0.932992798834739, -0.93409255040425887, -0.93518350993894761,
-    -0.93626566717027826, -0.937339011912575, -0.93840353406310806,
-    -0.93945922360218992, -0.9405060705932683, -0.94154406518302081,
-    -0.94257319760144687, -0.94359345816196039, -0.94460483726148026,
-    -0.94560732538052128, -0.94660091308328353, -0.94758559101774109,
-    -0.94856134991573027, -0.94952818059303667, -0.9504860739494817,
-    -0.95143502096900834, -0.95237501271976588, -0.95330604035419386,
-    -0.95422809510910567, -0.95514116830577078, -0.95604525134999641,
-    -0.95694033573220882, -0.95782641302753291, -0.9587034748958716,
-    -0.95957151308198452, -0.96043051941556579, -0.96128048581132064,
-    -0.96212140426904158, -0.96295326687368388, -0.96377606579543984,
-    -0.96458979328981276, -0.9653944416976894, -0.9661900034454125,
-    -0.96697647104485207, -0.96775383709347551, -0.96852209427441727,
-    -0.96928123535654853, -0.970031253194544, -0.97077214072895035,
-    -0.97150389098625178, -0.97222649707893627, -0.97293995220556018,
-    -0.973644249650812, -0.97433938278557586, -0.97502534506699412,
-    -0.97570213003852857, -0.97636973133002114, -0.97702814265775439,
-    -0.97767735782450993, -0.97831737071962765, -0.9789481753190622,
-    -0.97956976568544052, -0.98018213596811743, -0.98078528040323043,
-    -0.98137919331375456, -0.98196386910955524, -0.98253930228744124,
-    -0.98310548743121629, -0.98366241921173025, -0.984210092386929,
-    -0.98474850180190421, -0.98527764238894122, -0.98579750916756748,
-    -0.98630809724459867, -0.98680940181418553, -0.98730141815785843,
-    -0.98778414164457218, -0.98825756773074946, -0.98872169196032378,
-    -0.989176509964781, -0.98962201746320089, -0.99005821026229712,
-    -0.99048508425645709, -0.99090263542778, -0.99131085984611544,
-    -0.99170975366909953, -0.9920993131421918, -0.99247953459871,
-    -0.9928504144598651, -0.9932119492347945, -0.9935641355205953,
-    -0.99390697000235606, -0.9942404494531879, -0.99456457073425542,
-    -0.99487933079480562, -0.99518472667219693, -0.99548075549192694,
-    -0.99576741446765982, -0.996044700901252, -0.996312612182778,
-    -0.99657114579055484, -0.99682029929116567, -0.997060070339483,
-    -0.99729045667869021, -0.99751145614030345, -0.99772306664419164,
-    -0.997925286198596, -0.99811811290014918, -0.99830154493389289,
-    -0.99847558057329477, -0.99864021818026527, -0.99879545620517241,
-    -0.99894129318685687, -0.99907772775264536, -0.99920475861836389,
-    -0.99932238458834954, -0.99943060455546173, -0.99952941750109314,
-    -0.99961882249517864, -0.99969881869620425, -0.99976940535121528,
-    -0.9998305817958234, -0.99988234745421256, -0.9999247018391445,
-    -0.9999576445519639, -0.99998117528260111, -0.99999529380957619, -1.0,
-    -0.99999529380957619, -0.99998117528260111, -0.9999576445519639,
-    -0.9999247018391445, -0.99988234745421256, -0.9998305817958234,
-    -0.99976940535121528, -0.99969881869620425, -0.99961882249517864,
-    -0.99952941750109314, -0.99943060455546173, -0.99932238458834954,
-    -0.99920475861836389, -0.99907772775264536, -0.99894129318685687,
-    -0.99879545620517241, -0.99864021818026527, -0.99847558057329477,
-    -0.99830154493389289, -0.99811811290014918, -0.997925286198596,
-    -0.99772306664419164, -0.99751145614030345, -0.99729045667869021,
-    -0.997060070339483, -0.99682029929116567, -0.99657114579055484,
-    -0.996312612182778, -0.996044700901252, -0.99576741446765982,
-    -0.99548075549192694, -0.99518472667219693, -0.99487933079480562,
-    -0.99456457073425542, -0.9942404494531879, -0.99390697000235606,
-    -0.9935641355205953, -0.9932119492347945, -0.9928504144598651,
-    -0.99247953459871, -0.9920993131421918, -0.99170975366909953,
-    -0.99131085984611544, -0.99090263542778, -0.99048508425645709,
-    -0.99005821026229712, -0.98962201746320089, -0.989176509964781,
-    -0.98872169196032378, -0.98825756773074946, -0.98778414164457218,
-    -0.98730141815785843, -0.98680940181418553, -0.98630809724459867,
-    -0.98579750916756748, -0.98527764238894122, -0.98474850180190421,
-    -0.984210092386929, -0.98366241921173025, -0.98310548743121629,
-    -0.98253930228744124, -0.98196386910955524, -0.98137919331375456,
-    -0.98078528040323043, -0.98018213596811743, -0.97956976568544052,
-    -0.9789481753190622, -0.97831737071962765, -0.97767735782450993,
-    -0.97702814265775439, -0.97636973133002114, -0.97570213003852857,
-    -0.97502534506699412, -0.97433938278557586, -0.973644249650812,
-    -0.97293995220556018, -0.97222649707893627, -0.97150389098625178,
-    -0.97077214072895035, -0.970031253194544, -0.96928123535654853,
-    -0.96852209427441727, -0.96775383709347551, -0.96697647104485207,
-    -0.9661900034454125, -0.9653944416976894, -0.96458979328981276,
-    -0.96377606579543984, -0.96295326687368388, -0.96212140426904158,
-    -0.96128048581132064, -0.96043051941556579, -0.95957151308198452,
-    -0.9587034748958716, -0.95782641302753291, -0.95694033573220882,
-    -0.95604525134999641, -0.95514116830577078, -0.95422809510910567,
-    -0.95330604035419386, -0.95237501271976588, -0.95143502096900834,
-    -0.9504860739494817, -0.94952818059303667, -0.94856134991573027,
-    -0.94758559101774109, -0.94660091308328353, -0.94560732538052128,
-    -0.94460483726148026, -0.94359345816196039, -0.94257319760144687,
-    -0.94154406518302081, -0.9405060705932683, -0.93945922360218992,
-    -0.93840353406310806, -0.937339011912575, -0.93626566717027826,
-    -0.93518350993894761, -0.93409255040425887, -0.932992798834739,
-    -0.93188426558166815, -0.93076696107898371, -0.92964089584318121,
-    -0.92850608047321559, -0.92736252565040111, -0.92621024213831138,
-    -0.92504924078267758, -0.92387953251128674, -0.92270112833387863,
-    -0.9215140393420419, -0.92031827670911059, -0.91911385169005777,
-    -0.9179007756213905, -0.9166790599210427, -0.91544871608826783,
-    -0.91420975570353069, -0.91296219042839821, -0.91170603200542988,
-    -0.91044129225806725, -0.90916798309052238, -0.90788611648766626,
-    -0.90659570451491533, -0.90529675931811882, -0.90398929312344334,
-    -0.90267331823725883, -0.901348847046022, -0.90001589201616017,
-    -0.89867446569395382, -0.89732458070541832, -0.89596624975618522,
-    -0.8945994856313827, -0.89322430119551532, -0.89184070939234272,
-    -0.89044872324475788, -0.88904835585466457, -0.88763962040285393,
-    -0.88622253014888064, -0.88479709843093779, -0.88336333866573158,
-    -0.881921264348355, -0.88047088905216075, -0.87901222642863353,
-    -0.87754529020726135, -0.8760700941954066, -0.87458665227817611,
-    -0.87309497841829009, -0.87159508665595109, -0.87008699110871146,
-    -0.8685707059713409, -0.86704624551569265, -0.86551362409056909,
-    -0.8639728561215867, -0.8624239561110405, -0.86086693863776731,
-    -0.85930181835700847, -0.85772861000027212, -0.85614732837519447,
-    -0.85455798836540053, -0.85296060493036363, -0.8513551931052652,
-    -0.84974176800085255, -0.84812034480329723, -0.84649093877405213,
-    -0.84485356524970712, -0.84320823964184544, -0.84155497743689844,
-    -0.83989379419599952, -0.83822470555483808, -0.836547727223512,
-    -0.83486287498638, -0.83317016470191319, -0.83146961230254524,
-    -0.829761233794523, -0.8280450452577558, -0.82632106284566353,
-    -0.82458930278502529, -0.82284978137582643, -0.82110251499110465,
-    -0.819347520076797, -0.81758481315158371, -0.81581441080673378,
-    -0.81403632970594841, -0.81225058658520388, -0.81045719825259477,
-    -0.808656181588175, -0.80684755354379933, -0.80503133114296366,
-    -0.80320753148064494, -0.80137617172314024, -0.799537269107905,
-    -0.79769084094339116, -0.79583690460888357, -0.79397547755433717,
-    -0.79210657730021239, -0.79023022143731, -0.78834642762660634,
-    -0.78645521359908577, -0.78455659715557524, -0.78265059616657573,
-    -0.78073722857209449, -0.778816512381476, -0.77688846567323244,
-    -0.77495310659487393, -0.773010453362737, -0.77106052426181382,
-    -0.7691033376455797, -0.7671389119358204, -0.765167265622459,
-    -0.76318841726338127, -0.76120238548426178, -0.759209188978388,
-    -0.75720884650648457, -0.75520137689653655, -0.75318679904361252,
-    -0.75116513190968637, -0.74913639452345937, -0.74710060598018013,
-    -0.745057785441466, -0.74300795213512172, -0.74095112535495922,
-    -0.73888732446061511, -0.73681656887736979, -0.7347388780959635,
-    -0.73265427167241282, -0.73056276922782759, -0.7284643904482252,
-    -0.726359155084346, -0.724247082951467, -0.72212819392921535,
-    -0.72000250796138165, -0.71787004505573171, -0.71573082528381859,
-    -0.71358486878079352, -0.71143219574521643, -0.70927282643886569,
-    -0.70710678118654757, -0.70493408037590488, -0.7027547444572253,
-    -0.70056879394324834, -0.69837624940897292, -0.696177131491463,
-    -0.69397146088965389, -0.69175925836415775, -0.68954054473706683,
-    -0.687315340891759, -0.68508366777270036, -0.68284554638524808,
-    -0.680600997795453, -0.67835004312986147, -0.67609270357531592,
-    -0.673829000378756, -0.67155895484701833, -0.669282588346636,
-    -0.66699992230363747, -0.66471097820334479, -0.66241577759017178,
-    -0.66011434206742048, -0.65780669329707864, -0.65549285299961535,
-    -0.65317284295377676, -0.650846684996381, -0.64851440102211244,
-    -0.64617601298331628, -0.64383154288979139, -0.641481012808583,
-    -0.63912444486377573, -0.6367618612362842, -0.63439328416364549,
-    -0.63201873593980906, -0.629638238914927, -0.62725181549514408,
-    -0.62485948814238634, -0.62246127937415, -0.6200572117632891,
-    -0.61764730793780387, -0.61523159058062682, -0.61281008242940971,
-    -0.61038280627630948, -0.60794978496777363, -0.60551104140432555,
-    -0.60306659854034816, -0.600616479383869, -0.59816070699634238,
-    -0.59569930449243336, -0.5932322950397998, -0.59075970185887416,
-    -0.58828154822264522, -0.58579785745643886, -0.58330865293769829,
-    -0.58081395809576453, -0.57831379641165559, -0.57580819141784534,
-    -0.5732971666980422, -0.57078074588696726, -0.56825895267013149,
-    -0.56573181078361312, -0.56319934401383409, -0.560661576197336,
-    -0.5581185312205561, -0.55557023301960218, -0.55301670558002747,
-    -0.55045797293660481, -0.54789405917310019, -0.54532498842204646,
-    -0.54275078486451589, -0.54017147272989285, -0.53758707629564539,
-    -0.53499761988709715, -0.5324031278771979, -0.52980362468629461,
-    -0.52719913478190128, -0.524589682678469, -0.52197529293715439,
-    -0.51935599016558964, -0.51673179901764987, -0.51410274419322166,
-    -0.5114688504379703, -0.508830142543107, -0.50618664534515523,
-    -0.50353838372571758, -0.50088538261124071, -0.49822766697278181,
-    -0.49556526182577254, -0.49289819222978404, -0.49022648328829116,
-    -0.487550160148436, -0.48486924800079106, -0.48218377207912272,
-    -0.47949375766015295, -0.47679923006332209, -0.47410021465054997,
-    -0.47139673682599764, -0.46868882203582796, -0.46597649576796618,
-    -0.46325978355186015, -0.46053871095824, -0.45781330359887717,
-    -0.45508358712634384, -0.45234958723377089, -0.44961132965460654,
-    -0.44686884016237416, -0.4441221445704292, -0.44137126873171667,
-    -0.43861623853852766, -0.43585707992225547, -0.43309381885315196,
-    -0.43032648134008261, -0.42755509343028208, -0.42477968120910881,
-    -0.42200027079979968, -0.41921688836322391, -0.41642956009763715,
-    -0.4136383122384345, -0.41084317105790391, -0.40804416286497869,
-    -0.40524131400498986, -0.40243465085941843, -0.39962419984564679,
-    -0.39680998741671031, -0.3939920400610481, -0.39117038430225387,
-    -0.38834504669882625, -0.38551605384391885, -0.38268343236508978,
-    -0.37984720892405116, -0.37700741021641826, -0.37416406297145793,
-    -0.37131719395183749, -0.36846682995337232, -0.36561299780477385,
-    -0.36275572436739723, -0.35989503653498811, -0.35703096123343,
-    -0.35416352542049034, -0.35129275608556709, -0.34841868024943456,
-    -0.34554132496398909, -0.34266071731199438, -0.33977688440682685,
-    -0.33688985339222005, -0.33399965144200938, -0.33110630575987643,
-    -0.3282098435790925, -0.32531029216226293, -0.32240767880106985,
-    -0.31950203081601569, -0.31659337555616585, -0.31368174039889152,
-    -0.31076715274961147, -0.30784964004153487, -0.30492922973540237,
-    -0.30200594931922808, -0.29907982630804048, -0.29615088824362379,
-    -0.29321916269425863, -0.29028467725446233, -0.28734745954472951,
-    -0.28440753721127188, -0.28146493792575794, -0.27851968938505306,
-    -0.27557181931095814, -0.272621355449949, -0.26966832557291509,
-    -0.26671275747489837, -0.26375467897483135, -0.26079411791527551,
-    -0.257831102162159, -0.25486565960451457, -0.25189781815421697,
-    -0.24892760574572015, -0.24595505033579459, -0.24298017990326387,
-    -0.2400030224487415, -0.2370236059943672, -0.23404195858354343,
-    -0.23105810828067111, -0.22807208317088573, -0.22508391135979283,
-    -0.22209362097320351, -0.2191012401568698, -0.21610679707621952,
-    -0.21311031991609136, -0.21011183688046961, -0.20711137619221856,
-    -0.20410896609281687, -0.2011046348420919, -0.19809841071795356,
-    -0.19509032201612825, -0.19208039704989244, -0.18906866414980619,
-    -0.18605515166344663, -0.18303988795514095, -0.18002290140569951,
-    -0.17700422041214875, -0.17398387338746382, -0.17096188876030122,
-    -0.16793829497473117, -0.16491312048996992, -0.16188639378011183,
-    -0.15885814333386145, -0.15582839765426523, -0.15279718525844344,
-    -0.14976453467732151, -0.14673047445536175, -0.14369503315029447,
-    -0.14065823933284921, -0.13762012158648604, -0.13458070850712617,
-    -0.13154002870288312, -0.12849811079379317, -0.12545498341154623,
-    -0.1224106751992162, -0.11936521481099135, -0.11631863091190475,
-    -0.11327095217756435, -0.11022220729388306, -0.10717242495680884,
-    -0.10412163387205459, -0.10106986275482782, -0.0980171403295606,
-    -0.094963495329638992, -0.091908956497132724, -0.0888535525825246,
-    -0.0857973123444399, -0.082740264549375692, -0.079682437971430126,
-    -0.076623861392031492, -0.073564563599667426, -0.070504573389613856,
-    -0.067443919563664051, -0.064382630929857465, -0.061320736302208578,
-    -0.058258264500435752, -0.055195244349689941, -0.052131704680283324,
-    -0.049067674327418015, -0.046003182130914623, -0.04293825693494082,
-    -0.039872927587739811, -0.036807222941358832, -0.03374117185137758,
-    -0.030674803176636626, -0.02760814577896574, -0.024541228522912288,
-    -0.021474080275469508, -0.01840672990580482, -0.0153392062849881,
-    -0.012271538285719925, -0.00920375478205982, -0.0061358846491544753,
-    -0.0030679567629659761, -0.0 };
-
-  int ihi;
-  for (i = 0; i < 2048; i++) {
-    y[i].re = 0.0;
-    y[i].im = 0.0;
-  }
-
-  ix = 0;
-  ju = 0;
-  iy = 0;
-  for (i = 0; i < 255; i++) {
-    y[iy].re = x[ix];
-    y[iy].im = 0.0;
-    iy = 2048;
-    tst = true;
-    while (tst) {
-      iy >>= 1;
-      ju ^= iy;
-      tst = ((ju & iy) == 0);
-    }
-
-    iy = ju;
-    ix++;
-  }
-
-  y[iy].re = x[ix];
-  y[iy].im = 0.0;
-  for (i = 0; i <= 2047; i += 2) {
-    temp_re = y[i + 1].re;
-    temp_im = y[i + 1].im;
-    y[i + 1].re = y[i].re - y[i + 1].re;
-    y[i + 1].im = y[i].im - y[i + 1].im;
-    y[i].re += temp_re;
-    y[i].im += temp_im;
-  }
-
-  iy = 2;
-  ix = 4;
-  ju = 512;
-  iheight = 2045;
-  while (ju > 0) {
-    for (i = 0; i < iheight; i += ix) {
-      temp_re = y[i + iy].re;
-      temp_im = y[i + iy].im;
-      y[i + iy].re = y[i].re - temp_re;
-      y[i + iy].im = y[i].im - temp_im;
-      y[i].re += temp_re;
-      y[i].im += temp_im;
-    }
-
-    istart = 1;
-    for (j = ju; j < 1024; j += ju) {
-      twid_re = dv13[j];
-      twid_im = dv14[j];
-      i = istart;
-      ihi = istart + iheight;
-      while (i < ihi) {
-        temp_re = twid_re * y[i + iy].re - twid_im * y[i + iy].im;
-        temp_im = twid_re * y[i + iy].im + twid_im * y[i + iy].re;
-        y[i + iy].re = y[i].re - temp_re;
-        y[i + iy].im = y[i].im - temp_im;
-        y[i].re += temp_re;
-        y[i].im += temp_im;
-        i += ix;
-      }
-
-      istart++;
-    }
-
-    ju /= 2;
-    iy = ix;
-    ix <<= 1;
-    iheight -= iy;
   }
 }
 
@@ -2751,8 +1249,8 @@ static void c_fft(const double x[256], creal_T y[2048])
 static void c_findLocalMaxima(emxArray_real_T *yTemp, emxArray_real_T *iPk,
   emxArray_real_T *iInflect)
 {
-  emxArray_real_T *r8;
-  int i20;
+  emxArray_real_T *r12;
+  int i7;
   int cdiff;
   int ndbl;
   int apnd;
@@ -2764,36 +1262,36 @@ static void c_findLocalMaxima(emxArray_real_T *yTemp, emxArray_real_T *iPk,
   emxArray_int32_T *ii;
   boolean_T exitg3;
   boolean_T guard3 = false;
-  emxArray_int32_T *r9;
+  emxArray_int32_T *r13;
   emxArray_real_T *b_iTemp;
   emxArray_real_T *b_yTemp;
   emxArray_real_T *s;
-  emxArray_real_T *r10;
+  emxArray_real_T *r14;
   boolean_T exitg2;
   boolean_T guard2 = false;
   emxArray_int32_T *b_ii;
   boolean_T exitg1;
   boolean_T guard1 = false;
-  emxInit_real_T1(&r8, 1);
-  i20 = r8->size[0];
-  r8->size[0] = 2 + yTemp->size[0];
-  emxEnsureCapacity((emxArray__common *)r8, i20, (int)sizeof(double));
-  r8->data[0] = rtNaN;
+  emxInit_real_T1(&r12, 1);
+  i7 = r12->size[0];
+  r12->size[0] = 2 + yTemp->size[0];
+  emxEnsureCapacity((emxArray__common *)r12, i7, (int)sizeof(double));
+  r12->data[0] = rtNaN;
   cdiff = yTemp->size[0];
-  for (i20 = 0; i20 < cdiff; i20++) {
-    r8->data[i20 + 1] = yTemp->data[i20];
+  for (i7 = 0; i7 < cdiff; i7++) {
+    r12->data[i7 + 1] = yTemp->data[i7];
   }
 
-  r8->data[1 + yTemp->size[0]] = rtNaN;
-  i20 = yTemp->size[0];
-  yTemp->size[0] = r8->size[0];
-  emxEnsureCapacity((emxArray__common *)yTemp, i20, (int)sizeof(double));
-  cdiff = r8->size[0];
-  for (i20 = 0; i20 < cdiff; i20++) {
-    yTemp->data[i20] = r8->data[i20];
+  r12->data[1 + yTemp->size[0]] = rtNaN;
+  i7 = yTemp->size[0];
+  yTemp->size[0] = r12->size[0];
+  emxEnsureCapacity((emxArray__common *)yTemp, i7, (int)sizeof(double));
+  cdiff = r12->size[0];
+  for (i7 = 0; i7 < cdiff; i7++) {
+    yTemp->data[i7] = r12->data[i7];
   }
 
-  emxFree_real_T(&r8);
+  emxFree_real_T(&r12);
   ndbl = (int)std::floor(((double)yTemp->size[0] - 1.0) + 0.5);
   apnd = ndbl + 1;
   cdiff = (ndbl - yTemp->size[0]) + 1;
@@ -2808,10 +1306,10 @@ static void c_findLocalMaxima(emxArray_real_T *yTemp, emxArray_real_T *iPk,
   }
 
   emxInit_real_T(&y, 2);
-  i20 = y->size[0] * y->size[1];
+  i7 = y->size[0] * y->size[1];
   y->size[0] = 1;
   y->size[1] = ndbl;
-  emxEnsureCapacity((emxArray__common *)y, i20, (int)sizeof(double));
+  emxEnsureCapacity((emxArray__common *)y, i7, (int)sizeof(double));
   y->data[0] = 1.0;
   if (ndbl > 1) {
     y->data[ndbl - 1] = apnd;
@@ -2830,48 +1328,48 @@ static void c_findLocalMaxima(emxArray_real_T *yTemp, emxArray_real_T *iPk,
   }
 
   emxInit_real_T1(&iTemp, 1);
-  i20 = iTemp->size[0];
+  i7 = iTemp->size[0];
   iTemp->size[0] = y->size[1];
-  emxEnsureCapacity((emxArray__common *)iTemp, i20, (int)sizeof(double));
+  emxEnsureCapacity((emxArray__common *)iTemp, i7, (int)sizeof(double));
   cdiff = y->size[1];
-  for (i20 = 0; i20 < cdiff; i20++) {
-    iTemp->data[i20] = y->data[y->size[0] * i20];
+  for (i7 = 0; i7 < cdiff; i7++) {
+    iTemp->data[i7] = y->data[y->size[0] * i7];
   }
 
   emxFree_real_T(&y);
   emxInit_boolean_T(&yFinite, 1);
-  i20 = yFinite->size[0];
+  i7 = yFinite->size[0];
   yFinite->size[0] = yTemp->size[0];
-  emxEnsureCapacity((emxArray__common *)yFinite, i20, (int)sizeof(boolean_T));
+  emxEnsureCapacity((emxArray__common *)yFinite, i7, (int)sizeof(boolean_T));
   cdiff = yTemp->size[0];
-  for (i20 = 0; i20 < cdiff; i20++) {
-    yFinite->data[i20] = rtIsNaN(yTemp->data[i20]);
+  for (i7 = 0; i7 < cdiff; i7++) {
+    yFinite->data[i7] = rtIsNaN(yTemp->data[i7]);
   }
 
-  i20 = yFinite->size[0];
-  emxEnsureCapacity((emxArray__common *)yFinite, i20, (int)sizeof(boolean_T));
+  i7 = yFinite->size[0];
+  emxEnsureCapacity((emxArray__common *)yFinite, i7, (int)sizeof(boolean_T));
   cdiff = yFinite->size[0];
-  for (i20 = 0; i20 < cdiff; i20++) {
-    yFinite->data[i20] = !yFinite->data[i20];
+  for (i7 = 0; i7 < cdiff; i7++) {
+    yFinite->data[i7] = !yFinite->data[i7];
   }
 
   emxInit_boolean_T(&x, 1);
-  cdiff = yTemp->size[0] - 2;
-  i20 = x->size[0];
-  x->size[0] = cdiff + 1;
-  emxEnsureCapacity((emxArray__common *)x, i20, (int)sizeof(boolean_T));
-  for (i20 = 0; i20 <= cdiff; i20++) {
-    x->data[i20] = ((yTemp->data[i20] != yTemp->data[1 + i20]) && (yFinite->
-      data[i20] || yFinite->data[1 + i20]));
+  cdiff = yTemp->size[0] - 1;
+  i7 = x->size[0];
+  x->size[0] = cdiff;
+  emxEnsureCapacity((emxArray__common *)x, i7, (int)sizeof(boolean_T));
+  for (i7 = 0; i7 < cdiff; i7++) {
+    x->data[i7] = ((yTemp->data[i7] != yTemp->data[1 + i7]) && (yFinite->data[i7]
+      || yFinite->data[1 + i7]));
   }
 
   emxFree_boolean_T(&yFinite);
   emxInit_int32_T(&ii, 1);
   absb = x->size[0];
   ndbl = 0;
-  i20 = ii->size[0];
+  i7 = ii->size[0];
   ii->size[0] = x->size[0];
-  emxEnsureCapacity((emxArray__common *)ii, i20, (int)sizeof(int));
+  emxEnsureCapacity((emxArray__common *)ii, i7, (int)sizeof(int));
   cdiff = 1;
   exitg3 = false;
   while ((!exitg3) && (cdiff <= absb)) {
@@ -2895,79 +1393,79 @@ static void c_findLocalMaxima(emxArray_real_T *yTemp, emxArray_real_T *iPk,
 
   if (x->size[0] == 1) {
     if (ndbl == 0) {
-      i20 = ii->size[0];
+      i7 = ii->size[0];
       ii->size[0] = 0;
-      emxEnsureCapacity((emxArray__common *)ii, i20, (int)sizeof(int));
+      emxEnsureCapacity((emxArray__common *)ii, i7, (int)sizeof(int));
     }
   } else {
-    i20 = ii->size[0];
+    i7 = ii->size[0];
     if (1 > ndbl) {
       ii->size[0] = 0;
     } else {
       ii->size[0] = ndbl;
     }
 
-    emxEnsureCapacity((emxArray__common *)ii, i20, (int)sizeof(int));
+    emxEnsureCapacity((emxArray__common *)ii, i7, (int)sizeof(int));
   }
 
-  emxInit_int32_T(&r9, 1);
-  i20 = r9->size[0];
-  r9->size[0] = 1 + ii->size[0];
-  emxEnsureCapacity((emxArray__common *)r9, i20, (int)sizeof(int));
-  r9->data[0] = 1;
+  emxInit_int32_T(&r13, 1);
+  i7 = r13->size[0];
+  r13->size[0] = 1 + ii->size[0];
+  emxEnsureCapacity((emxArray__common *)r13, i7, (int)sizeof(int));
+  r13->data[0] = 1;
   cdiff = ii->size[0];
-  for (i20 = 0; i20 < cdiff; i20++) {
-    r9->data[i20 + 1] = ii->data[i20] + 1;
+  for (i7 = 0; i7 < cdiff; i7++) {
+    r13->data[i7 + 1] = ii->data[i7] + 1;
   }
 
   emxInit_real_T1(&b_iTemp, 1);
-  i20 = b_iTemp->size[0];
-  b_iTemp->size[0] = r9->size[0];
-  emxEnsureCapacity((emxArray__common *)b_iTemp, i20, (int)sizeof(double));
-  cdiff = r9->size[0];
-  for (i20 = 0; i20 < cdiff; i20++) {
-    b_iTemp->data[i20] = iTemp->data[r9->data[i20] - 1];
+  i7 = b_iTemp->size[0];
+  b_iTemp->size[0] = r13->size[0];
+  emxEnsureCapacity((emxArray__common *)b_iTemp, i7, (int)sizeof(double));
+  cdiff = r13->size[0];
+  for (i7 = 0; i7 < cdiff; i7++) {
+    b_iTemp->data[i7] = iTemp->data[r13->data[i7] - 1];
   }
 
-  emxFree_int32_T(&r9);
-  i20 = iTemp->size[0];
+  emxFree_int32_T(&r13);
+  i7 = iTemp->size[0];
   iTemp->size[0] = b_iTemp->size[0];
-  emxEnsureCapacity((emxArray__common *)iTemp, i20, (int)sizeof(double));
+  emxEnsureCapacity((emxArray__common *)iTemp, i7, (int)sizeof(double));
   cdiff = b_iTemp->size[0];
-  for (i20 = 0; i20 < cdiff; i20++) {
-    iTemp->data[i20] = b_iTemp->data[i20];
+  for (i7 = 0; i7 < cdiff; i7++) {
+    iTemp->data[i7] = b_iTemp->data[i7];
   }
 
   emxFree_real_T(&b_iTemp);
   emxInit_real_T1(&b_yTemp, 1);
-  i20 = b_yTemp->size[0];
+  i7 = b_yTemp->size[0];
   b_yTemp->size[0] = iTemp->size[0];
-  emxEnsureCapacity((emxArray__common *)b_yTemp, i20, (int)sizeof(double));
+  emxEnsureCapacity((emxArray__common *)b_yTemp, i7, (int)sizeof(double));
   cdiff = iTemp->size[0];
-  for (i20 = 0; i20 < cdiff; i20++) {
-    b_yTemp->data[i20] = yTemp->data[(int)iTemp->data[i20] - 1];
+  for (i7 = 0; i7 < cdiff; i7++) {
+    b_yTemp->data[i7] = yTemp->data[(int)iTemp->data[i7] - 1];
   }
 
   emxInit_real_T1(&s, 1);
-  emxInit_real_T1(&r10, 1);
+  emxInit_real_T1(&r14, 1);
   diff(b_yTemp, s);
   b_sign(s);
-  diff(s, r10);
-  i20 = x->size[0];
-  x->size[0] = r10->size[0];
-  emxEnsureCapacity((emxArray__common *)x, i20, (int)sizeof(boolean_T));
-  cdiff = r10->size[0];
+  diff(s, r14);
+  i7 = x->size[0];
+  x->size[0] = r14->size[0];
+  emxEnsureCapacity((emxArray__common *)x, i7, (int)sizeof(boolean_T));
+  cdiff = r14->size[0];
   emxFree_real_T(&b_yTemp);
-  for (i20 = 0; i20 < cdiff; i20++) {
-    x->data[i20] = (r10->data[i20] < 0.0);
+  for (i7 = 0; i7 < cdiff; i7++) {
+    x->data[i7] = (r14->data[i7] < 0.0);
   }
 
-  emxFree_real_T(&r10);
+  emxFree_real_T(&r14);
   absb = x->size[0];
   ndbl = 0;
-  i20 = ii->size[0];
+  i7 = ii->size[0];
   ii->size[0] = x->size[0];
-  emxEnsureCapacity((emxArray__common *)ii, i20, (int)sizeof(int));
+  emxEnsureCapacity((emxArray__common *)ii, i7, (int)sizeof(int));
   cdiff = 1;
   exitg2 = false;
   while ((!exitg2) && (cdiff <= absb)) {
@@ -2991,47 +1489,47 @@ static void c_findLocalMaxima(emxArray_real_T *yTemp, emxArray_real_T *iPk,
 
   if (x->size[0] == 1) {
     if (ndbl == 0) {
-      i20 = ii->size[0];
+      i7 = ii->size[0];
       ii->size[0] = 0;
-      emxEnsureCapacity((emxArray__common *)ii, i20, (int)sizeof(int));
+      emxEnsureCapacity((emxArray__common *)ii, i7, (int)sizeof(int));
     }
   } else {
-    i20 = ii->size[0];
+    i7 = ii->size[0];
     if (1 > ndbl) {
       ii->size[0] = 0;
     } else {
       ii->size[0] = ndbl;
     }
 
-    emxEnsureCapacity((emxArray__common *)ii, i20, (int)sizeof(int));
+    emxEnsureCapacity((emxArray__common *)ii, i7, (int)sizeof(int));
   }
 
-  if (1 > s->size[0] - 1) {
+  if (1.0 > (double)s->size[0] - 1.0) {
     cdiff = 0;
   } else {
-    cdiff = s->size[0] - 1;
+    cdiff = (int)((double)s->size[0] - 1.0);
   }
 
   if (2 > s->size[0]) {
-    i20 = 0;
+    i7 = 0;
   } else {
-    i20 = 1;
+    i7 = 1;
   }
 
   absb = x->size[0];
   x->size[0] = cdiff;
   emxEnsureCapacity((emxArray__common *)x, absb, (int)sizeof(boolean_T));
   for (absb = 0; absb < cdiff; absb++) {
-    x->data[absb] = (s->data[absb] != s->data[i20 + absb]);
+    x->data[absb] = (s->data[absb] != s->data[i7 + absb]);
   }
 
   emxFree_real_T(&s);
   emxInit_int32_T(&b_ii, 1);
   absb = x->size[0];
   ndbl = 0;
-  i20 = b_ii->size[0];
+  i7 = b_ii->size[0];
   b_ii->size[0] = x->size[0];
-  emxEnsureCapacity((emxArray__common *)b_ii, i20, (int)sizeof(int));
+  emxEnsureCapacity((emxArray__common *)b_ii, i7, (int)sizeof(int));
   cdiff = 1;
   exitg1 = false;
   while ((!exitg1) && (cdiff <= absb)) {
@@ -3055,37 +1553,37 @@ static void c_findLocalMaxima(emxArray_real_T *yTemp, emxArray_real_T *iPk,
 
   if (x->size[0] == 1) {
     if (ndbl == 0) {
-      i20 = b_ii->size[0];
+      i7 = b_ii->size[0];
       b_ii->size[0] = 0;
-      emxEnsureCapacity((emxArray__common *)b_ii, i20, (int)sizeof(int));
+      emxEnsureCapacity((emxArray__common *)b_ii, i7, (int)sizeof(int));
     }
   } else {
-    i20 = b_ii->size[0];
+    i7 = b_ii->size[0];
     if (1 > ndbl) {
       b_ii->size[0] = 0;
     } else {
       b_ii->size[0] = ndbl;
     }
 
-    emxEnsureCapacity((emxArray__common *)b_ii, i20, (int)sizeof(int));
+    emxEnsureCapacity((emxArray__common *)b_ii, i7, (int)sizeof(int));
   }
 
   emxFree_boolean_T(&x);
-  i20 = iInflect->size[0];
+  i7 = iInflect->size[0];
   iInflect->size[0] = b_ii->size[0];
-  emxEnsureCapacity((emxArray__common *)iInflect, i20, (int)sizeof(double));
+  emxEnsureCapacity((emxArray__common *)iInflect, i7, (int)sizeof(double));
   cdiff = b_ii->size[0];
-  for (i20 = 0; i20 < cdiff; i20++) {
-    iInflect->data[i20] = iTemp->data[b_ii->data[i20]] - 1.0;
+  for (i7 = 0; i7 < cdiff; i7++) {
+    iInflect->data[i7] = iTemp->data[b_ii->data[i7]] - 1.0;
   }
 
   emxFree_int32_T(&b_ii);
-  i20 = iPk->size[0];
+  i7 = iPk->size[0];
   iPk->size[0] = ii->size[0];
-  emxEnsureCapacity((emxArray__common *)iPk, i20, (int)sizeof(double));
+  emxEnsureCapacity((emxArray__common *)iPk, i7, (int)sizeof(double));
   cdiff = ii->size[0];
-  for (i20 = 0; i20 < cdiff; i20++) {
-    iPk->data[i20] = iTemp->data[ii->data[i20]] - 1.0;
+  for (i7 = 0; i7 < cdiff; i7++) {
+    iPk->data[i7] = iTemp->data[ii->data[i7]] - 1.0;
   }
 
   emxFree_int32_T(&ii);
@@ -3093,30 +1591,29 @@ static void c_findLocalMaxima(emxArray_real_T *yTemp, emxArray_real_T *iPk,
 }
 
 //
-// Arguments    : const int iPk_size[1]
-//                double idx_data[]
-//                int idx_size[1]
+// Arguments    : const emxArray_real_T *iPk
+//                emxArray_real_T *idx
 // Return Type  : void
 //
-static void c_findPeaksSeparatedByMoreThanM(const int iPk_size[1], double
-  idx_data[], int idx_size[1])
+static void c_findPeaksSeparatedByMoreThanM(const emxArray_real_T *iPk,
+  emxArray_real_T *idx)
 {
   int ndbl;
   int apnd;
   int cdiff;
+  int absb;
   emxArray_real_T *y;
-  int k;
-  if (iPk_size[0] < 1) {
+  if (iPk->size[0] < 1) {
     ndbl = 0;
     apnd = 0;
   } else {
-    ndbl = (int)std::floor(((double)iPk_size[0] - 1.0) + 0.5);
+    ndbl = (int)std::floor(((double)iPk->size[0] - 1.0) + 0.5);
     apnd = ndbl + 1;
-    cdiff = (ndbl - iPk_size[0]) + 1;
-    if (std::abs((double)cdiff) < 4.4408920985006262E-16 * (double)iPk_size[0])
-    {
+    cdiff = (ndbl - iPk->size[0]) + 1;
+    absb = iPk->size[0];
+    if (std::abs((double)cdiff) < 4.4408920985006262E-16 * (double)absb) {
       ndbl++;
-      apnd = iPk_size[0];
+      apnd = iPk->size[0];
     } else if (cdiff > 0) {
       apnd = ndbl;
     } else {
@@ -3125,18 +1622,18 @@ static void c_findPeaksSeparatedByMoreThanM(const int iPk_size[1], double
   }
 
   emxInit_real_T(&y, 2);
-  k = y->size[0] * y->size[1];
+  absb = y->size[0] * y->size[1];
   y->size[0] = 1;
   y->size[1] = ndbl;
-  emxEnsureCapacity((emxArray__common *)y, k, (int)sizeof(double));
+  emxEnsureCapacity((emxArray__common *)y, absb, (int)sizeof(double));
   if (ndbl > 0) {
     y->data[0] = 1.0;
     if (ndbl > 1) {
       y->data[ndbl - 1] = apnd;
       cdiff = (ndbl - 1) / 2;
-      for (k = 1; k < cdiff; k++) {
-        y->data[k] = 1.0 + (double)k;
-        y->data[(ndbl - k) - 1] = apnd - k;
+      for (absb = 1; absb < cdiff; absb++) {
+        y->data[absb] = 1.0 + (double)absb;
+        y->data[(ndbl - absb) - 1] = apnd - absb;
       }
 
       if (cdiff << 1 == ndbl - 1) {
@@ -3148,10 +1645,12 @@ static void c_findPeaksSeparatedByMoreThanM(const int iPk_size[1], double
     }
   }
 
-  idx_size[0] = y->size[1];
+  absb = idx->size[0];
+  idx->size[0] = y->size[1];
+  emxEnsureCapacity((emxArray__common *)idx, absb, (int)sizeof(double));
   cdiff = y->size[1];
-  for (k = 0; k < cdiff; k++) {
-    idx_data[k] = y->data[y->size[0] * k];
+  for (absb = 0; absb < cdiff; absb++) {
+    idx->data[absb] = y->data[y->size[0] * absb];
   }
 
   emxFree_real_T(&y);
@@ -3166,505 +1665,145 @@ static void c_findPeaksSeparatedByMoreThanM(const int iPk_size[1], double
 static void c_findpeaks(const emxArray_real_T *Yin, emxArray_real_T *Ypk,
   emxArray_real_T *Xpk)
 {
-  emxArray_real_T *iPk;
+  int nm1d2;
+  int cdiff;
+  int ndbl;
+  int apnd;
   emxArray_real_T *y;
   emxArray_real_T *x;
-  emxArray_real_T *iFinite;
-  emxArray_real_T *iInflect;
-  emxArray_real_T *iInf;
-  double maxN;
-  int i18;
-  int loop_ub;
+  emxArray_real_T *iPk;
+  emxArray_real_T *idx;
+  emxArray_real_T *iInfite;
   emxArray_real_T *b_iPk;
-  emxArray_int32_T *ia;
-  emxArray_int32_T *ib;
-  emxArray_real_T *b_x;
-  emxArray_real_T *c_iPk;
-  emxArray_int32_T *iidx;
-  emxArray_real_T *d_iPk;
-  emxInit_real_T1(&iPk, 1);
-  emxInit_real_T1(&y, 1);
-  emxInit_real_T1(&x, 1);
-  emxInit_real_T1(&iFinite, 1);
-  emxInit_real_T1(&iInflect, 1);
-  emxInit_real_T1(&iInf, 1);
-  parse_inputs(Yin, y, x, &maxN);
-  c_getAllPeaks(y, iFinite, iInf, iInflect);
-  c_removePeaksBelowMinPeakHeight(y, iFinite);
-  i18 = iPk->size[0];
-  iPk->size[0] = iFinite->size[0];
-  emxEnsureCapacity((emxArray__common *)iPk, i18, (int)sizeof(double));
-  loop_ub = iFinite->size[0];
-  emxFree_real_T(&iInflect);
-  for (i18 = 0; i18 < loop_ub; i18++) {
-    iPk->data[i18] = iFinite->data[i18];
-  }
-
-  i18 = iFinite->size[0];
-  iFinite->size[0] = iPk->size[0];
-  emxEnsureCapacity((emxArray__common *)iFinite, i18, (int)sizeof(double));
-  loop_ub = iPk->size[0];
-  for (i18 = 0; i18 < loop_ub; i18++) {
-    iFinite->data[i18] = iPk->data[i18];
-  }
-
-  c_removePeaksBelowThreshold(y, iFinite);
-  i18 = iPk->size[0];
-  iPk->size[0] = iFinite->size[0];
-  emxEnsureCapacity((emxArray__common *)iPk, i18, (int)sizeof(double));
-  loop_ub = iFinite->size[0];
-  for (i18 = 0; i18 < loop_ub; i18++) {
-    iPk->data[i18] = iFinite->data[i18];
-  }
-
-  emxFree_real_T(&iFinite);
-  emxInit_real_T1(&b_iPk, 1);
-  emxInit_int32_T(&ia, 1);
-  emxInit_int32_T(&ib, 1);
-  do_vectors(iPk, iInf, b_iPk, ia, ib);
-  e_findPeaksSeparatedByMoreThanM(b_iPk, iPk);
-  emxFree_int32_T(&ib);
-  emxFree_int32_T(&ia);
-  emxFree_real_T(&iInf);
-  if (iPk->size[0] == 0) {
+  int b_Yin[1];
+  emxArray_real_T c_Yin;
+  int d_Yin[1];
+  int e_Yin[1];
+  int f_Yin[1];
+  nm1d2 = Yin->size[1];
+  if (nm1d2 < 1) {
+    cdiff = 0;
+    apnd = Yin->size[1];
   } else {
-    emxInit_real_T1(&b_x, 1);
-    i18 = b_x->size[0];
-    b_x->size[0] = iPk->size[0];
-    emxEnsureCapacity((emxArray__common *)b_x, i18, (int)sizeof(double));
-    loop_ub = iPk->size[0];
-    for (i18 = 0; i18 < loop_ub; i18++) {
-      b_x->data[i18] = y->data[(int)b_iPk->data[(int)iPk->data[i18] - 1] - 1];
+    nm1d2 = Yin->size[1];
+    ndbl = (int)std::floor(((double)nm1d2 - 1.0) + 0.5);
+    apnd = ndbl + 1;
+    nm1d2 = Yin->size[1];
+    cdiff = (ndbl - nm1d2) + 1;
+    nm1d2 = Yin->size[1];
+    if (1 >= nm1d2) {
+      nm1d2 = 1;
     }
 
-    emxInit_int32_T(&iidx, 1);
-    emxInit_real_T1(&d_iPk, 1);
-    b_sort(b_x, iidx);
-    i18 = d_iPk->size[0];
-    d_iPk->size[0] = iidx->size[0];
-    emxEnsureCapacity((emxArray__common *)d_iPk, i18, (int)sizeof(double));
-    loop_ub = iidx->size[0];
-    emxFree_real_T(&b_x);
-    for (i18 = 0; i18 < loop_ub; i18++) {
-      d_iPk->data[i18] = iPk->data[iidx->data[i18] - 1];
+    if (std::abs((double)cdiff) < 4.4408920985006262E-16 * (double)nm1d2) {
+      ndbl++;
+      apnd = Yin->size[1];
+    } else if (cdiff > 0) {
+      apnd = ndbl;
+    } else {
+      ndbl++;
     }
 
-    emxFree_int32_T(&iidx);
-    i18 = iPk->size[0];
-    iPk->size[0] = d_iPk->size[0];
-    emxEnsureCapacity((emxArray__common *)iPk, i18, (int)sizeof(double));
-    loop_ub = d_iPk->size[0];
-    for (i18 = 0; i18 < loop_ub; i18++) {
-      iPk->data[i18] = d_iPk->data[i18];
+    if (ndbl >= 0) {
+      cdiff = ndbl;
+    } else {
+      cdiff = 0;
     }
-
-    emxFree_real_T(&d_iPk);
   }
 
-  emxInit_real_T1(&c_iPk, 1);
-  c_keepAtMostNpPeaks(iPk, maxN);
-  i18 = c_iPk->size[0];
-  c_iPk->size[0] = iPk->size[0];
-  emxEnsureCapacity((emxArray__common *)c_iPk, i18, (int)sizeof(double));
-  loop_ub = iPk->size[0];
-  for (i18 = 0; i18 < loop_ub; i18++) {
-    c_iPk->data[i18] = b_iPk->data[(int)iPk->data[i18] - 1];
+  emxInit_real_T(&y, 2);
+  ndbl = y->size[0] * y->size[1];
+  y->size[0] = 1;
+  y->size[1] = cdiff;
+  emxEnsureCapacity((emxArray__common *)y, ndbl, (int)sizeof(double));
+  if (cdiff > 0) {
+    y->data[0] = 1.0;
+    if (cdiff > 1) {
+      y->data[cdiff - 1] = apnd;
+      nm1d2 = (cdiff - 1) / 2;
+      for (ndbl = 1; ndbl < nm1d2; ndbl++) {
+        y->data[ndbl] = 1.0 + (double)ndbl;
+        y->data[(cdiff - ndbl) - 1] = apnd - ndbl;
+      }
+
+      if (nm1d2 << 1 == cdiff - 1) {
+        y->data[nm1d2] = (1.0 + (double)apnd) / 2.0;
+      } else {
+        y->data[nm1d2] = 1.0 + (double)nm1d2;
+        y->data[nm1d2 + 1] = apnd - nm1d2;
+      }
+    }
+  }
+
+  emxInit_real_T1(&x, 1);
+  ndbl = x->size[0];
+  x->size[0] = y->size[1];
+  emxEnsureCapacity((emxArray__common *)x, ndbl, (int)sizeof(double));
+  nm1d2 = y->size[1];
+  for (ndbl = 0; ndbl < nm1d2; ndbl++) {
+    x->data[ndbl] = y->data[y->size[0] * ndbl];
+  }
+
+  emxFree_real_T(&y);
+  emxInit_real_T1(&iPk, 1);
+  emxInit_real_T1(&idx, 1);
+  emxInit_real_T1(&iInfite, 1);
+  emxInit_real_T1(&b_iPk, 1);
+  b_Yin[0] = Yin->size[1];
+  c_Yin = *Yin;
+  c_Yin.size = (int *)&b_Yin;
+  c_Yin.numDimensions = 1;
+  getAllPeaks(&c_Yin, iPk, iInfite, idx);
+  d_Yin[0] = Yin->size[1];
+  c_Yin = *Yin;
+  c_Yin.size = (int *)&d_Yin;
+  c_Yin.numDimensions = 1;
+  removePeaksBelowMinPeakHeight(&c_Yin, iPk, rtMinusInf);
+  e_Yin[0] = Yin->size[1];
+  c_Yin = *Yin;
+  c_Yin.size = (int *)&e_Yin;
+  c_Yin.numDimensions = 1;
+  removePeaksBelowThreshold(&c_Yin, iPk, 0.0);
+  combinePeaks(iPk, iInfite, b_iPk);
+  c_findPeaksSeparatedByMoreThanM(b_iPk, idx);
+  f_Yin[0] = Yin->size[1];
+  c_Yin = *Yin;
+  c_Yin.size = (int *)&f_Yin;
+  c_Yin.numDimensions = 1;
+  orderPeaks(&c_Yin, b_iPk, idx);
+  nm1d2 = Yin->size[1];
+  keepAtMostNpPeaks(idx, (double)nm1d2);
+  ndbl = iPk->size[0];
+  iPk->size[0] = idx->size[0];
+  emxEnsureCapacity((emxArray__common *)iPk, ndbl, (int)sizeof(double));
+  nm1d2 = idx->size[0];
+  emxFree_real_T(&iInfite);
+  for (ndbl = 0; ndbl < nm1d2; ndbl++) {
+    iPk->data[ndbl] = b_iPk->data[(int)idx->data[ndbl] - 1];
   }
 
   emxFree_real_T(&b_iPk);
-  emxFree_real_T(&iPk);
-  c_assignOutputs(y, x, c_iPk, Ypk, Xpk);
-  emxFree_real_T(&c_iPk);
+  emxFree_real_T(&idx);
+  ndbl = Ypk->size[0] * Ypk->size[1];
+  Ypk->size[0] = 1;
+  Ypk->size[1] = iPk->size[0];
+  emxEnsureCapacity((emxArray__common *)Ypk, ndbl, (int)sizeof(double));
+  nm1d2 = iPk->size[0];
+  for (ndbl = 0; ndbl < nm1d2; ndbl++) {
+    Ypk->data[Ypk->size[0] * ndbl] = Yin->data[(int)iPk->data[ndbl] - 1];
+  }
+
+  ndbl = Xpk->size[0] * Xpk->size[1];
+  Xpk->size[0] = 1;
+  Xpk->size[1] = iPk->size[0];
+  emxEnsureCapacity((emxArray__common *)Xpk, ndbl, (int)sizeof(double));
+  nm1d2 = iPk->size[0];
+  for (ndbl = 0; ndbl < nm1d2; ndbl++) {
+    Xpk->data[Xpk->size[0] * ndbl] = x->data[(int)iPk->data[ndbl] - 1];
+  }
+
   emxFree_real_T(&x);
-  emxFree_real_T(&y);
-}
-
-//
-// Arguments    : const emxArray_real_T *y
-//                emxArray_real_T *iPk
-//                emxArray_real_T *iInf
-//                emxArray_real_T *iInflect
-// Return Type  : void
-//
-static void c_getAllPeaks(const emxArray_real_T *y, emxArray_real_T *iPk,
-  emxArray_real_T *iInf, emxArray_real_T *iInflect)
-{
-  emxArray_boolean_T *r6;
-  int i19;
-  int ii;
-  emxArray_boolean_T *x;
-  emxArray_int32_T *b_ii;
-  int nx;
-  int idx;
-  boolean_T exitg1;
-  boolean_T guard1 = false;
-  emxArray_real_T *yTemp;
-  emxArray_int32_T *r7;
-  emxArray_real_T *b_yTemp;
-  emxInit_boolean_T(&r6, 1);
-  i19 = r6->size[0];
-  r6->size[0] = y->size[0];
-  emxEnsureCapacity((emxArray__common *)r6, i19, (int)sizeof(boolean_T));
-  ii = y->size[0];
-  for (i19 = 0; i19 < ii; i19++) {
-    r6->data[i19] = rtIsInf(y->data[i19]);
-  }
-
-  emxInit_boolean_T(&x, 1);
-  i19 = x->size[0];
-  x->size[0] = r6->size[0];
-  emxEnsureCapacity((emxArray__common *)x, i19, (int)sizeof(boolean_T));
-  ii = r6->size[0];
-  for (i19 = 0; i19 < ii; i19++) {
-    x->data[i19] = (r6->data[i19] && (y->data[i19] > 0.0));
-  }
-
-  emxFree_boolean_T(&r6);
-  emxInit_int32_T(&b_ii, 1);
-  nx = x->size[0];
-  idx = 0;
-  i19 = b_ii->size[0];
-  b_ii->size[0] = x->size[0];
-  emxEnsureCapacity((emxArray__common *)b_ii, i19, (int)sizeof(int));
-  ii = 1;
-  exitg1 = false;
-  while ((!exitg1) && (ii <= nx)) {
-    guard1 = false;
-    if (x->data[ii - 1]) {
-      idx++;
-      b_ii->data[idx - 1] = ii;
-      if (idx >= nx) {
-        exitg1 = true;
-      } else {
-        guard1 = true;
-      }
-    } else {
-      guard1 = true;
-    }
-
-    if (guard1) {
-      ii++;
-    }
-  }
-
-  if (x->size[0] == 1) {
-    if (idx == 0) {
-      i19 = b_ii->size[0];
-      b_ii->size[0] = 0;
-      emxEnsureCapacity((emxArray__common *)b_ii, i19, (int)sizeof(int));
-    }
-  } else {
-    i19 = b_ii->size[0];
-    if (1 > idx) {
-      b_ii->size[0] = 0;
-    } else {
-      b_ii->size[0] = idx;
-    }
-
-    emxEnsureCapacity((emxArray__common *)b_ii, i19, (int)sizeof(int));
-  }
-
-  emxFree_boolean_T(&x);
-  i19 = iInf->size[0];
-  iInf->size[0] = b_ii->size[0];
-  emxEnsureCapacity((emxArray__common *)iInf, i19, (int)sizeof(double));
-  ii = b_ii->size[0];
-  for (i19 = 0; i19 < ii; i19++) {
-    iInf->data[i19] = b_ii->data[i19];
-  }
-
-  emxInit_real_T1(&yTemp, 1);
-  i19 = yTemp->size[0];
-  yTemp->size[0] = y->size[0];
-  emxEnsureCapacity((emxArray__common *)yTemp, i19, (int)sizeof(double));
-  ii = y->size[0];
-  for (i19 = 0; i19 < ii; i19++) {
-    yTemp->data[i19] = y->data[i19];
-  }
-
-  emxInit_int32_T(&r7, 1);
-  i19 = r7->size[0];
-  r7->size[0] = b_ii->size[0];
-  emxEnsureCapacity((emxArray__common *)r7, i19, (int)sizeof(int));
-  ii = b_ii->size[0];
-  for (i19 = 0; i19 < ii; i19++) {
-    r7->data[i19] = b_ii->data[i19];
-  }
-
-  emxFree_int32_T(&b_ii);
-  ii = r7->size[0];
-  for (i19 = 0; i19 < ii; i19++) {
-    yTemp->data[r7->data[i19] - 1] = rtNaN;
-  }
-
-  emxFree_int32_T(&r7);
-  emxInit_real_T1(&b_yTemp, 1);
-  i19 = b_yTemp->size[0];
-  b_yTemp->size[0] = yTemp->size[0];
-  emxEnsureCapacity((emxArray__common *)b_yTemp, i19, (int)sizeof(double));
-  ii = yTemp->size[0];
-  for (i19 = 0; i19 < ii; i19++) {
-    b_yTemp->data[i19] = yTemp->data[i19];
-  }
-
-  emxFree_real_T(&yTemp);
-  c_findLocalMaxima(b_yTemp, iPk, iInflect);
-  emxFree_real_T(&b_yTemp);
-}
-
-//
-// Arguments    : emxArray_real_T *idx
-//                double Np
-// Return Type  : void
-//
-static void c_keepAtMostNpPeaks(emxArray_real_T *idx, double Np)
-{
-  int loop_ub;
-  emxArray_real_T *b_idx;
-  int i28;
-  if (idx->size[0] > Np) {
-    if (1.0 > Np) {
-      loop_ub = 0;
-    } else {
-      loop_ub = (int)Np;
-    }
-
-    emxInit_real_T1(&b_idx, 1);
-    i28 = b_idx->size[0];
-    b_idx->size[0] = loop_ub;
-    emxEnsureCapacity((emxArray__common *)b_idx, i28, (int)sizeof(double));
-    for (i28 = 0; i28 < loop_ub; i28++) {
-      b_idx->data[i28] = idx->data[i28];
-    }
-
-    i28 = idx->size[0];
-    idx->size[0] = b_idx->size[0];
-    emxEnsureCapacity((emxArray__common *)idx, i28, (int)sizeof(double));
-    loop_ub = b_idx->size[0];
-    for (i28 = 0; i28 < loop_ub; i28++) {
-      idx->data[i28] = b_idx->data[i28];
-    }
-
-    emxFree_real_T(&b_idx);
-  }
-}
-
-//
-// Arguments    : emxArray_real_T *x
-// Return Type  : void
-//
-static void c_log10(emxArray_real_T *x)
-{
-  int nx;
-  int k;
-  nx = 1025 * x->size[1];
-  for (k = 0; k + 1 <= nx; k++) {
-    x->data[k] = std::log10(x->data[k]);
-  }
-}
-
-//
-// Arguments    : const emxArray_creal_T *x
-//                int n1_unsigned
-//                const emxArray_real_T *costab
-//                const emxArray_real_T *sintab
-//                emxArray_creal_T *y
-// Return Type  : void
-//
-static void c_r2br_r2dit_trig(const emxArray_creal_T *x, int n1_unsigned, const
-  emxArray_real_T *costab, const emxArray_real_T *sintab, emxArray_creal_T *y)
-{
-  int j;
-  int nRowsD2;
-  int nRowsD4;
-  int iy;
-  int iDelta;
-  int ix;
-  int ju;
-  int i;
-  boolean_T tst;
-  double temp_re;
-  double temp_im;
-  double twid_re;
-  double twid_im;
-  int ihi;
-  if (x->size[0] <= n1_unsigned) {
-    j = x->size[0];
-  } else {
-    j = n1_unsigned;
-  }
-
-  nRowsD2 = n1_unsigned / 2;
-  nRowsD4 = nRowsD2 / 2;
-  iy = y->size[0];
-  y->size[0] = n1_unsigned;
-  emxEnsureCapacity((emxArray__common *)y, iy, (int)sizeof(creal_T));
-  if (n1_unsigned > x->size[0]) {
-    iDelta = y->size[0];
-    iy = y->size[0];
-    y->size[0] = iDelta;
-    emxEnsureCapacity((emxArray__common *)y, iy, (int)sizeof(creal_T));
-    for (iy = 0; iy < iDelta; iy++) {
-      y->data[iy].re = 0.0;
-      y->data[iy].im = 0.0;
-    }
-  }
-
-  ix = 0;
-  ju = 0;
-  iy = 0;
-  for (i = 1; i < j; i++) {
-    y->data[iy] = x->data[ix];
-    iDelta = n1_unsigned;
-    tst = true;
-    while (tst) {
-      iDelta >>= 1;
-      ju ^= iDelta;
-      tst = ((ju & iDelta) == 0);
-    }
-
-    iy = ju;
-    ix++;
-  }
-
-  y->data[iy] = x->data[ix];
-  if (n1_unsigned > 1) {
-    for (i = 0; i <= n1_unsigned - 2; i += 2) {
-      temp_re = y->data[i + 1].re;
-      temp_im = y->data[i + 1].im;
-      y->data[i + 1].re = y->data[i].re - y->data[i + 1].re;
-      y->data[i + 1].im = y->data[i].im - y->data[i + 1].im;
-      y->data[i].re += temp_re;
-      y->data[i].im += temp_im;
-    }
-  }
-
-  iDelta = 2;
-  iy = 4;
-  ix = 1 + ((nRowsD4 - 1) << 2);
-  while (nRowsD4 > 0) {
-    for (i = 0; i < ix; i += iy) {
-      temp_re = y->data[i + iDelta].re;
-      temp_im = y->data[i + iDelta].im;
-      y->data[i + iDelta].re = y->data[i].re - temp_re;
-      y->data[i + iDelta].im = y->data[i].im - temp_im;
-      y->data[i].re += temp_re;
-      y->data[i].im += temp_im;
-    }
-
-    ju = 1;
-    for (j = nRowsD4; j < nRowsD2; j += nRowsD4) {
-      twid_re = costab->data[j];
-      twid_im = sintab->data[j];
-      i = ju;
-      ihi = ju + ix;
-      while (i < ihi) {
-        temp_re = twid_re * y->data[i + iDelta].re - twid_im * y->data[i +
-          iDelta].im;
-        temp_im = twid_re * y->data[i + iDelta].im + twid_im * y->data[i +
-          iDelta].re;
-        y->data[i + iDelta].re = y->data[i].re - temp_re;
-        y->data[i + iDelta].im = y->data[i].im - temp_im;
-        y->data[i].re += temp_re;
-        y->data[i].im += temp_im;
-        i += iy;
-      }
-
-      ju++;
-    }
-
-    nRowsD4 /= 2;
-    iDelta = iy;
-    iy <<= 1;
-    ix -= iDelta;
-  }
-}
-
-//
-// Arguments    : const emxArray_real_T *Y
-//                emxArray_real_T *iPk
-// Return Type  : void
-//
-static void c_removePeaksBelowMinPeakHeight(const emxArray_real_T *Y,
-  emxArray_real_T *iPk)
-{
-  int end;
-  int trueCount;
-  int i;
-  int partialTrueCount;
-  if (!(iPk->size[0] == 0)) {
-    end = iPk->size[0] - 1;
-    trueCount = 0;
-    for (i = 0; i <= end; i++) {
-      if (Y->data[(int)iPk->data[i] - 1] > rtMinusInf) {
-        trueCount++;
-      }
-    }
-
-    partialTrueCount = 0;
-    for (i = 0; i <= end; i++) {
-      if (Y->data[(int)iPk->data[i] - 1] > rtMinusInf) {
-        iPk->data[partialTrueCount] = iPk->data[i];
-        partialTrueCount++;
-      }
-    }
-
-    end = iPk->size[0];
-    iPk->size[0] = trueCount;
-    emxEnsureCapacity((emxArray__common *)iPk, end, (int)sizeof(double));
-  }
-}
-
-//
-// Arguments    : const emxArray_real_T *Y
-//                emxArray_real_T *iPk
-// Return Type  : void
-//
-static void c_removePeaksBelowThreshold(const emxArray_real_T *Y,
-  emxArray_real_T *iPk)
-{
-  int c;
-  emxArray_real_T *base;
-  int k;
-  int trueCount;
-  double extremum;
-  int partialTrueCount;
-  c = iPk->size[0];
-  emxInit_real_T1(&base, 1);
-  k = base->size[0];
-  base->size[0] = c;
-  emxEnsureCapacity((emxArray__common *)base, k, (int)sizeof(double));
-  for (k = 0; k + 1 <= c; k++) {
-    if ((Y->data[(int)(iPk->data[k] - 1.0) - 1] >= Y->data[(int)(iPk->data[k] +
-          1.0) - 1]) || rtIsNaN(Y->data[(int)(iPk->data[k] + 1.0) - 1])) {
-      extremum = Y->data[(int)(iPk->data[k] - 1.0) - 1];
-    } else {
-      extremum = Y->data[(int)(iPk->data[k] + 1.0) - 1];
-    }
-
-    base->data[k] = extremum;
-  }
-
-  k = iPk->size[0] - 1;
-  trueCount = 0;
-  for (c = 0; c <= k; c++) {
-    if (Y->data[(int)iPk->data[c] - 1] - base->data[c] >= 0.0) {
-      trueCount++;
-    }
-  }
-
-  partialTrueCount = 0;
-  for (c = 0; c <= k; c++) {
-    if (Y->data[(int)iPk->data[c] - 1] - base->data[c] >= 0.0) {
-      iPk->data[partialTrueCount] = iPk->data[c];
-      partialTrueCount++;
-    }
-  }
-
-  emxFree_real_T(&base);
-  k = iPk->size[0];
-  iPk->size[0] = trueCount;
-  emxEnsureCapacity((emxArray__common *)iPk, k, (int)sizeof(double));
+  emxFree_real_T(&iPk);
 }
 
 //
@@ -3675,47 +1814,50 @@ static void c_removePeaksBelowThreshold(const emxArray_real_T *Y,
 //
 static void c_sort(emxArray_real_T *x, int dim, emxArray_int32_T *idx)
 {
-  int i26;
+  int i13;
   emxArray_real_T *vwork;
+  int k;
+  unsigned int unnamed_idx_0;
   int vstride;
-  int x_idx_0;
-  int j;
   emxArray_int32_T *iidx;
+  int j;
   if (dim <= 1) {
-    i26 = x->size[0];
+    i13 = x->size[0];
   } else {
-    i26 = 1;
+    i13 = 1;
   }
 
   emxInit_real_T1(&vwork, 1);
-  vstride = vwork->size[0];
-  vwork->size[0] = i26;
-  emxEnsureCapacity((emxArray__common *)vwork, vstride, (int)sizeof(double));
-  x_idx_0 = x->size[0];
-  vstride = idx->size[0];
-  idx->size[0] = x_idx_0;
-  emxEnsureCapacity((emxArray__common *)idx, vstride, (int)sizeof(int));
-  vstride = 1;
-  x_idx_0 = 1;
-  while (x_idx_0 <= dim - 1) {
-    vstride *= x->size[0];
-    x_idx_0 = 2;
+  k = vwork->size[0];
+  vwork->size[0] = i13;
+  emxEnsureCapacity((emxArray__common *)vwork, k, (int)sizeof(double));
+  unnamed_idx_0 = (unsigned int)x->size[0];
+  k = idx->size[0];
+  idx->size[0] = (int)unnamed_idx_0;
+  emxEnsureCapacity((emxArray__common *)idx, k, (int)sizeof(int));
+  if (dim > 2) {
+    vstride = x->size[0];
+  } else {
+    vstride = 1;
+    k = 1;
+    while (k <= dim - 1) {
+      k = x->size[0];
+      vstride *= k;
+      k = 2;
+    }
   }
 
-  j = 0;
   emxInit_int32_T(&iidx, 1);
-  while (j + 1 <= vstride) {
-    for (x_idx_0 = 0; x_idx_0 + 1 <= i26; x_idx_0++) {
-      vwork->data[x_idx_0] = x->data[j + x_idx_0 * vstride];
+  for (j = 0; j + 1 <= vstride; j++) {
+    for (k = 0; k + 1 <= i13; k++) {
+      vwork->data[k] = x->data[j + k * vstride];
     }
 
-    b_sortIdx(vwork, iidx);
-    for (x_idx_0 = 0; x_idx_0 + 1 <= i26; x_idx_0++) {
-      x->data[j + x_idx_0 * vstride] = vwork->data[x_idx_0];
-      idx->data[j + x_idx_0 * vstride] = iidx->data[x_idx_0];
+    sortIdx(vwork, iidx);
+    for (k = 0; k + 1 <= i13; k++) {
+      x->data[j + k * vstride] = vwork->data[k];
+      idx->data[j + k * vstride] = iidx->data[k];
     }
-
-    j++;
   }
 
   emxFree_int32_T(&iidx);
@@ -3723,286 +1865,247 @@ static void c_sort(emxArray_real_T *x, int dim, emxArray_int32_T *idx)
 }
 
 //
-// Arguments    : const emxArray_real_T *x
-// Return Type  : double
+// Arguments    : const boolean_T x[16]
+//                double y[4]
+// Return Type  : void
 //
-static double c_sum(const emxArray_real_T *x)
+static void c_sum(const boolean_T x[16], double y[4])
 {
-  double y;
+  int j;
+  double s;
   int k;
-  if (x->size[0] == 0) {
-    y = 0.0;
-  } else {
-    y = x->data[0];
-    for (k = 2; k <= x->size[0]; k++) {
-      y += x->data[k - 1];
+  for (j = 0; j < 4; j++) {
+    s = x[j];
+    for (k = 0; k < 3; k++) {
+      s += (double)x[j + ((k + 1) << 2)];
     }
-  }
 
-  return y;
-}
-
-//
-// Arguments    : const double b_data[]
-//                int *nMInf
-//                int *nFinite
-//                int *nPInf
-//                int *nNaN
-// Return Type  : void
-//
-static void count_nonfinites(const double b_data[], int *nMInf, int *nFinite,
-  int *nPInf, int *nNaN)
-{
-  *nMInf = 0;
-  *nFinite = 712;
-  while ((*nFinite >= 1) && rtIsNaN(b_data[*nFinite - 1])) {
-    (*nFinite)--;
-  }
-
-  *nNaN = 712 - *nFinite;
-  *nPInf = 0;
-}
-
-//
-// Arguments    : const emxArray_creal_T *x
-//                emxArray_real_T *y
-// Return Type  : void
-//
-static void d_abs(const emxArray_creal_T *x, emxArray_real_T *y)
-{
-  unsigned int uv0[2];
-  int n;
-  int k;
-  for (n = 0; n < 2; n++) {
-    uv0[n] = (unsigned int)x->size[n];
-  }
-
-  n = y->size[0] * y->size[1];
-  y->size[0] = (int)uv0[0];
-  y->size[1] = (int)uv0[1];
-  emxEnsureCapacity((emxArray__common *)y, n, (int)sizeof(double));
-  n = x->size[0] * x->size[1];
-  for (k = 0; k + 1 <= n; k++) {
-    y->data[k] = rt_hypotd_snf(x->data[k].re, x->data[k].im);
+    y[j] = s;
   }
 }
 
 //
-// Arguments    : const int iPk_size[1]
-//                double idx_data[]
-//                int idx_size[1]
+// Arguments    : const emxArray_real_T *iPk
+//                const emxArray_real_T *iInf
+//                emxArray_real_T *iPkOut
 // Return Type  : void
 //
-static void d_findPeaksSeparatedByMoreThanM(const int iPk_size[1], double
-  idx_data[], int idx_size[1])
+static void combinePeaks(const emxArray_real_T *iPk, const emxArray_real_T *iInf,
+  emxArray_real_T *iPkOut)
 {
+  emxArray_int32_T *ia;
+  emxArray_int32_T *ib;
+  emxInit_int32_T(&ia, 1);
+  emxInit_int32_T(&ib, 1);
+  do_vectors(iPk, iInf, iPkOut, ia, ib);
+  emxFree_int32_T(&ib);
+  emxFree_int32_T(&ia);
+}
+
+//
+// Arguments    : const emxArray_real_T *Yin
+//                emxArray_real_T *Ypk
+//                emxArray_real_T *Xpk
+// Return Type  : void
+//
+static void d_findpeaks(const emxArray_real_T *Yin, emxArray_real_T *Ypk,
+  emxArray_real_T *Xpk)
+{
+  boolean_T yIsRow;
+  int nm1d2;
+  int cdiff;
   int ndbl;
   int apnd;
-  int cdiff;
   emxArray_real_T *y;
-  int k;
-  if (iPk_size[0] < 1) {
-    ndbl = 0;
-    apnd = 0;
+  emxArray_real_T *x;
+  emxArray_real_T *iPk;
+  emxArray_real_T *idx;
+  emxArray_real_T *b_iPk;
+  emxArray_real_T *b_Ypk;
+  int b_Yin[1];
+  emxArray_real_T c_Yin;
+  int d_Yin[1];
+  int e_Yin[1];
+  int f_Yin[1];
+  emxArray_real_T *b_Xpk;
+  yIsRow = (Yin->size[0] == 1);
+  nm1d2 = Yin->size[0];
+  if (nm1d2 < 1) {
+    cdiff = 0;
+    apnd = Yin->size[0];
   } else {
-    ndbl = (int)std::floor(((double)iPk_size[0] - 1.0) + 0.5);
+    nm1d2 = Yin->size[0];
+    ndbl = (int)std::floor(((double)nm1d2 - 1.0) + 0.5);
     apnd = ndbl + 1;
-    cdiff = (ndbl - iPk_size[0]) + 1;
-    if (std::abs((double)cdiff) < 4.4408920985006262E-16 * (double)iPk_size[0])
-    {
+    nm1d2 = Yin->size[0];
+    cdiff = (ndbl - nm1d2) + 1;
+    nm1d2 = Yin->size[0];
+    if (1 >= nm1d2) {
+      nm1d2 = 1;
+    }
+
+    if (std::abs((double)cdiff) < 4.4408920985006262E-16 * (double)nm1d2) {
       ndbl++;
-      apnd = iPk_size[0];
+      apnd = Yin->size[0];
     } else if (cdiff > 0) {
       apnd = ndbl;
     } else {
       ndbl++;
     }
+
+    if (ndbl >= 0) {
+      cdiff = ndbl;
+    } else {
+      cdiff = 0;
+    }
   }
 
   emxInit_real_T(&y, 2);
-  k = y->size[0] * y->size[1];
+  ndbl = y->size[0] * y->size[1];
   y->size[0] = 1;
-  y->size[1] = ndbl;
-  emxEnsureCapacity((emxArray__common *)y, k, (int)sizeof(double));
-  if (ndbl > 0) {
+  y->size[1] = cdiff;
+  emxEnsureCapacity((emxArray__common *)y, ndbl, (int)sizeof(double));
+  if (cdiff > 0) {
     y->data[0] = 1.0;
-    if (ndbl > 1) {
-      y->data[ndbl - 1] = apnd;
-      cdiff = (ndbl - 1) / 2;
-      for (k = 1; k < cdiff; k++) {
-        y->data[k] = 1.0 + (double)k;
-        y->data[(ndbl - k) - 1] = apnd - k;
+    if (cdiff > 1) {
+      y->data[cdiff - 1] = apnd;
+      nm1d2 = (cdiff - 1) / 2;
+      for (ndbl = 1; ndbl < nm1d2; ndbl++) {
+        y->data[ndbl] = 1.0 + (double)ndbl;
+        y->data[(cdiff - ndbl) - 1] = apnd - ndbl;
       }
 
-      if (cdiff << 1 == ndbl - 1) {
-        y->data[cdiff] = (1.0 + (double)apnd) / 2.0;
+      if (nm1d2 << 1 == cdiff - 1) {
+        y->data[nm1d2] = (1.0 + (double)apnd) / 2.0;
       } else {
-        y->data[cdiff] = 1.0 + (double)cdiff;
-        y->data[cdiff + 1] = apnd - cdiff;
+        y->data[nm1d2] = 1.0 + (double)nm1d2;
+        y->data[nm1d2 + 1] = apnd - nm1d2;
       }
     }
   }
 
-  idx_size[0] = y->size[1];
-  cdiff = y->size[1];
-  for (k = 0; k < cdiff; k++) {
-    idx_data[k] = y->data[y->size[0] * k];
+  emxInit_real_T1(&x, 1);
+  ndbl = x->size[0];
+  x->size[0] = y->size[1];
+  emxEnsureCapacity((emxArray__common *)x, ndbl, (int)sizeof(double));
+  nm1d2 = y->size[1];
+  for (ndbl = 0; ndbl < nm1d2; ndbl++) {
+    x->data[ndbl] = y->data[y->size[0] * ndbl];
   }
 
   emxFree_real_T(&y);
-}
-
-//
-// Arguments    : emxArray_real_T *x
-// Return Type  : void
-//
-static void d_log10(emxArray_real_T *x)
-{
-  int nx;
-  int k;
-  nx = x->size[0] * x->size[1];
-  for (k = 0; k + 1 <= nx; k++) {
-    x->data[k] = std::log10(x->data[k]);
+  emxInit_real_T1(&iPk, 1);
+  emxInit_real_T1(&idx, 1);
+  emxInit_real_T1(&b_iPk, 1);
+  emxInit_real_T1(&b_Ypk, 1);
+  b_Yin[0] = Yin->size[0];
+  c_Yin = *Yin;
+  c_Yin.size = (int *)&b_Yin;
+  c_Yin.numDimensions = 1;
+  getAllPeaks(&c_Yin, iPk, b_Ypk, idx);
+  d_Yin[0] = Yin->size[0];
+  c_Yin = *Yin;
+  c_Yin.size = (int *)&d_Yin;
+  c_Yin.numDimensions = 1;
+  removePeaksBelowMinPeakHeight(&c_Yin, iPk, rtMinusInf);
+  e_Yin[0] = Yin->size[0];
+  c_Yin = *Yin;
+  c_Yin.size = (int *)&e_Yin;
+  c_Yin.numDimensions = 1;
+  removePeaksBelowThreshold(&c_Yin, iPk, 0.0);
+  combinePeaks(iPk, b_Ypk, b_iPk);
+  c_findPeaksSeparatedByMoreThanM(b_iPk, idx);
+  f_Yin[0] = Yin->size[0];
+  c_Yin = *Yin;
+  c_Yin.size = (int *)&f_Yin;
+  c_Yin.numDimensions = 1;
+  orderPeaks(&c_Yin, b_iPk, idx);
+  nm1d2 = Yin->size[0];
+  keepAtMostNpPeaks(idx, (double)nm1d2);
+  ndbl = iPk->size[0];
+  iPk->size[0] = idx->size[0];
+  emxEnsureCapacity((emxArray__common *)iPk, ndbl, (int)sizeof(double));
+  nm1d2 = idx->size[0];
+  for (ndbl = 0; ndbl < nm1d2; ndbl++) {
+    iPk->data[ndbl] = b_iPk->data[(int)idx->data[ndbl] - 1];
   }
-}
 
-//
-// Arguments    : const emxArray_creal_T *x
-//                int n1_unsigned
-//                const emxArray_real_T *costab
-//                const emxArray_real_T *sintab
-//                emxArray_creal_T *y
-// Return Type  : void
-//
-static void d_r2br_r2dit_trig(const emxArray_creal_T *x, int n1_unsigned, const
-  emxArray_real_T *costab, const emxArray_real_T *sintab, emxArray_creal_T *y)
-{
-  int j;
-  int nRowsD2;
-  int nRowsD4;
-  int iDelta2;
-  int iy;
-  int ix;
-  int ju;
-  int i;
-  boolean_T tst;
-  double temp_re;
-  double temp_im;
-  double r;
-  double twid_im;
-  int ihi;
-  if (x->size[0] <= n1_unsigned) {
-    j = x->size[0];
+  emxFree_real_T(&b_iPk);
+  ndbl = b_Ypk->size[0];
+  b_Ypk->size[0] = iPk->size[0];
+  emxEnsureCapacity((emxArray__common *)b_Ypk, ndbl, (int)sizeof(double));
+  nm1d2 = iPk->size[0];
+  for (ndbl = 0; ndbl < nm1d2; ndbl++) {
+    b_Ypk->data[ndbl] = Yin->data[(int)iPk->data[ndbl] - 1];
+  }
+
+  emxInit_real_T1(&b_Xpk, 1);
+  ndbl = b_Xpk->size[0];
+  b_Xpk->size[0] = iPk->size[0];
+  emxEnsureCapacity((emxArray__common *)b_Xpk, ndbl, (int)sizeof(double));
+  nm1d2 = iPk->size[0];
+  for (ndbl = 0; ndbl < nm1d2; ndbl++) {
+    b_Xpk->data[ndbl] = x->data[(int)iPk->data[ndbl] - 1];
+  }
+
+  emxFree_real_T(&x);
+  emxFree_real_T(&iPk);
+  if (yIsRow) {
+    ndbl = Ypk->size[0] * Ypk->size[1];
+    Ypk->size[0] = 1;
+    Ypk->size[1] = b_Ypk->size[0];
+    emxEnsureCapacity((emxArray__common *)Ypk, ndbl, (int)sizeof(double));
+    nm1d2 = b_Ypk->size[0];
+    for (ndbl = 0; ndbl < nm1d2; ndbl++) {
+      Ypk->data[Ypk->size[0] * ndbl] = b_Ypk->data[ndbl];
+    }
   } else {
-    j = n1_unsigned;
-  }
-
-  nRowsD2 = n1_unsigned / 2;
-  nRowsD4 = nRowsD2 / 2;
-  iDelta2 = y->size[0];
-  y->size[0] = n1_unsigned;
-  emxEnsureCapacity((emxArray__common *)y, iDelta2, (int)sizeof(creal_T));
-  if (n1_unsigned > x->size[0]) {
-    iy = y->size[0];
-    iDelta2 = y->size[0];
-    y->size[0] = iy;
-    emxEnsureCapacity((emxArray__common *)y, iDelta2, (int)sizeof(creal_T));
-    for (iDelta2 = 0; iDelta2 < iy; iDelta2++) {
-      y->data[iDelta2].re = 0.0;
-      y->data[iDelta2].im = 0.0;
+    ndbl = Ypk->size[0] * Ypk->size[1];
+    Ypk->size[0] = idx->size[0];
+    Ypk->size[1] = 1;
+    emxEnsureCapacity((emxArray__common *)Ypk, ndbl, (int)sizeof(double));
+    nm1d2 = idx->size[0];
+    for (ndbl = 0; ndbl < nm1d2; ndbl++) {
+      Ypk->data[ndbl] = b_Ypk->data[ndbl];
     }
   }
 
-  ix = 0;
-  ju = 0;
-  iy = 0;
-  for (i = 1; i < j; i++) {
-    y->data[iy] = x->data[ix];
-    iDelta2 = n1_unsigned;
-    tst = true;
-    while (tst) {
-      iDelta2 >>= 1;
-      ju ^= iDelta2;
-      tst = ((ju & iDelta2) == 0);
+  emxFree_real_T(&b_Ypk);
+  if (yIsRow) {
+    ndbl = Xpk->size[0] * Xpk->size[1];
+    Xpk->size[0] = 1;
+    Xpk->size[1] = b_Xpk->size[0];
+    emxEnsureCapacity((emxArray__common *)Xpk, ndbl, (int)sizeof(double));
+    nm1d2 = b_Xpk->size[0];
+    for (ndbl = 0; ndbl < nm1d2; ndbl++) {
+      Xpk->data[Xpk->size[0] * ndbl] = b_Xpk->data[ndbl];
     }
-
-    iy = ju;
-    ix++;
-  }
-
-  y->data[iy] = x->data[ix];
-  if (n1_unsigned > 1) {
-    for (i = 0; i <= n1_unsigned - 2; i += 2) {
-      temp_re = y->data[i + 1].re;
-      temp_im = y->data[i + 1].im;
-      y->data[i + 1].re = y->data[i].re - y->data[i + 1].re;
-      y->data[i + 1].im = y->data[i].im - y->data[i + 1].im;
-      y->data[i].re += temp_re;
-      y->data[i].im += temp_im;
+  } else {
+    ndbl = Xpk->size[0] * Xpk->size[1];
+    Xpk->size[0] = idx->size[0];
+    Xpk->size[1] = 1;
+    emxEnsureCapacity((emxArray__common *)Xpk, ndbl, (int)sizeof(double));
+    nm1d2 = idx->size[0];
+    for (ndbl = 0; ndbl < nm1d2; ndbl++) {
+      Xpk->data[ndbl] = b_Xpk->data[ndbl];
     }
   }
 
-  iy = 2;
-  iDelta2 = 4;
-  ix = 1 + ((nRowsD4 - 1) << 2);
-  while (nRowsD4 > 0) {
-    for (i = 0; i < ix; i += iDelta2) {
-      temp_re = y->data[i + iy].re;
-      temp_im = y->data[i + iy].im;
-      y->data[i + iy].re = y->data[i].re - temp_re;
-      y->data[i + iy].im = y->data[i].im - temp_im;
-      y->data[i].re += temp_re;
-      y->data[i].im += temp_im;
-    }
-
-    ju = 1;
-    for (j = nRowsD4; j < nRowsD2; j += nRowsD4) {
-      r = costab->data[j];
-      twid_im = sintab->data[j];
-      i = ju;
-      ihi = ju + ix;
-      while (i < ihi) {
-        temp_re = r * y->data[i + iy].re - twid_im * y->data[i + iy].im;
-        temp_im = r * y->data[i + iy].im + twid_im * y->data[i + iy].re;
-        y->data[i + iy].re = y->data[i].re - temp_re;
-        y->data[i + iy].im = y->data[i].im - temp_im;
-        y->data[i].re += temp_re;
-        y->data[i].im += temp_im;
-        i += iDelta2;
-      }
-
-      ju++;
-    }
-
-    nRowsD4 /= 2;
-    iy = iDelta2;
-    iDelta2 <<= 1;
-    ix -= iy;
-  }
-
-  if (y->size[0] > 1) {
-    r = 1.0 / (double)y->size[0];
-    iDelta2 = y->size[0];
-    emxEnsureCapacity((emxArray__common *)y, iDelta2, (int)sizeof(creal_T));
-    iy = y->size[0];
-    for (iDelta2 = 0; iDelta2 < iy; iDelta2++) {
-      y->data[iDelta2].re *= r;
-      y->data[iDelta2].im *= r;
-    }
-  }
+  emxFree_real_T(&b_Xpk);
+  emxFree_real_T(&idx);
 }
 
 //
-// Arguments    : const double x[4]
+// Arguments    : const boolean_T x[4]
 // Return Type  : double
 //
-static double d_sum(const double x[4])
+static double d_sum(const boolean_T x[4])
 {
   double y;
   int k;
   y = x[0];
   for (k = 0; k < 3; k++) {
-    y += x[k + 1];
+    y += (double)x[k + 1];
   }
 
   return y;
@@ -4017,9 +2120,11 @@ static void diff(const emxArray_real_T *x, emxArray_real_T *y)
 {
   int iyLead;
   int orderForDim;
-  double work_data_idx_0;
+  emxArray_real_T *work;
+  int ySize_idx_0;
   int m;
   double tmp1;
+  int k;
   double tmp2;
   if (x->size[0] == 0) {
     iyLead = y->size[0];
@@ -4037,24 +2142,47 @@ static void diff(const emxArray_real_T *x, emxArray_real_T *y)
       y->size[0] = 0;
       emxEnsureCapacity((emxArray__common *)y, iyLead, (int)sizeof(double));
     } else {
-      orderForDim = x->size[0] - 1;
+      emxInit_real_T1(&work, 1);
+      ySize_idx_0 = x->size[0] - orderForDim;
+      iyLead = work->size[0];
+      work->size[0] = orderForDim;
+      emxEnsureCapacity((emxArray__common *)work, iyLead, (int)sizeof(double));
       iyLead = y->size[0];
-      y->size[0] = orderForDim;
+      y->size[0] = ySize_idx_0;
       emxEnsureCapacity((emxArray__common *)y, iyLead, (int)sizeof(double));
       if (!(y->size[0] == 0)) {
-        orderForDim = 1;
+        ySize_idx_0 = 1;
         iyLead = 0;
-        work_data_idx_0 = x->data[0];
-        for (m = 2; m <= x->size[0]; m++) {
-          tmp1 = x->data[orderForDim];
-          tmp2 = work_data_idx_0;
-          work_data_idx_0 = tmp1;
-          tmp1 -= tmp2;
-          orderForDim++;
+        work->data[0] = x->data[0];
+        if (orderForDim >= 2) {
+          for (m = 1; m < orderForDim; m++) {
+            tmp1 = x->data[ySize_idx_0];
+            for (k = 0; k + 1 <= m; k++) {
+              tmp2 = work->data[k];
+              work->data[k] = tmp1;
+              tmp1 -= tmp2;
+            }
+
+            work->data[m] = tmp1;
+            ySize_idx_0++;
+          }
+        }
+
+        for (m = orderForDim + 1; m <= x->size[0]; m++) {
+          tmp1 = x->data[ySize_idx_0];
+          for (k = 0; k + 1 <= orderForDim; k++) {
+            tmp2 = work->data[k];
+            work->data[k] = tmp1;
+            tmp1 -= tmp2;
+          }
+
+          ySize_idx_0++;
           y->data[iyLead] = tmp1;
           iyLead++;
         }
       }
+
+      emxFree_real_T(&work);
     }
   }
 }
@@ -4084,11 +2212,9 @@ static void do_vectors(const emxArray_real_T *a, const emxArray_real_T *b,
   double ak;
   int b_iblast;
   double bk;
-  double absxk;
-  emxArray_int32_T *b_ia;
-  int exponent;
-  emxArray_int32_T *b_ib;
   boolean_T p;
+  emxArray_int32_T *b_ia;
+  emxArray_int32_T *b_ib;
   emxArray_real_T *b_c;
   na = a->size[0];
   nb = b->size[0];
@@ -4116,20 +2242,8 @@ static void do_vectors(const emxArray_real_T *a, const emxArray_real_T *b,
     b_iblast = iblast;
     bk = skip_to_last_equal_value(&b_iblast, b);
     iblast = b_iblast;
-    absxk = std::abs(bk / 2.0);
-    if ((!rtIsInf(absxk)) && (!rtIsNaN(absxk))) {
-      if (absxk <= 2.2250738585072014E-308) {
-        absxk = 4.94065645841247E-324;
-      } else {
-        frexp(absxk, &exponent);
-        absxk = std::ldexp(1.0, exponent - 53);
-      }
-    } else {
-      absxk = rtNaN;
-    }
-
-    if ((std::abs(bk - ak) < absxk) || (rtIsInf(ak) && rtIsInf(bk) && ((ak > 0.0)
-          == (bk > 0.0)))) {
+    if ((std::abs(bk - ak) < eps(bk / 2.0)) || (rtIsInf(ak) && rtIsInf(bk) &&
+         ((ak > 0.0) == (bk > 0.0)))) {
       p = true;
     } else {
       p = false;
@@ -4284,19 +2398,26 @@ static void dobluesteinfft(const emxArray_real_T *x, int N2, int n1, const
 {
   emxArray_creal_T *wwc;
   int minNrowsNx;
-  int k;
+  int ix;
   int xidx;
-  double wwc_re;
-  double wwc_im;
+  double r;
+  double twid_im;
   emxArray_creal_T *fy;
+  int istart;
   emxArray_creal_T *fv;
+  int nRowsD2;
+  int nRowsD4;
+  int i;
+  boolean_T tst;
+  double temp_re;
+  double temp_im;
+  int j;
   double fv_re;
   double fv_im;
-  double b_wwc_re;
-  double b_fv_im;
-  double b_wwc_im;
+  int ihi;
+  double wwc_im;
   double b_fv_re;
-  emxInit_creal_T1(&wwc, 1);
+  emxInit_creal_T(&wwc, 1);
   bluestein_setup(n1, wwc);
   if (n1 <= x->size[0]) {
     minNrowsNx = n1;
@@ -4304,26 +2425,26 @@ static void dobluesteinfft(const emxArray_real_T *x, int N2, int n1, const
     minNrowsNx = x->size[0];
   }
 
-  k = y->size[0];
+  ix = y->size[0];
   y->size[0] = n1;
-  emxEnsureCapacity((emxArray__common *)y, k, (int)sizeof(creal_T));
+  emxEnsureCapacity((emxArray__common *)y, ix, (int)sizeof(creal_T));
   if (n1 > x->size[0]) {
     xidx = y->size[0];
-    k = y->size[0];
+    ix = y->size[0];
     y->size[0] = xidx;
-    emxEnsureCapacity((emxArray__common *)y, k, (int)sizeof(creal_T));
-    for (k = 0; k < xidx; k++) {
-      y->data[k].re = 0.0;
-      y->data[k].im = 0.0;
+    emxEnsureCapacity((emxArray__common *)y, ix, (int)sizeof(creal_T));
+    for (ix = 0; ix < xidx; ix++) {
+      y->data[ix].re = 0.0;
+      y->data[ix].im = 0.0;
     }
   }
 
   xidx = 0;
-  for (k = 0; k + 1 <= minNrowsNx; k++) {
-    wwc_re = wwc->data[(n1 + k) - 1].re;
-    wwc_im = wwc->data[(n1 + k) - 1].im;
-    y->data[k].re = wwc_re * x->data[xidx];
-    y->data[k].im = wwc_im * -x->data[xidx];
+  for (ix = 0; ix + 1 <= minNrowsNx; ix++) {
+    r = wwc->data[(n1 + ix) - 1].re;
+    twid_im = wwc->data[(n1 + ix) - 1].im;
+    y->data[ix].re = r * x->data[xidx];
+    y->data[ix].im = twid_im * -x->data[xidx];
     xidx++;
   }
 
@@ -4333,39 +2454,224 @@ static void dobluesteinfft(const emxArray_real_T *x, int N2, int n1, const
     minNrowsNx++;
   }
 
-  emxInit_creal_T1(&fy, 1);
-  emxInit_creal_T1(&fv, 1);
-  r2br_r2dit_trig_impl(y, N2, costab, sintab, fy);
-  c_r2br_r2dit_trig(wwc, N2, costab, sintab, fv);
-  k = fy->size[0];
-  emxEnsureCapacity((emxArray__common *)fy, k, (int)sizeof(creal_T));
-  xidx = fy->size[0];
-  for (k = 0; k < xidx; k++) {
-    wwc_re = fy->data[k].re;
-    wwc_im = fy->data[k].im;
-    fv_re = fv->data[k].re;
-    fv_im = fv->data[k].im;
-    fy->data[k].re = wwc_re * fv_re - wwc_im * fv_im;
-    fy->data[k].im = wwc_re * fv_im + wwc_im * fv_re;
+  emxInit_creal_T(&fy, 1);
+  r2br_r2dit_trig_impl(y, 0, N2, costab, sintab, fy);
+  if (wwc->size[0] <= N2) {
+    istart = wwc->size[0];
+  } else {
+    istart = N2;
   }
 
-  d_r2br_r2dit_trig(fy, N2, costab, sintabinv, fv);
+  emxInit_creal_T(&fv, 1);
+  nRowsD2 = N2 / 2;
+  nRowsD4 = nRowsD2 / 2;
+  ix = fv->size[0];
+  fv->size[0] = N2;
+  emxEnsureCapacity((emxArray__common *)fv, ix, (int)sizeof(creal_T));
+  if (N2 > wwc->size[0]) {
+    xidx = fv->size[0];
+    ix = fv->size[0];
+    fv->size[0] = xidx;
+    emxEnsureCapacity((emxArray__common *)fv, ix, (int)sizeof(creal_T));
+    for (ix = 0; ix < xidx; ix++) {
+      fv->data[ix].re = 0.0;
+      fv->data[ix].im = 0.0;
+    }
+  }
+
+  ix = 0;
+  minNrowsNx = 0;
   xidx = 0;
-  k = n1 - 1;
+  for (i = 1; i < istart; i++) {
+    fv->data[xidx] = wwc->data[ix];
+    xidx = N2;
+    tst = true;
+    while (tst) {
+      xidx >>= 1;
+      minNrowsNx ^= xidx;
+      tst = ((minNrowsNx & xidx) == 0);
+    }
+
+    xidx = minNrowsNx;
+    ix++;
+  }
+
+  fv->data[xidx] = wwc->data[ix];
+  if (N2 > 1) {
+    for (i = 0; i <= N2 - 2; i += 2) {
+      temp_re = fv->data[i + 1].re;
+      temp_im = fv->data[i + 1].im;
+      fv->data[i + 1].re = fv->data[i].re - fv->data[i + 1].re;
+      fv->data[i + 1].im = fv->data[i].im - fv->data[i + 1].im;
+      fv->data[i].re += temp_re;
+      fv->data[i].im += temp_im;
+    }
+  }
+
+  xidx = 2;
+  minNrowsNx = 4;
+  ix = 1 + ((nRowsD4 - 1) << 2);
+  while (nRowsD4 > 0) {
+    for (i = 0; i < ix; i += minNrowsNx) {
+      temp_re = fv->data[i + xidx].re;
+      temp_im = fv->data[i + xidx].im;
+      fv->data[i + xidx].re = fv->data[i].re - temp_re;
+      fv->data[i + xidx].im = fv->data[i].im - temp_im;
+      fv->data[i].re += temp_re;
+      fv->data[i].im += temp_im;
+    }
+
+    istart = 1;
+    for (j = nRowsD4; j < nRowsD2; j += nRowsD4) {
+      r = costab->data[j];
+      twid_im = sintab->data[j];
+      i = istart;
+      ihi = istart + ix;
+      while (i < ihi) {
+        temp_re = r * fv->data[i + xidx].re - twid_im * fv->data[i + xidx].im;
+        temp_im = r * fv->data[i + xidx].im + twid_im * fv->data[i + xidx].re;
+        fv->data[i + xidx].re = fv->data[i].re - temp_re;
+        fv->data[i + xidx].im = fv->data[i].im - temp_im;
+        fv->data[i].re += temp_re;
+        fv->data[i].im += temp_im;
+        i += minNrowsNx;
+      }
+
+      istart++;
+    }
+
+    nRowsD4 /= 2;
+    xidx = minNrowsNx;
+    minNrowsNx <<= 1;
+    ix -= xidx;
+  }
+
+  ix = fy->size[0];
+  emxEnsureCapacity((emxArray__common *)fy, ix, (int)sizeof(creal_T));
+  xidx = fy->size[0];
+  for (ix = 0; ix < xidx; ix++) {
+    r = fy->data[ix].re;
+    twid_im = fy->data[ix].im;
+    fv_re = fv->data[ix].re;
+    fv_im = fv->data[ix].im;
+    fy->data[ix].re = r * fv_re - twid_im * fv_im;
+    fy->data[ix].im = r * fv_im + twid_im * fv_re;
+  }
+
+  if (fy->size[0] <= N2) {
+    istart = fy->size[0];
+  } else {
+    istart = N2;
+  }
+
+  nRowsD2 = N2 / 2;
+  nRowsD4 = nRowsD2 / 2;
+  ix = fv->size[0];
+  fv->size[0] = N2;
+  emxEnsureCapacity((emxArray__common *)fv, ix, (int)sizeof(creal_T));
+  if (N2 > fy->size[0]) {
+    xidx = fv->size[0];
+    ix = fv->size[0];
+    fv->size[0] = xidx;
+    emxEnsureCapacity((emxArray__common *)fv, ix, (int)sizeof(creal_T));
+    for (ix = 0; ix < xidx; ix++) {
+      fv->data[ix].re = 0.0;
+      fv->data[ix].im = 0.0;
+    }
+  }
+
+  ix = 0;
+  minNrowsNx = 0;
+  xidx = 0;
+  for (i = 1; i < istart; i++) {
+    fv->data[xidx] = fy->data[ix];
+    xidx = N2;
+    tst = true;
+    while (tst) {
+      xidx >>= 1;
+      minNrowsNx ^= xidx;
+      tst = ((minNrowsNx & xidx) == 0);
+    }
+
+    xidx = minNrowsNx;
+    ix++;
+  }
+
+  fv->data[xidx] = fy->data[ix];
   emxFree_creal_T(&fy);
-  while (k + 1 <= wwc->size[0]) {
-    wwc_re = wwc->data[k].re;
-    fv_re = fv->data[k].re;
-    wwc_im = wwc->data[k].im;
-    fv_im = fv->data[k].im;
-    b_wwc_re = wwc->data[k].re;
-    b_fv_im = fv->data[k].im;
-    b_wwc_im = wwc->data[k].im;
-    b_fv_re = fv->data[k].re;
-    y->data[xidx].re = wwc_re * fv_re + wwc_im * fv_im;
-    y->data[xidx].im = b_wwc_re * b_fv_im - b_wwc_im * b_fv_re;
+  if (N2 > 1) {
+    for (i = 0; i <= N2 - 2; i += 2) {
+      temp_re = fv->data[i + 1].re;
+      temp_im = fv->data[i + 1].im;
+      fv->data[i + 1].re = fv->data[i].re - fv->data[i + 1].re;
+      fv->data[i + 1].im = fv->data[i].im - fv->data[i + 1].im;
+      fv->data[i].re += temp_re;
+      fv->data[i].im += temp_im;
+    }
+  }
+
+  xidx = 2;
+  minNrowsNx = 4;
+  ix = 1 + ((nRowsD4 - 1) << 2);
+  while (nRowsD4 > 0) {
+    for (i = 0; i < ix; i += minNrowsNx) {
+      temp_re = fv->data[i + xidx].re;
+      temp_im = fv->data[i + xidx].im;
+      fv->data[i + xidx].re = fv->data[i].re - temp_re;
+      fv->data[i + xidx].im = fv->data[i].im - temp_im;
+      fv->data[i].re += temp_re;
+      fv->data[i].im += temp_im;
+    }
+
+    istart = 1;
+    for (j = nRowsD4; j < nRowsD2; j += nRowsD4) {
+      r = costab->data[j];
+      twid_im = sintabinv->data[j];
+      i = istart;
+      ihi = istart + ix;
+      while (i < ihi) {
+        temp_re = r * fv->data[i + xidx].re - twid_im * fv->data[i + xidx].im;
+        temp_im = r * fv->data[i + xidx].im + twid_im * fv->data[i + xidx].re;
+        fv->data[i + xidx].re = fv->data[i].re - temp_re;
+        fv->data[i + xidx].im = fv->data[i].im - temp_im;
+        fv->data[i].re += temp_re;
+        fv->data[i].im += temp_im;
+        i += minNrowsNx;
+      }
+
+      istart++;
+    }
+
+    nRowsD4 /= 2;
+    xidx = minNrowsNx;
+    minNrowsNx <<= 1;
+    ix -= xidx;
+  }
+
+  if (fv->size[0] > 1) {
+    r = 1.0 / (double)fv->size[0];
+    ix = fv->size[0];
+    emxEnsureCapacity((emxArray__common *)fv, ix, (int)sizeof(creal_T));
+    xidx = fv->size[0];
+    for (ix = 0; ix < xidx; ix++) {
+      fv->data[ix].re *= r;
+      fv->data[ix].im *= r;
+    }
+  }
+
+  xidx = 0;
+  for (ix = n1 - 1; ix + 1 <= wwc->size[0]; ix++) {
+    r = wwc->data[ix].re;
+    fv_re = fv->data[ix].re;
+    twid_im = wwc->data[ix].im;
+    fv_im = fv->data[ix].im;
+    temp_re = wwc->data[ix].re;
+    temp_im = fv->data[ix].im;
+    wwc_im = wwc->data[ix].im;
+    b_fv_re = fv->data[ix].re;
+    y->data[xidx].re = r * fv_re + twid_im * fv_im;
+    y->data[xidx].im = temp_re * temp_im - wwc_im * b_fv_re;
     xidx++;
-    k++;
   }
 
   emxFree_creal_T(&fv);
@@ -4373,29 +2679,4001 @@ static void dobluesteinfft(const emxArray_real_T *x, int N2, int n1, const
 }
 
 //
-// Arguments    : const emxArray_real_T *iPk
-//                emxArray_real_T *idx
+// Arguments    : const double x[16]
+//                double y[4]
 // Return Type  : void
 //
-static void e_findPeaksSeparatedByMoreThanM(const emxArray_real_T *iPk,
-  emxArray_real_T *idx)
+static void e_sum(const double x[16], double y[4])
 {
-  int ndbl;
-  int apnd;
-  int cdiff;
-  int absb;
+  int j;
+  double s;
+  int k;
+  for (j = 0; j < 4; j++) {
+    s = x[j];
+    for (k = 0; k < 3; k++) {
+      s += x[j + ((k + 1) << 2)];
+    }
+
+    y[j] = s;
+  }
+}
+
+//
+// EOGCFILT EEG filter for conversion to C.
+//  Vectorize:
+// Arguments    : emxArray_real_T *X
+//                emxArray_real_T *Y
+// Return Type  : void
+//
+static void eegcfilt(emxArray_real_T *X, emxArray_real_T *Y)
+{
+  int m;
+  int i;
+  emxArray_real_T *x;
   emxArray_real_T *y;
-  if (iPk->size[0] < 1) {
+  double xtmp;
+  double d2;
+  int md2;
+  double a[10];
+  emxArray_real_T *b_y;
+  static const double b_a[10] = { -2.1396152021655335E-5, -2.1396152489276133E-5,
+    8.558460975207999E-5, 8.5584605288149449E-5, -0.00012837690837852629,
+    -0.00012837691616921775, 8.5584610596008311E-5, 8.5584607376171939E-5,
+    -2.1396151855180404E-5, -2.1396152098550849E-5 };
+
+  emxArray_real_T *c_y;
+  emxArray_int32_T *r7;
+  m = X->size[0];
+  i = X->size[0];
+  X->size[0] = m;
+  emxEnsureCapacity((emxArray__common *)X, i, (int)sizeof(double));
+
+  //  Fs = 250, N = 5
+  //  flim = [8 18], bandpass
+  emxInit_real_T1(&x, 1);
+  if (X->size[0] == 1) {
+    i = x->size[0];
+    x->size[0] = 1;
+    emxEnsureCapacity((emxArray__common *)x, i, (int)sizeof(double));
+    x->data[0] = X->data[0];
+  } else {
+    i = x->size[0];
+    x->size[0] = X->size[0];
+    emxEnsureCapacity((emxArray__common *)x, i, (int)sizeof(double));
+    m = X->size[0];
+    for (i = 0; i < m; i++) {
+      x->data[i] = X->data[i];
+    }
+  }
+
+  if (x->size[0] == 0) {
+    i = Y->size[0] * Y->size[1];
+    Y->size[0] = 0;
+    Y->size[1] = 0;
+    emxEnsureCapacity((emxArray__common *)Y, i, (int)sizeof(double));
+  } else {
+    emxInit_real_T1(&y, 1);
+    xtmp = 2.0 * x->data[0];
+    d2 = 2.0 * x->data[x->size[0] - 1];
+    md2 = x->size[0] - 2;
+    i = y->size[0];
+    y->size[0] = 60 + x->size[0];
+    emxEnsureCapacity((emxArray__common *)y, i, (int)sizeof(double));
+    for (i = 0; i < 30; i++) {
+      y->data[i] = xtmp - x->data[30 - i];
+    }
+
+    m = x->size[0];
+    for (i = 0; i < m; i++) {
+      y->data[i + 30] = x->data[i];
+    }
+
+    for (i = 0; i < 30; i++) {
+      y->data[(i + x->size[0]) + 30] = d2 - x->data[md2 - i];
+    }
+
+    xtmp = y->data[0];
+    for (i = 0; i < 10; i++) {
+      a[i] = b_a[i] * xtmp;
+    }
+
+    emxInit_real_T1(&b_y, 1);
+    i = b_y->size[0];
+    b_y->size[0] = y->size[0];
+    emxEnsureCapacity((emxArray__common *)b_y, i, (int)sizeof(double));
+    m = y->size[0];
+    for (i = 0; i < m; i++) {
+      b_y->data[i] = y->data[i];
+    }
+
+    b_filter(b_y, a, y);
+    m = y->size[0];
+    md2 = y->size[0] >> 1;
+    i = 1;
+    emxFree_real_T(&b_y);
+    while (i <= md2) {
+      xtmp = y->data[i - 1];
+      y->data[i - 1] = y->data[m - i];
+      y->data[m - i] = xtmp;
+      i++;
+    }
+
+    xtmp = y->data[0];
+    for (i = 0; i < 10; i++) {
+      a[i] = b_a[i] * xtmp;
+    }
+
+    emxInit_real_T1(&c_y, 1);
+    i = c_y->size[0];
+    c_y->size[0] = y->size[0];
+    emxEnsureCapacity((emxArray__common *)c_y, i, (int)sizeof(double));
+    m = y->size[0];
+    for (i = 0; i < m; i++) {
+      c_y->data[i] = y->data[i];
+    }
+
+    b_filter(c_y, a, y);
+    m = y->size[0];
+    md2 = y->size[0] >> 1;
+    i = 1;
+    emxFree_real_T(&c_y);
+    while (i <= md2) {
+      xtmp = y->data[i - 1];
+      y->data[i - 1] = y->data[m - i];
+      y->data[m - i] = xtmp;
+      i++;
+    }
+
+    if (X->size[0] == 1) {
+      m = x->size[0] - 1;
+      i = Y->size[0] * Y->size[1];
+      Y->size[0] = 1;
+      Y->size[1] = m + 1;
+      emxEnsureCapacity((emxArray__common *)Y, i, (int)sizeof(double));
+      for (i = 0; i <= m; i++) {
+        Y->data[Y->size[0] * i] = y->data[30 + i];
+      }
+    } else {
+      emxInit_int32_T(&r7, 1);
+      m = x->size[0];
+      i = Y->size[0] * Y->size[1];
+      Y->size[0] = m;
+      Y->size[1] = 1;
+      emxEnsureCapacity((emxArray__common *)Y, i, (int)sizeof(double));
+      i = r7->size[0];
+      r7->size[0] = m;
+      emxEnsureCapacity((emxArray__common *)r7, i, (int)sizeof(int));
+      for (i = 0; i < m; i++) {
+        r7->data[i] = 31 + i;
+      }
+
+      for (i = 0; i < m; i++) {
+        Y->data[i] = y->data[r7->data[i] - 1];
+      }
+
+      emxFree_int32_T(&r7);
+    }
+
+    emxFree_real_T(&y);
+  }
+
+  emxFree_real_T(&x);
+}
+
+//
+// Arguments    : emxArray__common *emxArray
+//                int oldNumel
+//                int elementSize
+// Return Type  : void
+//
+static void emxEnsureCapacity(emxArray__common *emxArray, int oldNumel, int
+  elementSize)
+{
+  int newNumel;
+  int i;
+  void *newData;
+  newNumel = 1;
+  for (i = 0; i < emxArray->numDimensions; i++) {
+    newNumel *= emxArray->size[i];
+  }
+
+  if (newNumel > emxArray->allocatedSize) {
+    i = emxArray->allocatedSize;
+    if (i < 16) {
+      i = 16;
+    }
+
+    while (i < newNumel) {
+      if (i > 1073741823) {
+        i = MAX_int32_T;
+      } else {
+        i <<= 1;
+      }
+    }
+
+    newData = calloc((unsigned int)i, (unsigned int)elementSize);
+    if (emxArray->data != NULL) {
+      memcpy(newData, emxArray->data, (unsigned int)(elementSize * oldNumel));
+      if (emxArray->canFreeData) {
+        free(emxArray->data);
+      }
+    }
+
+    emxArray->data = newData;
+    emxArray->allocatedSize = i;
+    emxArray->canFreeData = true;
+  }
+}
+
+//
+// Arguments    : emxArray_boolean_T **pEmxArray
+// Return Type  : void
+//
+static void emxFree_boolean_T(emxArray_boolean_T **pEmxArray)
+{
+  if (*pEmxArray != (emxArray_boolean_T *)NULL) {
+    if (((*pEmxArray)->data != (boolean_T *)NULL) && (*pEmxArray)->canFreeData)
+    {
+      free((void *)(*pEmxArray)->data);
+    }
+
+    free((void *)(*pEmxArray)->size);
+    free((void *)*pEmxArray);
+    *pEmxArray = (emxArray_boolean_T *)NULL;
+  }
+}
+
+//
+// Arguments    : emxArray_creal_T **pEmxArray
+// Return Type  : void
+//
+static void emxFree_creal_T(emxArray_creal_T **pEmxArray)
+{
+  if (*pEmxArray != (emxArray_creal_T *)NULL) {
+    if (((*pEmxArray)->data != (creal_T *)NULL) && (*pEmxArray)->canFreeData) {
+      free((void *)(*pEmxArray)->data);
+    }
+
+    free((void *)(*pEmxArray)->size);
+    free((void *)*pEmxArray);
+    *pEmxArray = (emxArray_creal_T *)NULL;
+  }
+}
+
+//
+// Arguments    : emxArray_int32_T **pEmxArray
+// Return Type  : void
+//
+static void emxFree_int32_T(emxArray_int32_T **pEmxArray)
+{
+  if (*pEmxArray != (emxArray_int32_T *)NULL) {
+    if (((*pEmxArray)->data != (int *)NULL) && (*pEmxArray)->canFreeData) {
+      free((void *)(*pEmxArray)->data);
+    }
+
+    free((void *)(*pEmxArray)->size);
+    free((void *)*pEmxArray);
+    *pEmxArray = (emxArray_int32_T *)NULL;
+  }
+}
+
+//
+// Arguments    : emxArray_real_T **pEmxArray
+// Return Type  : void
+//
+static void emxFree_real_T(emxArray_real_T **pEmxArray)
+{
+  if (*pEmxArray != (emxArray_real_T *)NULL) {
+    if (((*pEmxArray)->data != (double *)NULL) && (*pEmxArray)->canFreeData) {
+      free((void *)(*pEmxArray)->data);
+    }
+
+    free((void *)(*pEmxArray)->size);
+    free((void *)*pEmxArray);
+    *pEmxArray = (emxArray_real_T *)NULL;
+  }
+}
+
+//
+// Arguments    : emxArray_boolean_T **pEmxArray
+//                int numDimensions
+// Return Type  : void
+//
+static void emxInit_boolean_T(emxArray_boolean_T **pEmxArray, int numDimensions)
+{
+  emxArray_boolean_T *emxArray;
+  int i;
+  *pEmxArray = (emxArray_boolean_T *)malloc(sizeof(emxArray_boolean_T));
+  emxArray = *pEmxArray;
+  emxArray->data = (boolean_T *)NULL;
+  emxArray->numDimensions = numDimensions;
+  emxArray->size = (int *)malloc((unsigned int)(sizeof(int) * numDimensions));
+  emxArray->allocatedSize = 0;
+  emxArray->canFreeData = true;
+  for (i = 0; i < numDimensions; i++) {
+    emxArray->size[i] = 0;
+  }
+}
+
+//
+// Arguments    : emxArray_boolean_T **pEmxArray
+//                int numDimensions
+// Return Type  : void
+//
+static void emxInit_boolean_T1(emxArray_boolean_T **pEmxArray, int numDimensions)
+{
+  emxArray_boolean_T *emxArray;
+  int i;
+  *pEmxArray = (emxArray_boolean_T *)malloc(sizeof(emxArray_boolean_T));
+  emxArray = *pEmxArray;
+  emxArray->data = (boolean_T *)NULL;
+  emxArray->numDimensions = numDimensions;
+  emxArray->size = (int *)malloc((unsigned int)(sizeof(int) * numDimensions));
+  emxArray->allocatedSize = 0;
+  emxArray->canFreeData = true;
+  for (i = 0; i < numDimensions; i++) {
+    emxArray->size[i] = 0;
+  }
+}
+
+//
+// Arguments    : emxArray_creal_T **pEmxArray
+//                int numDimensions
+// Return Type  : void
+//
+static void emxInit_creal_T(emxArray_creal_T **pEmxArray, int numDimensions)
+{
+  emxArray_creal_T *emxArray;
+  int i;
+  *pEmxArray = (emxArray_creal_T *)malloc(sizeof(emxArray_creal_T));
+  emxArray = *pEmxArray;
+  emxArray->data = (creal_T *)NULL;
+  emxArray->numDimensions = numDimensions;
+  emxArray->size = (int *)malloc((unsigned int)(sizeof(int) * numDimensions));
+  emxArray->allocatedSize = 0;
+  emxArray->canFreeData = true;
+  for (i = 0; i < numDimensions; i++) {
+    emxArray->size[i] = 0;
+  }
+}
+
+//
+// Arguments    : emxArray_creal_T **pEmxArray
+//                int numDimensions
+// Return Type  : void
+//
+static void emxInit_creal_T1(emxArray_creal_T **pEmxArray, int numDimensions)
+{
+  emxArray_creal_T *emxArray;
+  int i;
+  *pEmxArray = (emxArray_creal_T *)malloc(sizeof(emxArray_creal_T));
+  emxArray = *pEmxArray;
+  emxArray->data = (creal_T *)NULL;
+  emxArray->numDimensions = numDimensions;
+  emxArray->size = (int *)malloc((unsigned int)(sizeof(int) * numDimensions));
+  emxArray->allocatedSize = 0;
+  emxArray->canFreeData = true;
+  for (i = 0; i < numDimensions; i++) {
+    emxArray->size[i] = 0;
+  }
+}
+
+//
+// Arguments    : emxArray_int32_T **pEmxArray
+//                int numDimensions
+// Return Type  : void
+//
+static void emxInit_int32_T(emxArray_int32_T **pEmxArray, int numDimensions)
+{
+  emxArray_int32_T *emxArray;
+  int i;
+  *pEmxArray = (emxArray_int32_T *)malloc(sizeof(emxArray_int32_T));
+  emxArray = *pEmxArray;
+  emxArray->data = (int *)NULL;
+  emxArray->numDimensions = numDimensions;
+  emxArray->size = (int *)malloc((unsigned int)(sizeof(int) * numDimensions));
+  emxArray->allocatedSize = 0;
+  emxArray->canFreeData = true;
+  for (i = 0; i < numDimensions; i++) {
+    emxArray->size[i] = 0;
+  }
+}
+
+//
+// Arguments    : emxArray_int32_T **pEmxArray
+//                int numDimensions
+// Return Type  : void
+//
+static void emxInit_int32_T1(emxArray_int32_T **pEmxArray, int numDimensions)
+{
+  emxArray_int32_T *emxArray;
+  int i;
+  *pEmxArray = (emxArray_int32_T *)malloc(sizeof(emxArray_int32_T));
+  emxArray = *pEmxArray;
+  emxArray->data = (int *)NULL;
+  emxArray->numDimensions = numDimensions;
+  emxArray->size = (int *)malloc((unsigned int)(sizeof(int) * numDimensions));
+  emxArray->allocatedSize = 0;
+  emxArray->canFreeData = true;
+  for (i = 0; i < numDimensions; i++) {
+    emxArray->size[i] = 0;
+  }
+}
+
+//
+// Arguments    : emxArray_real_T **pEmxArray
+//                int numDimensions
+// Return Type  : void
+//
+static void emxInit_real_T(emxArray_real_T **pEmxArray, int numDimensions)
+{
+  emxArray_real_T *emxArray;
+  int i;
+  *pEmxArray = (emxArray_real_T *)malloc(sizeof(emxArray_real_T));
+  emxArray = *pEmxArray;
+  emxArray->data = (double *)NULL;
+  emxArray->numDimensions = numDimensions;
+  emxArray->size = (int *)malloc((unsigned int)(sizeof(int) * numDimensions));
+  emxArray->allocatedSize = 0;
+  emxArray->canFreeData = true;
+  for (i = 0; i < numDimensions; i++) {
+    emxArray->size[i] = 0;
+  }
+}
+
+//
+// Arguments    : emxArray_real_T **pEmxArray
+//                int numDimensions
+// Return Type  : void
+//
+static void emxInit_real_T1(emxArray_real_T **pEmxArray, int numDimensions)
+{
+  emxArray_real_T *emxArray;
+  int i;
+  *pEmxArray = (emxArray_real_T *)malloc(sizeof(emxArray_real_T));
+  emxArray = *pEmxArray;
+  emxArray->data = (double *)NULL;
+  emxArray->numDimensions = numDimensions;
+  emxArray->size = (int *)malloc((unsigned int)(sizeof(int) * numDimensions));
+  emxArray->allocatedSize = 0;
+  emxArray->canFreeData = true;
+  for (i = 0; i < numDimensions; i++) {
+    emxArray->size[i] = 0;
+  }
+}
+
+//
+// Arguments    : double x
+// Return Type  : double
+//
+static double eps(double x)
+{
+  double r;
+  double absxk;
+  int exponent;
+  absxk = std::abs(x);
+  if ((!rtIsInf(absxk)) && (!rtIsNaN(absxk))) {
+    if (absxk <= 2.2250738585072014E-308) {
+      r = 4.94065645841247E-324;
+    } else {
+      frexp(absxk, &exponent);
+      r = std::ldexp(1.0, exponent - 53);
+    }
+  } else {
+    r = rtNaN;
+  }
+
+  return r;
+}
+
+//
+// Feature Extraction Function for Tri-channel SSVEP Feature Extraction:
+//  ----- INPUTS -----
+//  fch1, fch2, fch3: Tri-channel SSVEP Samples of certain window size
+//  MUST BE A VECTOR!
+//  MUST BE FILTERED!!
+//  Fs - Sampling Rate.
+//  Using 250-sample windows, feature extraction is obtained using FFT and
+//  PSD
+// Arguments    : const emxArray_real_T *fch1
+//                const emxArray_real_T *fch2
+//                const emxArray_real_T *fch3
+//                double Fs
+//                emxArray_real_T *F
+// Return Type  : void
+//
+static void fSSVEPnew(const emxArray_real_T *fch1, const emxArray_real_T *fch2,
+                      const emxArray_real_T *fch3, double Fs, emxArray_real_T *F)
+{
+  double threshFFT[8];
+  int i8;
+  double threshPSD[8];
+  double threshSTFT[8];
+  emxArray_real_T *fchw;
+  int fch1_idx_0;
+  int b_fch1_idx_0;
+  int loop_ub;
+  int c_fch1_idx_0;
+  emxArray_int32_T *r15;
+  emxArray_real_T *b_fch1;
+  emxArray_real_T *b_fch2;
+  emxArray_real_T *b_fch3;
+  double FFT[4100];
+  double fft_sel_loc[16];
+  double fft_sel_pks[16];
+  emxArray_real_T *PSD;
+  double y;
+  int iv0[2];
+  emxArray_boolean_T *selectPSD;
+  double psd_sel_loc[16];
+  double psd_sel_pks[16];
+  double stft_sel_loc[4];
+  double stft_sel_pks[4];
+  int i;
+  emxArray_real_T *hW;
+  emxArray_real_T *fPSD;
+  emxArray_real_T *SummedRows;
+  emxArray_creal_T *S1;
+  emxArray_real_T *T;
+  emxArray_creal_T *S2;
+  emxArray_creal_T *S3;
+  emxArray_real_T *psd_sel_L;
+  emxArray_boolean_T *r16;
+  emxArray_boolean_T *r17;
+  emxArray_int32_T *r18;
+  emxArray_int32_T *r19;
+  emxArray_real_T *x;
+  emxArray_real_T *b_x;
+  emxArray_real_T *c_x;
+  emxArray_real_T *b_SummedRows;
+  emxArray_real_T *r20;
+  emxArray_creal_T *b_S3;
+  emxArray_creal_T *b_S2;
+  emxArray_creal_T *b_S1;
+  emxArray_real_T *b_fchw;
+  emxArray_real_T *c_fchw;
+  emxArray_real_T *d_fchw;
+  emxArray_real_T *e_fchw;
+  emxArray_real_T *f_fchw;
+  emxArray_real_T *b_FFT;
+  emxArray_real_T *b_PSD;
+  emxArray_real_T *c_FFT;
+  emxArray_real_T *c_PSD;
+  emxArray_real_T *c_SummedRows;
+  emxArray_real_T *g_fchw;
+  emxArray_real_T *h_fchw;
+  emxArray_real_T *d_FFT;
+  emxArray_real_T *d_PSD;
+  emxArray_real_T *e_FFT;
+  emxArray_real_T *e_PSD;
+  emxArray_real_T *f_PSD;
+  emxArray_int32_T *r21;
+  emxArray_int32_T *r22;
+  emxArray_int32_T *r23;
+  emxArray_int32_T *r24;
+  emxArray_real_T *g_PSD;
+  emxArray_int32_T *r25;
+  emxArray_int32_T *r26;
+  boolean_T guard2 = false;
+  boolean_T b_select[4100];
+  int ch;
+  double f[1025];
+  double dv19[1025];
+  double b_F[1025];
+  boolean_T guard1 = false;
+  double ft_ch[72];
+  double b_ft_ch[64];
+  double c_ft_ch[72];
+  double d_ft_ch[64];
+
+  // %%%% - Thresholds: - %%%%%
+  // ----FFT----%
+  // -% windows around certain target frequencies
+  for (i8 = 0; i8 < 2; i8++) {
+    threshFFT[i8 << 2] = 9.5 + 1.1300000000000008 * (double)i8;
+    threshFFT[1 + (i8 << 2)] = 11.9 + 0.79999999999999893 * (double)i8;
+    threshFFT[2 + (i8 << 2)] = 14.6 + 0.90000000000000036 * (double)i8;
+    threshFFT[3 + (i8 << 2)] = 16.1 + 0.69999999999999929 * (double)i8;
+  }
+
+  // ---FOR >= 500 DP ---%
+  //  threshFFTL = zeros(4,2);
+  //  threshFFTL(1,:) = [9.76  10.14];%-% windows around certain target frequencies 
+  //  threshFFTL(2,:) = [12.2  12.6];
+  //  threshFFTL(3,:) = [14.76 15.27];
+  //  threshFFTL(4,:) = [16.1 16.80];
+  // Also use wLFFT
+  // ----PSD----%
+  for (i8 = 0; i8 < 2; i8++) {
+    threshPSD[i8 << 2] = 9.0 + 2.0 * (double)i8;
+    threshPSD[1 + (i8 << 2)] = 11.0 + 2.0 * (double)i8;
+    threshPSD[2 + (i8 << 2)] = 14.0 + 1.5 * (double)i8;
+    threshPSD[3 + (i8 << 2)] = 15.5 + 2.0 * (double)i8;
+  }
+
+  // ---FOR >= 500 DP ---%
+  //  threshPSDL = zeros(4,2);
+  //  threshPSDL(1,:) = [9.79 10.25];
+  //  threshPSDL(2,:) = [12.2 12.8];
+  //  threshPSDL(3,:) = [14.75 15.5];
+  //  threshPSDL(4,:) = [16 17];
+  // ---STFT---%
+  // ---FOR >= 500 DP ---%
+  for (i8 = 0; i8 < 2; i8++) {
+    threshSTFT[i8 << 2] = 9.6 + 0.66000000000000014 * (double)i8;
+    threshSTFT[1 + (i8 << 2)] = 12.2 + 0.51000000000000156 * (double)i8;
+    threshSTFT[2 + (i8 << 2)] = 14.75 + 0.64000000000000057 * (double)i8;
+    threshSTFT[3 + (i8 << 2)] = 16.11 + 0.870000000000001 * (double)i8;
+  }
+
+  emxInit_real_T(&fchw, 2);
+
+  // ---FOR >= 1250 DP ---%
+  //  threshSTFT5 = zeros(4,2);
+  //  threshSTFT5(1,:) = [9.76  10.14];
+  //  threshSTFT5(2,:) = [12.3  12.58];
+  //  threshSTFT5(3,:) = [14.85 15.25];
+  //  threshSTFT5(4,:) = [16.33 16.87];
+  // ----PREALLOCATE----%
+  fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  i8 = fchw->size[0] * fchw->size[1];
+  fchw->size[0] = 3;
+  emxEnsureCapacity((emxArray__common *)fchw, i8, (int)sizeof(double));
+  b_fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  i8 = fchw->size[0] * fchw->size[1];
+  fchw->size[1] = b_fch1_idx_0;
+  emxEnsureCapacity((emxArray__common *)fchw, i8, (int)sizeof(double));
+  b_fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  loop_ub = 3 * b_fch1_idx_0;
+  for (i8 = 0; i8 < loop_ub; i8++) {
+    fchw->data[i8] = 0.0;
+  }
+
+  b_fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  if (1 > b_fch1_idx_0) {
+    b_fch1_idx_0 = 0;
+  } else {
+    b_fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  }
+
+  c_fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  if (1 > c_fch1_idx_0) {
+    c_fch1_idx_0 = 0;
+  } else {
+    c_fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  }
+
+  emxInit_int32_T(&r15, 1);
+  i8 = r15->size[0];
+  r15->size[0] = c_fch1_idx_0;
+  emxEnsureCapacity((emxArray__common *)r15, i8, (int)sizeof(int));
+  for (i8 = 0; i8 < c_fch1_idx_0; i8++) {
+    r15->data[i8] = i8;
+  }
+
+  emxInit_real_T1(&b_fch1, 1);
+  i8 = b_fch1->size[0];
+  b_fch1->size[0] = b_fch1_idx_0;
+  emxEnsureCapacity((emxArray__common *)b_fch1, i8, (int)sizeof(double));
+  for (i8 = 0; i8 < b_fch1_idx_0; i8++) {
+    b_fch1->data[i8] = fch1->data[i8];
+  }
+
+  c_fch1_idx_0 = r15->size[0];
+  for (i8 = 0; i8 < c_fch1_idx_0; i8++) {
+    fchw->data[fchw->size[0] * r15->data[i8]] = b_fch1->data[i8];
+  }
+
+  emxFree_real_T(&b_fch1);
+  b_fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  if (1 > b_fch1_idx_0) {
+    b_fch1_idx_0 = 0;
+  } else {
+    b_fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  }
+
+  c_fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  if (1 > c_fch1_idx_0) {
+    c_fch1_idx_0 = 0;
+  } else {
+    c_fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  }
+
+  i8 = r15->size[0];
+  r15->size[0] = c_fch1_idx_0;
+  emxEnsureCapacity((emxArray__common *)r15, i8, (int)sizeof(int));
+  for (i8 = 0; i8 < c_fch1_idx_0; i8++) {
+    r15->data[i8] = i8;
+  }
+
+  emxInit_real_T1(&b_fch2, 1);
+  i8 = b_fch2->size[0];
+  b_fch2->size[0] = b_fch1_idx_0;
+  emxEnsureCapacity((emxArray__common *)b_fch2, i8, (int)sizeof(double));
+  for (i8 = 0; i8 < b_fch1_idx_0; i8++) {
+    b_fch2->data[i8] = fch2->data[i8];
+  }
+
+  c_fch1_idx_0 = r15->size[0];
+  for (i8 = 0; i8 < c_fch1_idx_0; i8++) {
+    fchw->data[1 + fchw->size[0] * r15->data[i8]] = b_fch2->data[i8];
+  }
+
+  emxFree_real_T(&b_fch2);
+  b_fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  if (1 > b_fch1_idx_0) {
+    b_fch1_idx_0 = 0;
+  } else {
+    b_fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  }
+
+  c_fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  if (1 > c_fch1_idx_0) {
+    c_fch1_idx_0 = 0;
+  } else {
+    c_fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  }
+
+  i8 = r15->size[0];
+  r15->size[0] = c_fch1_idx_0;
+  emxEnsureCapacity((emxArray__common *)r15, i8, (int)sizeof(int));
+  for (i8 = 0; i8 < c_fch1_idx_0; i8++) {
+    r15->data[i8] = i8;
+  }
+
+  emxInit_real_T1(&b_fch3, 1);
+  i8 = b_fch3->size[0];
+  b_fch3->size[0] = b_fch1_idx_0;
+  emxEnsureCapacity((emxArray__common *)b_fch3, i8, (int)sizeof(double));
+  for (i8 = 0; i8 < b_fch1_idx_0; i8++) {
+    b_fch3->data[i8] = fch3->data[i8];
+  }
+
+  c_fch1_idx_0 = r15->size[0];
+  for (i8 = 0; i8 < c_fch1_idx_0; i8++) {
+    fchw->data[2 + fchw->size[0] * r15->data[i8]] = b_fch3->data[i8];
+  }
+
+  emxFree_real_T(&b_fch3);
+  emxFree_int32_T(&r15);
+
+  //  TODO: PREALLOCATE F BASED ON WINDOWLENGTH: (IF NECESSARY):
+  //  all windows should be the same size:
+  memset(&FFT[0], 0, 4100U * sizeof(double));
+  memset(&fft_sel_loc[0], 0, sizeof(double) << 4);
+  memset(&fft_sel_pks[0], 0, sizeof(double) << 4);
+  b_fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  emxInit_real_T(&PSD, 2);
+  if (b_mod((double)b_fch1_idx_0, 2.0) == 1.0) {
+    b_fch1_idx_0 = fch1->size[0] * fch1->size[1];
+    y = ((double)b_fch1_idx_0 - 1.0) / 2.0;
+    i8 = PSD->size[0] * PSD->size[1];
+    PSD->size[0] = 4;
+    PSD->size[1] = (int)y;
+    emxEnsureCapacity((emxArray__common *)PSD, i8, (int)sizeof(double));
+    loop_ub = (int)y << 2;
+    for (i8 = 0; i8 < loop_ub; i8++) {
+      PSD->data[i8] = 0.0;
+    }
+  } else {
+    b_fch1_idx_0 = fch1->size[0] * fch1->size[1];
+    y = (double)b_fch1_idx_0 / 2.0;
+    i8 = PSD->size[0] * PSD->size[1];
+    PSD->size[0] = 4;
+    PSD->size[1] = (int)y;
+    emxEnsureCapacity((emxArray__common *)PSD, i8, (int)sizeof(double));
+    loop_ub = (int)y << 2;
+    for (i8 = 0; i8 < loop_ub; i8++) {
+      PSD->data[i8] = 0.0;
+    }
+  }
+
+  //  PSD = zeros(4,windowLength/2);
+  for (i8 = 0; i8 < 2; i8++) {
+    iv0[i8] = PSD->size[i8];
+  }
+
+  emxInit_boolean_T1(&selectPSD, 2);
+  i8 = selectPSD->size[0] * selectPSD->size[1];
+  selectPSD->size[0] = 4;
+  selectPSD->size[1] = iv0[1];
+  emxEnsureCapacity((emxArray__common *)selectPSD, i8, (int)sizeof(boolean_T));
+  loop_ub = iv0[1] << 2;
+  for (i8 = 0; i8 < loop_ub; i8++) {
+    selectPSD->data[i8] = false;
+  }
+
+  memset(&psd_sel_loc[0], 0, sizeof(double) << 4);
+  memset(&psd_sel_pks[0], 0, sizeof(double) << 4);
+  for (i = 0; i < 4; i++) {
+    stft_sel_loc[i] = 0.0;
+    stft_sel_pks[i] = 0.0;
+  }
+
+  //  Data is already filtered:
+  //  TODO: FILL IN LATER!!!
+  // {%}
+  b_fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  emxInit_real_T1(&hW, 1);
+  emxInit_real_T(&fPSD, 2);
+  emxInit_real_T1(&SummedRows, 1);
+  emxInit_creal_T1(&S1, 2);
+  emxInit_real_T(&T, 2);
+  emxInit_creal_T1(&S2, 2);
+  emxInit_creal_T1(&S3, 2);
+  emxInit_real_T(&psd_sel_L, 2);
+  emxInit_boolean_T1(&r16, 2);
+  emxInit_boolean_T1(&r17, 2);
+  emxInit_int32_T1(&r18, 2);
+  emxInit_int32_T1(&r19, 2);
+  emxInit_real_T(&x, 2);
+  emxInit_real_T(&b_x, 2);
+  emxInit_real_T(&c_x, 2);
+  emxInit_real_T1(&b_SummedRows, 1);
+  emxInit_real_T(&r20, 2);
+  emxInit_creal_T1(&b_S3, 2);
+  emxInit_creal_T1(&b_S2, 2);
+  emxInit_creal_T1(&b_S1, 2);
+  emxInit_real_T(&b_fchw, 2);
+  emxInit_real_T(&c_fchw, 2);
+  emxInit_real_T(&d_fchw, 2);
+  emxInit_real_T(&e_fchw, 2);
+  emxInit_real_T(&f_fchw, 2);
+  emxInit_real_T(&b_FFT, 2);
+  emxInit_real_T(&b_PSD, 2);
+  emxInit_real_T(&c_FFT, 2);
+  emxInit_real_T(&c_PSD, 2);
+  emxInit_real_T1(&c_SummedRows, 1);
+  emxInit_real_T(&g_fchw, 2);
+  emxInit_real_T(&h_fchw, 2);
+  emxInit_real_T(&d_FFT, 2);
+  emxInit_real_T(&d_PSD, 2);
+  emxInit_real_T(&e_FFT, 2);
+  emxInit_real_T(&e_PSD, 2);
+  emxInit_real_T(&f_PSD, 2);
+  emxInit_int32_T(&r21, 1);
+  emxInit_int32_T(&r22, 1);
+  emxInit_int32_T(&r23, 1);
+  emxInit_int32_T(&r24, 1);
+  emxInit_real_T(&g_PSD, 2);
+  emxInit_int32_T(&r25, 1);
+  emxInit_int32_T(&r26, 1);
+  guard2 = false;
+  if (b_fch1_idx_0 < 500) {
+    b_fch1_idx_0 = fch1->size[0] * fch1->size[1];
+    if (b_fch1_idx_0 >= 250) {
+      for (ch = 0; ch < 3; ch++) {
+        loop_ub = fchw->size[1];
+        i8 = h_fchw->size[0] * h_fchw->size[1];
+        h_fchw->size[0] = 1;
+        h_fchw->size[1] = loop_ub;
+        emxEnsureCapacity((emxArray__common *)h_fchw, i8, (int)sizeof(double));
+        for (i8 = 0; i8 < loop_ub; i8++) {
+          h_fchw->data[h_fchw->size[0] * i8] = fchw->data[ch + fchw->size[0] *
+            i8];
+        }
+
+        get_nfft_data(h_fchw, Fs, f, dv19);
+        for (i8 = 0; i8 < 1025; i8++) {
+          FFT[ch + (i8 << 2)] = dv19[i8];
+        }
+
+        for (i = 0; i < 4; i++) {
+          for (i8 = 0; i8 < 1025; i8++) {
+            b_select[i + (i8 << 2)] = ((f[i8] > threshFFT[i]) && (f[i8] <
+              threshFFT[4 + i]));
+          }
+
+          //
+          b_fch1_idx_0 = 0;
+          for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+            if (b_select[i + (c_fch1_idx_0 << 2)]) {
+              b_fch1_idx_0++;
+            }
+          }
+
+          i8 = r18->size[0] * r18->size[1];
+          r18->size[0] = 1;
+          r18->size[1] = b_fch1_idx_0;
+          emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+          b_fch1_idx_0 = 0;
+          for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+            if (b_select[i + (c_fch1_idx_0 << 2)]) {
+              r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+              b_fch1_idx_0++;
+            }
+          }
+
+          i8 = d_FFT->size[0] * d_FFT->size[1];
+          d_FFT->size[0] = 1;
+          d_FFT->size[1] = r18->size[1];
+          emxEnsureCapacity((emxArray__common *)d_FFT, i8, (int)sizeof(double));
+          loop_ub = r18->size[1];
+          for (i8 = 0; i8 < loop_ub; i8++) {
+            d_FFT->data[d_FFT->size[0] * i8] = FFT[ch + ((r18->data[r18->size[0]
+              * i8] - 1) << 2)];
+          }
+
+          c_findpeaks(d_FFT, T, psd_sel_L);
+          if (!(T->size[1] == 0)) {
+            b_fch1_idx_0 = 0;
+            for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+              if (b_select[i + (c_fch1_idx_0 << 2)]) {
+                b_fch1_idx_0++;
+              }
+            }
+
+            i8 = r18->size[0] * r18->size[1];
+            r18->size[0] = 1;
+            r18->size[1] = b_fch1_idx_0;
+            emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+            b_fch1_idx_0 = 0;
+            for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+              if (b_select[i + (c_fch1_idx_0 << 2)]) {
+                r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+                b_fch1_idx_0++;
+              }
+            }
+
+            fft_sel_loc[ch + (i << 2)] = f[r18->data[r18->size[0] * ((int)
+              psd_sel_L->data[0] - 1)] - 1];
+
+            // verifies that maxes are peaks. [peak must occur w/i range]
+            fft_sel_pks[ch + (i << 2)] = T->data[0];
+          } else {
+            fft_sel_loc[ch + (i << 2)] = 0.0;
+            fft_sel_pks[ch + (i << 2)] = 0.0;
+          }
+
+          //
+        }
+
+        hannWin((double)fch1_idx_0, hW);
+        loop_ub = fchw->size[1];
+        i8 = g_fchw->size[0] * g_fchw->size[1];
+        g_fchw->size[0] = 1;
+        g_fchw->size[1] = loop_ub;
+        emxEnsureCapacity((emxArray__common *)g_fchw, i8, (int)sizeof(double));
+        for (i8 = 0; i8 < loop_ub; i8++) {
+          g_fchw->data[g_fchw->size[0] * i8] = fchw->data[ch + fchw->size[0] *
+            i8];
+        }
+
+        welch_psd(g_fchw, Fs, hW, T, fPSD);
+        loop_ub = T->size[1];
+        for (i8 = 0; i8 < loop_ub; i8++) {
+          PSD->data[ch + PSD->size[0] * i8] = T->data[T->size[0] * i8];
+        }
+
+        // fin-start
+        for (i = 0; i < 4; i++) {
+          loop_ub = fPSD->size[1];
+          for (i8 = 0; i8 < loop_ub; i8++) {
+            selectPSD->data[i + selectPSD->size[0] * i8] = ((fPSD->data
+              [fPSD->size[0] * i8] >= threshPSD[i]) && (fPSD->data[fPSD->size[0]
+              * i8] <= threshPSD[4 + i]));
+          }
+
+          loop_ub = selectPSD->size[1];
+          i8 = r16->size[0] * r16->size[1];
+          r16->size[0] = 1;
+          r16->size[1] = loop_ub;
+          emxEnsureCapacity((emxArray__common *)r16, i8, (int)sizeof(boolean_T));
+          for (i8 = 0; i8 < loop_ub; i8++) {
+            r16->data[r16->size[0] * i8] = selectPSD->data[i + selectPSD->size[0]
+              * i8];
+          }
+
+          loop_ub = selectPSD->size[1] - 1;
+          b_fch1_idx_0 = 0;
+          for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+            if (r16->data[c_fch1_idx_0]) {
+              b_fch1_idx_0++;
+            }
+          }
+
+          i8 = r18->size[0] * r18->size[1];
+          r18->size[0] = 1;
+          r18->size[1] = b_fch1_idx_0;
+          emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+          b_fch1_idx_0 = 0;
+          for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+            if (r16->data[c_fch1_idx_0]) {
+              r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+              b_fch1_idx_0++;
+            }
+          }
+
+          i8 = r26->size[0];
+          r26->size[0] = r18->size[1];
+          emxEnsureCapacity((emxArray__common *)r26, i8, (int)sizeof(int));
+          loop_ub = r18->size[1];
+          for (i8 = 0; i8 < loop_ub; i8++) {
+            r26->data[i8] = r18->data[r18->size[0] * i8];
+          }
+
+          if (r26->size[0] >= 3) {
+            loop_ub = selectPSD->size[1];
+            i8 = r16->size[0] * r16->size[1];
+            r16->size[0] = 1;
+            r16->size[1] = loop_ub;
+            emxEnsureCapacity((emxArray__common *)r16, i8, (int)sizeof(boolean_T));
+            for (i8 = 0; i8 < loop_ub; i8++) {
+              r16->data[r16->size[0] * i8] = selectPSD->data[i + selectPSD->
+                size[0] * i8];
+            }
+
+            loop_ub = selectPSD->size[1] - 1;
+            b_fch1_idx_0 = 0;
+            for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+              if (r16->data[c_fch1_idx_0]) {
+                b_fch1_idx_0++;
+              }
+            }
+
+            i8 = r18->size[0] * r18->size[1];
+            r18->size[0] = 1;
+            r18->size[1] = b_fch1_idx_0;
+            emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+            b_fch1_idx_0 = 0;
+            for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+              if (r16->data[c_fch1_idx_0]) {
+                r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+                b_fch1_idx_0++;
+              }
+            }
+
+            i8 = d_PSD->size[0] * d_PSD->size[1];
+            d_PSD->size[0] = 1;
+            d_PSD->size[1] = r18->size[1];
+            emxEnsureCapacity((emxArray__common *)d_PSD, i8, (int)sizeof(double));
+            loop_ub = r18->size[1];
+            for (i8 = 0; i8 < loop_ub; i8++) {
+              d_PSD->data[d_PSD->size[0] * i8] = PSD->data[ch + PSD->size[0] *
+                (r18->data[r18->size[0] * i8] - 1)];
+            }
+
+            c_findpeaks(d_PSD, T, psd_sel_L);
+            if (!(T->size[1] == 0)) {
+              loop_ub = selectPSD->size[1];
+              i8 = r16->size[0] * r16->size[1];
+              r16->size[0] = 1;
+              r16->size[1] = loop_ub;
+              emxEnsureCapacity((emxArray__common *)r16, i8, (int)sizeof
+                                (boolean_T));
+              for (i8 = 0; i8 < loop_ub; i8++) {
+                r16->data[r16->size[0] * i8] = selectPSD->data[i +
+                  selectPSD->size[0] * i8];
+              }
+
+              loop_ub = selectPSD->size[1] - 1;
+              b_fch1_idx_0 = 0;
+              for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+                if (r16->data[c_fch1_idx_0]) {
+                  b_fch1_idx_0++;
+                }
+              }
+
+              i8 = r18->size[0] * r18->size[1];
+              r18->size[0] = 1;
+              r18->size[1] = b_fch1_idx_0;
+              emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+              b_fch1_idx_0 = 0;
+              for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+                if (r16->data[c_fch1_idx_0]) {
+                  r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+                  b_fch1_idx_0++;
+                }
+              }
+
+              psd_sel_loc[ch + (i << 2)] = fPSD->data[r18->data[r18->size[0] *
+                ((int)psd_sel_L->data[0] - 1)] - 1];
+              psd_sel_pks[ch + (i << 2)] = T->data[0];
+            } else {
+              psd_sel_loc[ch + (i << 2)] = 0.0;
+              psd_sel_pks[ch + (i << 2)] = 0.0;
+            }
+          } else {
+            psd_sel_loc[ch + (i << 2)] = 0.0;
+            psd_sel_pks[ch + (i << 2)] = 0.0;
+          }
+        }
+
+        // TODO FIND PEAKS:
+      }
+
+      for (i8 = 0; i8 < 1025; i8++) {
+        FFT[3 + (i8 << 2)] = (FFT[i8 << 2] + FFT[1 + (i8 << 2)]) + FFT[2 + (i8 <<
+          2)];
+      }
+
+      for (i = 0; i < 4; i++) {
+        //
+        b_fch1_idx_0 = 0;
+        for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+          if (b_select[i + (c_fch1_idx_0 << 2)]) {
+            b_fch1_idx_0++;
+          }
+        }
+
+        i8 = r18->size[0] * r18->size[1];
+        r18->size[0] = 1;
+        r18->size[1] = b_fch1_idx_0;
+        emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+        b_fch1_idx_0 = 0;
+        for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+          if (b_select[i + (c_fch1_idx_0 << 2)]) {
+            r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+            b_fch1_idx_0++;
+          }
+        }
+
+        i8 = e_FFT->size[0] * e_FFT->size[1];
+        e_FFT->size[0] = 1;
+        e_FFT->size[1] = r18->size[1];
+        emxEnsureCapacity((emxArray__common *)e_FFT, i8, (int)sizeof(double));
+        loop_ub = r18->size[1];
+        for (i8 = 0; i8 < loop_ub; i8++) {
+          e_FFT->data[e_FFT->size[0] * i8] = FFT[3 + ((r18->data[r18->size[0] *
+            i8] - 1) << 2)];
+        }
+
+        c_findpeaks(e_FFT, T, psd_sel_L);
+        if (!(T->size[1] == 0)) {
+          b_fch1_idx_0 = 0;
+          for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+            if (b_select[i + (c_fch1_idx_0 << 2)]) {
+              b_fch1_idx_0++;
+            }
+          }
+
+          i8 = r18->size[0] * r18->size[1];
+          r18->size[0] = 1;
+          r18->size[1] = b_fch1_idx_0;
+          emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+          b_fch1_idx_0 = 0;
+          for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+            if (b_select[i + (c_fch1_idx_0 << 2)]) {
+              r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+              b_fch1_idx_0++;
+            }
+          }
+
+          fft_sel_loc[3 + (i << 2)] = f[r18->data[r18->size[0] * ((int)
+            psd_sel_L->data[0] - 1)] - 1];
+
+          // verifies that maxes are peaks. [peak must occur w/i range]
+          fft_sel_pks[3 + (i << 2)] = T->data[0];
+        } else {
+          fft_sel_loc[3 + (i << 2)] = 0.0;
+          fft_sel_pks[3 + (i << 2)] = 0.0;
+        }
+      }
+
+      c_fch1_idx_0 = PSD->size[1];
+      i8 = g_PSD->size[0] * g_PSD->size[1];
+      g_PSD->size[0] = 1;
+      g_PSD->size[1] = c_fch1_idx_0;
+      emxEnsureCapacity((emxArray__common *)g_PSD, i8, (int)sizeof(double));
+      for (i8 = 0; i8 < c_fch1_idx_0; i8++) {
+        g_PSD->data[g_PSD->size[0] * i8] = (PSD->data[PSD->size[0] * i8] +
+          PSD->data[1 + PSD->size[0] * i8]) + PSD->data[2 + PSD->size[0] * i8];
+      }
+
+      loop_ub = g_PSD->size[1];
+      for (i8 = 0; i8 < loop_ub; i8++) {
+        PSD->data[3 + PSD->size[0] * i8] = g_PSD->data[g_PSD->size[0] * i8];
+      }
+
+      for (i = 0; i < 4; i++) {
+        loop_ub = fPSD->size[1];
+        for (i8 = 0; i8 < loop_ub; i8++) {
+          selectPSD->data[i + selectPSD->size[0] * i8] = ((fPSD->data[fPSD->
+            size[0] * i8] >= threshPSD[i]) && (fPSD->data[fPSD->size[0] * i8] <=
+            threshPSD[4 + i]));
+        }
+
+        loop_ub = selectPSD->size[1];
+        i8 = r16->size[0] * r16->size[1];
+        r16->size[0] = 1;
+        r16->size[1] = loop_ub;
+        emxEnsureCapacity((emxArray__common *)r16, i8, (int)sizeof(boolean_T));
+        for (i8 = 0; i8 < loop_ub; i8++) {
+          r16->data[r16->size[0] * i8] = selectPSD->data[i + selectPSD->size[0] *
+            i8];
+        }
+
+        loop_ub = selectPSD->size[1] - 1;
+        b_fch1_idx_0 = 0;
+        for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+          if (r16->data[c_fch1_idx_0]) {
+            b_fch1_idx_0++;
+          }
+        }
+
+        i8 = r18->size[0] * r18->size[1];
+        r18->size[0] = 1;
+        r18->size[1] = b_fch1_idx_0;
+        emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+        b_fch1_idx_0 = 0;
+        for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+          if (r16->data[c_fch1_idx_0]) {
+            r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+            b_fch1_idx_0++;
+          }
+        }
+
+        i8 = r25->size[0];
+        r25->size[0] = r18->size[1];
+        emxEnsureCapacity((emxArray__common *)r25, i8, (int)sizeof(int));
+        loop_ub = r18->size[1];
+        for (i8 = 0; i8 < loop_ub; i8++) {
+          r25->data[i8] = r18->data[r18->size[0] * i8];
+        }
+
+        if (r25->size[0] >= 3) {
+          loop_ub = selectPSD->size[1];
+          i8 = r16->size[0] * r16->size[1];
+          r16->size[0] = 1;
+          r16->size[1] = loop_ub;
+          emxEnsureCapacity((emxArray__common *)r16, i8, (int)sizeof(boolean_T));
+          for (i8 = 0; i8 < loop_ub; i8++) {
+            r16->data[r16->size[0] * i8] = selectPSD->data[i + selectPSD->size[0]
+              * i8];
+          }
+
+          loop_ub = selectPSD->size[1] - 1;
+          b_fch1_idx_0 = 0;
+          for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+            if (r16->data[c_fch1_idx_0]) {
+              b_fch1_idx_0++;
+            }
+          }
+
+          i8 = r18->size[0] * r18->size[1];
+          r18->size[0] = 1;
+          r18->size[1] = b_fch1_idx_0;
+          emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+          b_fch1_idx_0 = 0;
+          for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+            if (r16->data[c_fch1_idx_0]) {
+              r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+              b_fch1_idx_0++;
+            }
+          }
+
+          i8 = e_PSD->size[0] * e_PSD->size[1];
+          e_PSD->size[0] = 1;
+          e_PSD->size[1] = r18->size[1];
+          emxEnsureCapacity((emxArray__common *)e_PSD, i8, (int)sizeof(double));
+          loop_ub = r18->size[1];
+          for (i8 = 0; i8 < loop_ub; i8++) {
+            e_PSD->data[e_PSD->size[0] * i8] = PSD->data[3 + PSD->size[0] *
+              (r18->data[r18->size[0] * i8] - 1)];
+          }
+
+          c_findpeaks(e_PSD, T, psd_sel_L);
+          if (!(T->size[1] == 0)) {
+            loop_ub = selectPSD->size[1];
+            i8 = r16->size[0] * r16->size[1];
+            r16->size[0] = 1;
+            r16->size[1] = loop_ub;
+            emxEnsureCapacity((emxArray__common *)r16, i8, (int)sizeof(boolean_T));
+            for (i8 = 0; i8 < loop_ub; i8++) {
+              r16->data[r16->size[0] * i8] = selectPSD->data[i + selectPSD->
+                size[0] * i8];
+            }
+
+            loop_ub = selectPSD->size[1] - 1;
+            b_fch1_idx_0 = 0;
+            for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+              if (r16->data[c_fch1_idx_0]) {
+                b_fch1_idx_0++;
+              }
+            }
+
+            i8 = r18->size[0] * r18->size[1];
+            r18->size[0] = 1;
+            r18->size[1] = b_fch1_idx_0;
+            emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+            b_fch1_idx_0 = 0;
+            for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+              if (r16->data[c_fch1_idx_0]) {
+                r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+                b_fch1_idx_0++;
+              }
+            }
+
+            psd_sel_loc[3 + (i << 2)] = fPSD->data[r18->data[r18->size[0] *
+              ((int)psd_sel_L->data[0] - 1)] - 1];
+            psd_sel_pks[3 + (i << 2)] = T->data[0];
+          } else {
+            psd_sel_loc[3 + (i << 2)] = 0.0;
+            psd_sel_pks[3 + (i << 2)] = 0.0;
+          }
+        } else {
+          psd_sel_loc[3 + (i << 2)] = 0.0;
+          psd_sel_pks[3 + (i << 2)] = 0.0;
+        }
+      }
+    } else {
+      guard2 = true;
+    }
+  } else {
+    guard2 = true;
+  }
+
+  if (guard2) {
+    // ---------------- Data >=500 dp -----------------------%
+    for (ch = 0; ch < 3; ch++) {
+      loop_ub = fchw->size[1];
+      i8 = f_fchw->size[0] * f_fchw->size[1];
+      f_fchw->size[0] = 1;
+      f_fchw->size[1] = loop_ub;
+      emxEnsureCapacity((emxArray__common *)f_fchw, i8, (int)sizeof(double));
+      for (i8 = 0; i8 < loop_ub; i8++) {
+        f_fchw->data[f_fchw->size[0] * i8] = fchw->data[ch + fchw->size[0] * i8];
+      }
+
+      get_nfft_data(f_fchw, Fs, f, dv19);
+      for (i8 = 0; i8 < 1025; i8++) {
+        FFT[ch + (i8 << 2)] = dv19[i8];
+      }
+
+      for (i = 0; i < 4; i++) {
+        for (i8 = 0; i8 < 1025; i8++) {
+          b_select[i + (i8 << 2)] = ((f[i8] > threshFFT[i]) && (f[i8] <
+            threshFFT[4 + i]));
+        }
+
+        //
+        b_fch1_idx_0 = 0;
+        for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+          if (b_select[i + (c_fch1_idx_0 << 2)]) {
+            b_fch1_idx_0++;
+          }
+        }
+
+        i8 = r18->size[0] * r18->size[1];
+        r18->size[0] = 1;
+        r18->size[1] = b_fch1_idx_0;
+        emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+        b_fch1_idx_0 = 0;
+        for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+          if (b_select[i + (c_fch1_idx_0 << 2)]) {
+            r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+            b_fch1_idx_0++;
+          }
+        }
+
+        i8 = b_FFT->size[0] * b_FFT->size[1];
+        b_FFT->size[0] = 1;
+        b_FFT->size[1] = r18->size[1];
+        emxEnsureCapacity((emxArray__common *)b_FFT, i8, (int)sizeof(double));
+        loop_ub = r18->size[1];
+        for (i8 = 0; i8 < loop_ub; i8++) {
+          b_FFT->data[b_FFT->size[0] * i8] = FFT[ch + ((r18->data[r18->size[0] *
+            i8] - 1) << 2)];
+        }
+
+        c_findpeaks(b_FFT, T, psd_sel_L);
+        if (!(T->size[1] == 0)) {
+          b_fch1_idx_0 = 0;
+          for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+            if (b_select[i + (c_fch1_idx_0 << 2)]) {
+              b_fch1_idx_0++;
+            }
+          }
+
+          i8 = r18->size[0] * r18->size[1];
+          r18->size[0] = 1;
+          r18->size[1] = b_fch1_idx_0;
+          emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+          b_fch1_idx_0 = 0;
+          for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+            if (b_select[i + (c_fch1_idx_0 << 2)]) {
+              r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+              b_fch1_idx_0++;
+            }
+          }
+
+          fft_sel_loc[ch + (i << 2)] = f[r18->data[r18->size[0] * ((int)
+            psd_sel_L->data[0] - 1)] - 1];
+
+          // verifies that maxes are peaks. [peak must occur w/i range]
+          fft_sel_pks[ch + (i << 2)] = T->data[0];
+        } else {
+          fft_sel_loc[ch + (i << 2)] = 0.0;
+          fft_sel_pks[ch + (i << 2)] = 0.0;
+        }
+
+        //
+      }
+
+      hannWin((double)fch1_idx_0, hW);
+      loop_ub = fchw->size[1];
+      i8 = e_fchw->size[0] * e_fchw->size[1];
+      e_fchw->size[0] = 1;
+      e_fchw->size[1] = loop_ub;
+      emxEnsureCapacity((emxArray__common *)e_fchw, i8, (int)sizeof(double));
+      for (i8 = 0; i8 < loop_ub; i8++) {
+        e_fchw->data[e_fchw->size[0] * i8] = fchw->data[ch + fchw->size[0] * i8];
+      }
+
+      welch_psd(e_fchw, Fs, hW, T, fPSD);
+      loop_ub = T->size[1];
+      for (i8 = 0; i8 < loop_ub; i8++) {
+        PSD->data[ch + PSD->size[0] * i8] = T->data[T->size[0] * i8];
+      }
+
+      // fin-start
+      for (i = 0; i < 4; i++) {
+        //              if len<1000
+        //                  selectPSD(i,:) = fPSD>=threshPSD(i,1) & fPSD<=threshPSD(i,2); 
+        //              else
+        //                  selectPSD(i,:) = fPSD>=threshPSDL(i,1) & fPSD<=threshPSDL(i,2); 
+        //              end
+        loop_ub = fPSD->size[1];
+        for (i8 = 0; i8 < loop_ub; i8++) {
+          selectPSD->data[i + selectPSD->size[0] * i8] = ((fPSD->data[fPSD->
+            size[0] * i8] >= threshPSD[i]) && (fPSD->data[fPSD->size[0] * i8] <=
+            threshPSD[4 + i]));
+        }
+
+        loop_ub = selectPSD->size[1];
+        i8 = r16->size[0] * r16->size[1];
+        r16->size[0] = 1;
+        r16->size[1] = loop_ub;
+        emxEnsureCapacity((emxArray__common *)r16, i8, (int)sizeof(boolean_T));
+        for (i8 = 0; i8 < loop_ub; i8++) {
+          r16->data[r16->size[0] * i8] = selectPSD->data[i + selectPSD->size[0] *
+            i8];
+        }
+
+        loop_ub = selectPSD->size[1] - 1;
+        b_fch1_idx_0 = 0;
+        for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+          if (r16->data[c_fch1_idx_0]) {
+            b_fch1_idx_0++;
+          }
+        }
+
+        i8 = r18->size[0] * r18->size[1];
+        r18->size[0] = 1;
+        r18->size[1] = b_fch1_idx_0;
+        emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+        b_fch1_idx_0 = 0;
+        for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+          if (r16->data[c_fch1_idx_0]) {
+            r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+            b_fch1_idx_0++;
+          }
+        }
+
+        i8 = r24->size[0];
+        r24->size[0] = r18->size[1];
+        emxEnsureCapacity((emxArray__common *)r24, i8, (int)sizeof(int));
+        loop_ub = r18->size[1];
+        for (i8 = 0; i8 < loop_ub; i8++) {
+          r24->data[i8] = r18->data[r18->size[0] * i8];
+        }
+
+        if (r24->size[0] >= 3) {
+          loop_ub = selectPSD->size[1];
+          i8 = r16->size[0] * r16->size[1];
+          r16->size[0] = 1;
+          r16->size[1] = loop_ub;
+          emxEnsureCapacity((emxArray__common *)r16, i8, (int)sizeof(boolean_T));
+          for (i8 = 0; i8 < loop_ub; i8++) {
+            r16->data[r16->size[0] * i8] = selectPSD->data[i + selectPSD->size[0]
+              * i8];
+          }
+
+          loop_ub = selectPSD->size[1] - 1;
+          b_fch1_idx_0 = 0;
+          for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+            if (r16->data[c_fch1_idx_0]) {
+              b_fch1_idx_0++;
+            }
+          }
+
+          i8 = r18->size[0] * r18->size[1];
+          r18->size[0] = 1;
+          r18->size[1] = b_fch1_idx_0;
+          emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+          b_fch1_idx_0 = 0;
+          for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+            if (r16->data[c_fch1_idx_0]) {
+              r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+              b_fch1_idx_0++;
+            }
+          }
+
+          i8 = b_PSD->size[0] * b_PSD->size[1];
+          b_PSD->size[0] = 1;
+          b_PSD->size[1] = r18->size[1];
+          emxEnsureCapacity((emxArray__common *)b_PSD, i8, (int)sizeof(double));
+          loop_ub = r18->size[1];
+          for (i8 = 0; i8 < loop_ub; i8++) {
+            b_PSD->data[b_PSD->size[0] * i8] = PSD->data[ch + PSD->size[0] *
+              (r18->data[r18->size[0] * i8] - 1)];
+          }
+
+          c_findpeaks(b_PSD, T, psd_sel_L);
+          if (!(T->size[1] == 0)) {
+            loop_ub = selectPSD->size[1];
+            i8 = r16->size[0] * r16->size[1];
+            r16->size[0] = 1;
+            r16->size[1] = loop_ub;
+            emxEnsureCapacity((emxArray__common *)r16, i8, (int)sizeof(boolean_T));
+            for (i8 = 0; i8 < loop_ub; i8++) {
+              r16->data[r16->size[0] * i8] = selectPSD->data[i + selectPSD->
+                size[0] * i8];
+            }
+
+            loop_ub = selectPSD->size[1] - 1;
+            b_fch1_idx_0 = 0;
+            for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+              if (r16->data[c_fch1_idx_0]) {
+                b_fch1_idx_0++;
+              }
+            }
+
+            i8 = r18->size[0] * r18->size[1];
+            r18->size[0] = 1;
+            r18->size[1] = b_fch1_idx_0;
+            emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+            b_fch1_idx_0 = 0;
+            for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+              if (r16->data[c_fch1_idx_0]) {
+                r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+                b_fch1_idx_0++;
+              }
+            }
+
+            psd_sel_loc[ch + (i << 2)] = fPSD->data[r18->data[r18->size[0] *
+              ((int)psd_sel_L->data[0] - 1)] - 1];
+            psd_sel_pks[ch + (i << 2)] = T->data[0];
+          } else {
+            psd_sel_loc[ch + (i << 2)] = 0.0;
+            psd_sel_pks[ch + (i << 2)] = 0.0;
+          }
+        } else {
+          psd_sel_loc[ch + (i << 2)] = 0.0;
+          psd_sel_pks[ch + (i << 2)] = 0.0;
+        }
+      }
+
+      // TODO FIND PEAKS:
+    }
+
+    for (i8 = 0; i8 < 1025; i8++) {
+      FFT[3 + (i8 << 2)] = (FFT[i8 << 2] + FFT[1 + (i8 << 2)]) + FFT[2 + (i8 <<
+        2)];
+    }
+
+    for (i = 0; i < 4; i++) {
+      for (i8 = 0; i8 < 1025; i8++) {
+        b_select[i + (i8 << 2)] = ((f[i8] > threshFFT[i]) && (f[i8] < threshFFT
+          [4 + i]));
+      }
+
+      //
+      b_fch1_idx_0 = 0;
+      for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+        if (b_select[i + (c_fch1_idx_0 << 2)]) {
+          b_fch1_idx_0++;
+        }
+      }
+
+      i8 = r18->size[0] * r18->size[1];
+      r18->size[0] = 1;
+      r18->size[1] = b_fch1_idx_0;
+      emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+      b_fch1_idx_0 = 0;
+      for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+        if (b_select[i + (c_fch1_idx_0 << 2)]) {
+          r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+          b_fch1_idx_0++;
+        }
+      }
+
+      i8 = c_FFT->size[0] * c_FFT->size[1];
+      c_FFT->size[0] = 1;
+      c_FFT->size[1] = r18->size[1];
+      emxEnsureCapacity((emxArray__common *)c_FFT, i8, (int)sizeof(double));
+      loop_ub = r18->size[1];
+      for (i8 = 0; i8 < loop_ub; i8++) {
+        c_FFT->data[c_FFT->size[0] * i8] = FFT[3 + ((r18->data[r18->size[0] * i8]
+          - 1) << 2)];
+      }
+
+      c_findpeaks(c_FFT, T, psd_sel_L);
+      if (!(T->size[1] == 0)) {
+        b_fch1_idx_0 = 0;
+        for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+          if (b_select[i + (c_fch1_idx_0 << 2)]) {
+            b_fch1_idx_0++;
+          }
+        }
+
+        i8 = r18->size[0] * r18->size[1];
+        r18->size[0] = 1;
+        r18->size[1] = b_fch1_idx_0;
+        emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+        b_fch1_idx_0 = 0;
+        for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+          if (b_select[i + (c_fch1_idx_0 << 2)]) {
+            r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+            b_fch1_idx_0++;
+          }
+        }
+
+        fft_sel_loc[3 + (i << 2)] = f[r18->data[r18->size[0] * ((int)
+          psd_sel_L->data[0] - 1)] - 1];
+
+        // verifies that maxes are peaks. [peak must occur w/i range]
+        fft_sel_pks[3 + (i << 2)] = T->data[0];
+      } else {
+        fft_sel_loc[3 + (i << 2)] = 0.0;
+        fft_sel_pks[3 + (i << 2)] = 0.0;
+      }
+    }
+
+    c_fch1_idx_0 = PSD->size[1];
+    i8 = f_PSD->size[0] * f_PSD->size[1];
+    f_PSD->size[0] = 1;
+    f_PSD->size[1] = c_fch1_idx_0;
+    emxEnsureCapacity((emxArray__common *)f_PSD, i8, (int)sizeof(double));
+    for (i8 = 0; i8 < c_fch1_idx_0; i8++) {
+      f_PSD->data[f_PSD->size[0] * i8] = (PSD->data[PSD->size[0] * i8] +
+        PSD->data[1 + PSD->size[0] * i8]) + PSD->data[2 + PSD->size[0] * i8];
+    }
+
+    loop_ub = f_PSD->size[1];
+    for (i8 = 0; i8 < loop_ub; i8++) {
+      PSD->data[3 + PSD->size[0] * i8] = f_PSD->data[f_PSD->size[0] * i8];
+    }
+
+    for (i = 0; i < 4; i++) {
+      loop_ub = fPSD->size[1];
+      for (i8 = 0; i8 < loop_ub; i8++) {
+        selectPSD->data[i + selectPSD->size[0] * i8] = ((fPSD->data[fPSD->size[0]
+          * i8] >= threshPSD[i]) && (fPSD->data[fPSD->size[0] * i8] <=
+          threshPSD[4 + i]));
+      }
+
+      //          if len<1000
+      //              selectPSD(i,:) = fPSD>=threshPSD(i,1) & fPSD<=threshPSD(i,2); 
+      //          else
+      //              selectPSD(i,:) = fPSD>=threshPSDL(i,1) & fPSD<=threshPSDL(i,2); 
+      //          end
+      loop_ub = selectPSD->size[1];
+      i8 = r16->size[0] * r16->size[1];
+      r16->size[0] = 1;
+      r16->size[1] = loop_ub;
+      emxEnsureCapacity((emxArray__common *)r16, i8, (int)sizeof(boolean_T));
+      for (i8 = 0; i8 < loop_ub; i8++) {
+        r16->data[r16->size[0] * i8] = selectPSD->data[i + selectPSD->size[0] *
+          i8];
+      }
+
+      loop_ub = selectPSD->size[1] - 1;
+      b_fch1_idx_0 = 0;
+      for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+        if (r16->data[c_fch1_idx_0]) {
+          b_fch1_idx_0++;
+        }
+      }
+
+      i8 = r18->size[0] * r18->size[1];
+      r18->size[0] = 1;
+      r18->size[1] = b_fch1_idx_0;
+      emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+      b_fch1_idx_0 = 0;
+      for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+        if (r16->data[c_fch1_idx_0]) {
+          r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+          b_fch1_idx_0++;
+        }
+      }
+
+      i8 = r23->size[0];
+      r23->size[0] = r18->size[1];
+      emxEnsureCapacity((emxArray__common *)r23, i8, (int)sizeof(int));
+      loop_ub = r18->size[1];
+      for (i8 = 0; i8 < loop_ub; i8++) {
+        r23->data[i8] = r18->data[r18->size[0] * i8];
+      }
+
+      if (r23->size[0] >= 3) {
+        loop_ub = selectPSD->size[1];
+        i8 = r16->size[0] * r16->size[1];
+        r16->size[0] = 1;
+        r16->size[1] = loop_ub;
+        emxEnsureCapacity((emxArray__common *)r16, i8, (int)sizeof(boolean_T));
+        for (i8 = 0; i8 < loop_ub; i8++) {
+          r16->data[r16->size[0] * i8] = selectPSD->data[i + selectPSD->size[0] *
+            i8];
+        }
+
+        loop_ub = selectPSD->size[1] - 1;
+        b_fch1_idx_0 = 0;
+        for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+          if (r16->data[c_fch1_idx_0]) {
+            b_fch1_idx_0++;
+          }
+        }
+
+        i8 = r18->size[0] * r18->size[1];
+        r18->size[0] = 1;
+        r18->size[1] = b_fch1_idx_0;
+        emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+        b_fch1_idx_0 = 0;
+        for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+          if (r16->data[c_fch1_idx_0]) {
+            r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+            b_fch1_idx_0++;
+          }
+        }
+
+        i8 = c_PSD->size[0] * c_PSD->size[1];
+        c_PSD->size[0] = 1;
+        c_PSD->size[1] = r18->size[1];
+        emxEnsureCapacity((emxArray__common *)c_PSD, i8, (int)sizeof(double));
+        loop_ub = r18->size[1];
+        for (i8 = 0; i8 < loop_ub; i8++) {
+          c_PSD->data[c_PSD->size[0] * i8] = PSD->data[3 + PSD->size[0] *
+            (r18->data[r18->size[0] * i8] - 1)];
+        }
+
+        c_findpeaks(c_PSD, T, psd_sel_L);
+        if (!(T->size[1] == 0)) {
+          loop_ub = selectPSD->size[1];
+          i8 = r16->size[0] * r16->size[1];
+          r16->size[0] = 1;
+          r16->size[1] = loop_ub;
+          emxEnsureCapacity((emxArray__common *)r16, i8, (int)sizeof(boolean_T));
+          for (i8 = 0; i8 < loop_ub; i8++) {
+            r16->data[r16->size[0] * i8] = selectPSD->data[i + selectPSD->size[0]
+              * i8];
+          }
+
+          loop_ub = selectPSD->size[1] - 1;
+          b_fch1_idx_0 = 0;
+          for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+            if (r16->data[c_fch1_idx_0]) {
+              b_fch1_idx_0++;
+            }
+          }
+
+          i8 = r18->size[0] * r18->size[1];
+          r18->size[0] = 1;
+          r18->size[1] = b_fch1_idx_0;
+          emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+          b_fch1_idx_0 = 0;
+          for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+            if (r16->data[c_fch1_idx_0]) {
+              r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+              b_fch1_idx_0++;
+            }
+          }
+
+          psd_sel_loc[3 + (i << 2)] = fPSD->data[r18->data[r18->size[0] * ((int)
+            psd_sel_L->data[0] - 1)] - 1];
+          psd_sel_pks[3 + (i << 2)] = T->data[0];
+        } else {
+          psd_sel_loc[3 + (i << 2)] = 0.0;
+          psd_sel_pks[3 + (i << 2)] = 0.0;
+        }
+      } else {
+        psd_sel_loc[3 + (i << 2)] = 0.0;
+        psd_sel_pks[3 + (i << 2)] = 0.0;
+      }
+    }
+
+    // Classification method #2 (w/ STFT):
+    // TODO:
+    loop_ub = fchw->size[1];
+    i8 = d_fchw->size[0] * d_fchw->size[1];
+    d_fchw->size[0] = 1;
+    d_fchw->size[1] = loop_ub;
+    emxEnsureCapacity((emxArray__common *)d_fchw, i8, (int)sizeof(double));
+    for (i8 = 0; i8 < loop_ub; i8++) {
+      d_fchw->data[d_fchw->size[0] * i8] = fchw->data[fchw->size[0] * i8];
+    }
+
+    stft(d_fchw, Fs, S1, b_F, T);
+    loop_ub = fchw->size[1];
+    i8 = c_fchw->size[0] * c_fchw->size[1];
+    c_fchw->size[0] = 1;
+    c_fchw->size[1] = loop_ub;
+    emxEnsureCapacity((emxArray__common *)c_fchw, i8, (int)sizeof(double));
+    for (i8 = 0; i8 < loop_ub; i8++) {
+      c_fchw->data[c_fchw->size[0] * i8] = fchw->data[1 + fchw->size[0] * i8];
+    }
+
+    stft(c_fchw, Fs, S2, f, T);
+    loop_ub = fchw->size[1];
+    i8 = b_fchw->size[0] * b_fchw->size[1];
+    b_fchw->size[0] = 1;
+    b_fchw->size[1] = loop_ub;
+    emxEnsureCapacity((emxArray__common *)b_fchw, i8, (int)sizeof(double));
+    for (i8 = 0; i8 < loop_ub; i8++) {
+      b_fchw->data[b_fchw->size[0] * i8] = fchw->data[2 + fchw->size[0] * i8];
+    }
+
+    stft(b_fchw, Fs, S3, f, T);
+    b_fch1_idx_0 = 0;
+    for (i = 0; i < 1025; i++) {
+      if ((b_F[i] < 17.6) && (b_F[i] > 9.0)) {
+        b_fch1_idx_0++;
+      }
+    }
+
+    i8 = r18->size[0] * r18->size[1];
+    r18->size[0] = 1;
+    r18->size[1] = b_fch1_idx_0;
+    emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+    b_fch1_idx_0 = 0;
+    for (i = 0; i < 1025; i++) {
+      if ((b_F[i] < 17.6) && (b_F[i] > 9.0)) {
+        r18->data[b_fch1_idx_0] = i + 1;
+        b_fch1_idx_0++;
+      }
+    }
+
+    loop_ub = S1->size[1];
+    i8 = b_S1->size[0] * b_S1->size[1];
+    b_S1->size[0] = r18->size[1];
+    b_S1->size[1] = loop_ub;
+    emxEnsureCapacity((emxArray__common *)b_S1, i8, (int)sizeof(creal_T));
+    for (i8 = 0; i8 < loop_ub; i8++) {
+      b_fch1_idx_0 = r18->size[1];
+      for (c_fch1_idx_0 = 0; c_fch1_idx_0 < b_fch1_idx_0; c_fch1_idx_0++) {
+        b_S1->data[c_fch1_idx_0 + b_S1->size[0] * i8] = S1->data[(r18->data
+          [r18->size[0] * c_fch1_idx_0] + S1->size[0] * i8) - 1];
+      }
+    }
+
+    c_abs(b_S1, x);
+    i8 = x->size[0] * x->size[1];
+    emxEnsureCapacity((emxArray__common *)x, i8, (int)sizeof(double));
+    c_fch1_idx_0 = x->size[0];
+    b_fch1_idx_0 = x->size[1];
+    loop_ub = c_fch1_idx_0 * b_fch1_idx_0;
+    for (i8 = 0; i8 < loop_ub; i8++) {
+      x->data[i8] = x->data[i8] / 256.0 / 0.54000000000000059 + 1.0E-6;
+    }
+
+    b_log10(x);
+    b_fch1_idx_0 = 0;
+    for (i = 0; i < 1025; i++) {
+      if ((b_F[i] < 17.6) && (b_F[i] > 9.0)) {
+        b_fch1_idx_0++;
+      }
+    }
+
+    i8 = r18->size[0] * r18->size[1];
+    r18->size[0] = 1;
+    r18->size[1] = b_fch1_idx_0;
+    emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+    b_fch1_idx_0 = 0;
+    for (i = 0; i < 1025; i++) {
+      if ((b_F[i] < 17.6) && (b_F[i] > 9.0)) {
+        r18->data[b_fch1_idx_0] = i + 1;
+        b_fch1_idx_0++;
+      }
+    }
+
+    loop_ub = S2->size[1];
+    i8 = b_S2->size[0] * b_S2->size[1];
+    b_S2->size[0] = r18->size[1];
+    b_S2->size[1] = loop_ub;
+    emxEnsureCapacity((emxArray__common *)b_S2, i8, (int)sizeof(creal_T));
+    for (i8 = 0; i8 < loop_ub; i8++) {
+      b_fch1_idx_0 = r18->size[1];
+      for (c_fch1_idx_0 = 0; c_fch1_idx_0 < b_fch1_idx_0; c_fch1_idx_0++) {
+        b_S2->data[c_fch1_idx_0 + b_S2->size[0] * i8] = S2->data[(r18->data
+          [r18->size[0] * c_fch1_idx_0] + S2->size[0] * i8) - 1];
+      }
+    }
+
+    c_abs(b_S2, b_x);
+    i8 = b_x->size[0] * b_x->size[1];
+    emxEnsureCapacity((emxArray__common *)b_x, i8, (int)sizeof(double));
+    c_fch1_idx_0 = b_x->size[0];
+    b_fch1_idx_0 = b_x->size[1];
+    loop_ub = c_fch1_idx_0 * b_fch1_idx_0;
+    for (i8 = 0; i8 < loop_ub; i8++) {
+      b_x->data[i8] = b_x->data[i8] / 256.0 / 0.54000000000000059 + 1.0E-6;
+    }
+
+    b_log10(b_x);
+    b_fch1_idx_0 = 0;
+    for (i = 0; i < 1025; i++) {
+      if ((b_F[i] < 17.6) && (b_F[i] > 9.0)) {
+        b_fch1_idx_0++;
+      }
+    }
+
+    i8 = r18->size[0] * r18->size[1];
+    r18->size[0] = 1;
+    r18->size[1] = b_fch1_idx_0;
+    emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+    b_fch1_idx_0 = 0;
+    for (i = 0; i < 1025; i++) {
+      if ((b_F[i] < 17.6) && (b_F[i] > 9.0)) {
+        r18->data[b_fch1_idx_0] = i + 1;
+        b_fch1_idx_0++;
+      }
+    }
+
+    loop_ub = S3->size[1];
+    i8 = b_S3->size[0] * b_S3->size[1];
+    b_S3->size[0] = r18->size[1];
+    b_S3->size[1] = loop_ub;
+    emxEnsureCapacity((emxArray__common *)b_S3, i8, (int)sizeof(creal_T));
+    for (i8 = 0; i8 < loop_ub; i8++) {
+      b_fch1_idx_0 = r18->size[1];
+      for (c_fch1_idx_0 = 0; c_fch1_idx_0 < b_fch1_idx_0; c_fch1_idx_0++) {
+        b_S3->data[c_fch1_idx_0 + b_S3->size[0] * i8] = S3->data[(r18->data
+          [r18->size[0] * c_fch1_idx_0] + S3->size[0] * i8) - 1];
+      }
+    }
+
+    c_abs(b_S3, c_x);
+    i8 = c_x->size[0] * c_x->size[1];
+    emxEnsureCapacity((emxArray__common *)c_x, i8, (int)sizeof(double));
+    c_fch1_idx_0 = c_x->size[0];
+    b_fch1_idx_0 = c_x->size[1];
+    loop_ub = c_fch1_idx_0 * b_fch1_idx_0;
+    for (i8 = 0; i8 < loop_ub; i8++) {
+      c_x->data[i8] = c_x->data[i8] / 256.0 / 0.54000000000000059 + 1.0E-6;
+    }
+
+    b_log10(c_x);
+    i8 = r20->size[0] * r20->size[1];
+    r20->size[0] = x->size[0];
+    r20->size[1] = x->size[1];
+    emxEnsureCapacity((emxArray__common *)r20, i8, (int)sizeof(double));
+    loop_ub = x->size[0] * x->size[1];
+    for (i8 = 0; i8 < loop_ub; i8++) {
+      r20->data[i8] = (20.0 * x->data[i8] + 20.0 * b_x->data[i8]) + 20.0 *
+        c_x->data[i8];
+    }
+
+    sum(r20, hW);
+    scaleAbs(hW, SummedRows);
+    fch1_idx_0 = fch1->size[0] * fch1->size[1];
+    if (fch1_idx_0 < 1250) {
+      for (i = 0; i < 4; i++) {
+        b_fch1_idx_0 = 0;
+        for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+          if ((b_F[c_fch1_idx_0] < 17.6) && (b_F[c_fch1_idx_0] > 9.0)) {
+            b_fch1_idx_0++;
+          }
+        }
+
+        i8 = r18->size[0] * r18->size[1];
+        r18->size[0] = 1;
+        r18->size[1] = b_fch1_idx_0;
+        emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+        b_fch1_idx_0 = 0;
+        for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+          if ((b_F[c_fch1_idx_0] < 17.6) && (b_F[c_fch1_idx_0] > 9.0)) {
+            r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+            b_fch1_idx_0++;
+          }
+        }
+
+        i8 = r16->size[0] * r16->size[1];
+        r16->size[0] = 1;
+        r16->size[1] = r18->size[1];
+        emxEnsureCapacity((emxArray__common *)r16, i8, (int)sizeof(boolean_T));
+        loop_ub = r18->size[0] * r18->size[1];
+        for (i8 = 0; i8 < loop_ub; i8++) {
+          r16->data[i8] = (b_F[r18->data[i8] - 1] >= threshSTFT[i]);
+        }
+
+        b_fch1_idx_0 = 0;
+        for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+          if ((b_F[c_fch1_idx_0] < 17.6) && (b_F[c_fch1_idx_0] > 9.0)) {
+            b_fch1_idx_0++;
+          }
+        }
+
+        i8 = r18->size[0] * r18->size[1];
+        r18->size[0] = 1;
+        r18->size[1] = b_fch1_idx_0;
+        emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+        b_fch1_idx_0 = 0;
+        for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+          if ((b_F[c_fch1_idx_0] < 17.6) && (b_F[c_fch1_idx_0] > 9.0)) {
+            r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+            b_fch1_idx_0++;
+          }
+        }
+
+        i8 = r17->size[0] * r17->size[1];
+        r17->size[0] = 1;
+        r17->size[1] = r18->size[1];
+        emxEnsureCapacity((emxArray__common *)r17, i8, (int)sizeof(boolean_T));
+        loop_ub = r18->size[0] * r18->size[1];
+        for (i8 = 0; i8 < loop_ub; i8++) {
+          r17->data[i8] = (b_F[r18->data[i8] - 1] <= threshSTFT[4 + i]);
+        }
+
+        loop_ub = r16->size[1] - 1;
+        b_fch1_idx_0 = 0;
+        for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+          if (r16->data[c_fch1_idx_0] && r17->data[c_fch1_idx_0]) {
+            b_fch1_idx_0++;
+          }
+        }
+
+        i8 = r18->size[0] * r18->size[1];
+        r18->size[0] = 1;
+        r18->size[1] = b_fch1_idx_0;
+        emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+        b_fch1_idx_0 = 0;
+        for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+          if (r16->data[c_fch1_idx_0] && r17->data[c_fch1_idx_0]) {
+            r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+            b_fch1_idx_0++;
+          }
+        }
+
+        i8 = r22->size[0];
+        r22->size[0] = r18->size[1];
+        emxEnsureCapacity((emxArray__common *)r22, i8, (int)sizeof(int));
+        loop_ub = r18->size[1];
+        for (i8 = 0; i8 < loop_ub; i8++) {
+          r22->data[i8] = r18->data[r18->size[0] * i8];
+        }
+
+        if (r22->size[0] > 3) {
+          loop_ub = r16->size[1] - 1;
+          b_fch1_idx_0 = 0;
+          for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+            if (r16->data[c_fch1_idx_0] && r17->data[c_fch1_idx_0]) {
+              b_fch1_idx_0++;
+            }
+          }
+
+          i8 = r18->size[0] * r18->size[1];
+          r18->size[0] = 1;
+          r18->size[1] = b_fch1_idx_0;
+          emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+          b_fch1_idx_0 = 0;
+          for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+            if (r16->data[c_fch1_idx_0] && r17->data[c_fch1_idx_0]) {
+              r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+              b_fch1_idx_0++;
+            }
+          }
+
+          i8 = c_SummedRows->size[0];
+          c_SummedRows->size[0] = r18->size[1];
+          emxEnsureCapacity((emxArray__common *)c_SummedRows, i8, (int)sizeof
+                            (double));
+          loop_ub = r18->size[1];
+          for (i8 = 0; i8 < loop_ub; i8++) {
+            c_SummedRows->data[i8] = SummedRows->data[r18->data[r18->size[0] *
+              i8] - 1];
+          }
+
+          d_findpeaks(c_SummedRows, x, b_x);
+          if (!((x->size[0] == 0) || (x->size[1] == 0))) {
+            b_fch1_idx_0 = 0;
+            for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+              if ((b_F[c_fch1_idx_0] < 17.6) && (b_F[c_fch1_idx_0] > 9.0)) {
+                b_fch1_idx_0++;
+              }
+            }
+
+            i8 = r18->size[0] * r18->size[1];
+            r18->size[0] = 1;
+            r18->size[1] = b_fch1_idx_0;
+            emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+            b_fch1_idx_0 = 0;
+            for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+              if ((b_F[c_fch1_idx_0] < 17.6) && (b_F[c_fch1_idx_0] > 9.0)) {
+                r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+                b_fch1_idx_0++;
+              }
+            }
+
+            loop_ub = r16->size[1] - 1;
+            b_fch1_idx_0 = 0;
+            for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+              if (r16->data[c_fch1_idx_0] && r17->data[c_fch1_idx_0]) {
+                b_fch1_idx_0++;
+              }
+            }
+
+            i8 = r19->size[0] * r19->size[1];
+            r19->size[0] = 1;
+            r19->size[1] = b_fch1_idx_0;
+            emxEnsureCapacity((emxArray__common *)r19, i8, (int)sizeof(int));
+            b_fch1_idx_0 = 0;
+            for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+              if (r16->data[c_fch1_idx_0] && r17->data[c_fch1_idx_0]) {
+                r19->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+                b_fch1_idx_0++;
+              }
+            }
+
+            stft_sel_loc[i] = b_F[r18->data[r18->size[0] * (r19->data[r19->size
+              [0] * ((int)b_x->data[0] - 1)] - 1)] - 1];
+            stft_sel_pks[i] = x->data[0];
+          } else {
+            stft_sel_loc[i] = 0.0;
+            stft_sel_pks[i] = 0.0;
+          }
+        } else {
+          stft_sel_loc[i] = 0.0;
+          stft_sel_pks[i] = 0.0;
+        }
+      }
+    } else {
+      // (>=1250).
+      for (i = 0; i < 4; i++) {
+        b_fch1_idx_0 = 0;
+        for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+          if ((b_F[c_fch1_idx_0] < 17.6) && (b_F[c_fch1_idx_0] > 9.0)) {
+            b_fch1_idx_0++;
+          }
+        }
+
+        i8 = r18->size[0] * r18->size[1];
+        r18->size[0] = 1;
+        r18->size[1] = b_fch1_idx_0;
+        emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+        b_fch1_idx_0 = 0;
+        for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+          if ((b_F[c_fch1_idx_0] < 17.6) && (b_F[c_fch1_idx_0] > 9.0)) {
+            r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+            b_fch1_idx_0++;
+          }
+        }
+
+        i8 = r16->size[0] * r16->size[1];
+        r16->size[0] = 1;
+        r16->size[1] = r18->size[1];
+        emxEnsureCapacity((emxArray__common *)r16, i8, (int)sizeof(boolean_T));
+        loop_ub = r18->size[0] * r18->size[1];
+        for (i8 = 0; i8 < loop_ub; i8++) {
+          r16->data[i8] = (b_F[r18->data[i8] - 1] >= threshSTFT[i]);
+        }
+
+        b_fch1_idx_0 = 0;
+        for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+          if ((b_F[c_fch1_idx_0] < 17.6) && (b_F[c_fch1_idx_0] > 9.0)) {
+            b_fch1_idx_0++;
+          }
+        }
+
+        i8 = r18->size[0] * r18->size[1];
+        r18->size[0] = 1;
+        r18->size[1] = b_fch1_idx_0;
+        emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+        b_fch1_idx_0 = 0;
+        for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+          if ((b_F[c_fch1_idx_0] < 17.6) && (b_F[c_fch1_idx_0] > 9.0)) {
+            r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+            b_fch1_idx_0++;
+          }
+        }
+
+        i8 = r17->size[0] * r17->size[1];
+        r17->size[0] = 1;
+        r17->size[1] = r18->size[1];
+        emxEnsureCapacity((emxArray__common *)r17, i8, (int)sizeof(boolean_T));
+        loop_ub = r18->size[0] * r18->size[1];
+        for (i8 = 0; i8 < loop_ub; i8++) {
+          r17->data[i8] = (b_F[r18->data[i8] - 1] <= threshSTFT[4 + i]);
+        }
+
+        loop_ub = r16->size[1] - 1;
+        b_fch1_idx_0 = 0;
+        for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+          if (r16->data[c_fch1_idx_0] && r17->data[c_fch1_idx_0]) {
+            b_fch1_idx_0++;
+          }
+        }
+
+        i8 = r18->size[0] * r18->size[1];
+        r18->size[0] = 1;
+        r18->size[1] = b_fch1_idx_0;
+        emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+        b_fch1_idx_0 = 0;
+        for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+          if (r16->data[c_fch1_idx_0] && r17->data[c_fch1_idx_0]) {
+            r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+            b_fch1_idx_0++;
+          }
+        }
+
+        i8 = r21->size[0];
+        r21->size[0] = r18->size[1];
+        emxEnsureCapacity((emxArray__common *)r21, i8, (int)sizeof(int));
+        loop_ub = r18->size[1];
+        for (i8 = 0; i8 < loop_ub; i8++) {
+          r21->data[i8] = r18->data[r18->size[0] * i8];
+        }
+
+        if (r21->size[0] >= 3) {
+          loop_ub = r16->size[1] - 1;
+          b_fch1_idx_0 = 0;
+          for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+            if (r16->data[c_fch1_idx_0] && r17->data[c_fch1_idx_0]) {
+              b_fch1_idx_0++;
+            }
+          }
+
+          i8 = r18->size[0] * r18->size[1];
+          r18->size[0] = 1;
+          r18->size[1] = b_fch1_idx_0;
+          emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+          b_fch1_idx_0 = 0;
+          for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+            if (r16->data[c_fch1_idx_0] && r17->data[c_fch1_idx_0]) {
+              r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+              b_fch1_idx_0++;
+            }
+          }
+
+          i8 = b_SummedRows->size[0];
+          b_SummedRows->size[0] = r18->size[1];
+          emxEnsureCapacity((emxArray__common *)b_SummedRows, i8, (int)sizeof
+                            (double));
+          loop_ub = r18->size[1];
+          for (i8 = 0; i8 < loop_ub; i8++) {
+            b_SummedRows->data[i8] = SummedRows->data[r18->data[r18->size[0] *
+              i8] - 1];
+          }
+
+          d_findpeaks(b_SummedRows, x, b_x);
+          if (!((x->size[0] == 0) || (x->size[1] == 0))) {
+            b_fch1_idx_0 = 0;
+            for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+              if ((b_F[c_fch1_idx_0] < 17.6) && (b_F[c_fch1_idx_0] > 9.0)) {
+                b_fch1_idx_0++;
+              }
+            }
+
+            i8 = r18->size[0] * r18->size[1];
+            r18->size[0] = 1;
+            r18->size[1] = b_fch1_idx_0;
+            emxEnsureCapacity((emxArray__common *)r18, i8, (int)sizeof(int));
+            b_fch1_idx_0 = 0;
+            for (c_fch1_idx_0 = 0; c_fch1_idx_0 < 1025; c_fch1_idx_0++) {
+              if ((b_F[c_fch1_idx_0] < 17.6) && (b_F[c_fch1_idx_0] > 9.0)) {
+                r18->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+                b_fch1_idx_0++;
+              }
+            }
+
+            loop_ub = r16->size[1] - 1;
+            b_fch1_idx_0 = 0;
+            for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+              if (r16->data[c_fch1_idx_0] && r17->data[c_fch1_idx_0]) {
+                b_fch1_idx_0++;
+              }
+            }
+
+            i8 = r19->size[0] * r19->size[1];
+            r19->size[0] = 1;
+            r19->size[1] = b_fch1_idx_0;
+            emxEnsureCapacity((emxArray__common *)r19, i8, (int)sizeof(int));
+            b_fch1_idx_0 = 0;
+            for (c_fch1_idx_0 = 0; c_fch1_idx_0 <= loop_ub; c_fch1_idx_0++) {
+              if (r16->data[c_fch1_idx_0] && r17->data[c_fch1_idx_0]) {
+                r19->data[b_fch1_idx_0] = c_fch1_idx_0 + 1;
+                b_fch1_idx_0++;
+              }
+            }
+
+            stft_sel_loc[i] = b_F[r18->data[r18->size[0] * (r19->data[r19->size
+              [0] * ((int)b_x->data[0] - 1)] - 1)] - 1];
+            stft_sel_pks[i] = x->data[0];
+          } else {
+            stft_sel_loc[i] = 0.0;
+            stft_sel_pks[i] = 0.0;
+          }
+        } else {
+          stft_sel_loc[i] = 0.0;
+          stft_sel_pks[i] = 0.0;
+        }
+      }
+    }
+  }
+
+  emxFree_int32_T(&r26);
+  emxFree_int32_T(&r25);
+  emxFree_real_T(&g_PSD);
+  emxFree_int32_T(&r24);
+  emxFree_int32_T(&r23);
+  emxFree_int32_T(&r22);
+  emxFree_int32_T(&r21);
+  emxFree_real_T(&f_PSD);
+  emxFree_real_T(&e_PSD);
+  emxFree_real_T(&e_FFT);
+  emxFree_real_T(&d_PSD);
+  emxFree_real_T(&d_FFT);
+  emxFree_real_T(&h_fchw);
+  emxFree_real_T(&g_fchw);
+  emxFree_real_T(&c_SummedRows);
+  emxFree_real_T(&c_PSD);
+  emxFree_real_T(&c_FFT);
+  emxFree_real_T(&b_PSD);
+  emxFree_real_T(&b_FFT);
+  emxFree_real_T(&f_fchw);
+  emxFree_real_T(&e_fchw);
+  emxFree_real_T(&d_fchw);
+  emxFree_real_T(&c_fchw);
+  emxFree_real_T(&b_fchw);
+  emxFree_creal_T(&b_S1);
+  emxFree_creal_T(&b_S2);
+  emxFree_creal_T(&b_S3);
+  emxFree_real_T(&r20);
+  emxFree_real_T(&b_SummedRows);
+  emxFree_real_T(&c_x);
+  emxFree_real_T(&b_x);
+  emxFree_real_T(&x);
+  emxFree_int32_T(&r19);
+  emxFree_int32_T(&r18);
+  emxFree_boolean_T(&r17);
+  emxFree_boolean_T(&r16);
+  emxFree_real_T(&psd_sel_L);
+  emxFree_creal_T(&S3);
+  emxFree_creal_T(&S2);
+  emxFree_real_T(&T);
+  emxFree_creal_T(&S1);
+  emxFree_real_T(&SummedRows);
+  emxFree_real_T(&fPSD);
+  emxFree_real_T(&hW);
+  emxFree_boolean_T(&selectPSD);
+  emxFree_real_T(&PSD);
+  emxFree_real_T(&fchw);
+
+  // % Analysis & Collection:
+  fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  guard1 = false;
+  if (fch1_idx_0 < 500) {
+    fch1_idx_0 = fch1->size[0] * fch1->size[1];
+    if (fch1_idx_0 >= 250) {
+      // [ LOCATION    , MAGNITUDE
+      for (i = 0; i < 4; i++) {
+        for (i8 = 0; i8 < 4; i8++) {
+          b_ft_ch[i + (i8 << 2)] = fft_sel_loc[i8 + (i << 2)];
+          b_ft_ch[i + ((i8 + 4) << 2)] = psd_sel_loc[i8 + (i << 2)];
+          b_ft_ch[i + ((i8 + 8) << 2)] = fft_sel_pks[i8 + (i << 2)];
+          b_ft_ch[i + ((i8 + 12) << 2)] = psd_sel_pks[i8 + (i << 2)];
+        }
+      }
+
+      for (i8 = 0; i8 < 16; i8++) {
+        d_ft_ch[i8] = b_ft_ch[i8 << 2];
+        d_ft_ch[i8 + 16] = b_ft_ch[1 + (i8 << 2)];
+        d_ft_ch[i8 + 32] = b_ft_ch[2 + (i8 << 2)];
+        d_ft_ch[i8 + 48] = b_ft_ch[3 + (i8 << 2)];
+      }
+
+      i8 = F->size[0] * F->size[1];
+      F->size[0] = 1;
+      F->size[1] = 64;
+      emxEnsureCapacity((emxArray__common *)F, i8, (int)sizeof(double));
+      for (i8 = 0; i8 < 64; i8++) {
+        F->data[F->size[0] * i8] = d_ft_ch[i8];
+      }
+
+      // [1x64]
+    } else {
+      guard1 = true;
+    }
+  } else {
+    guard1 = true;
+  }
+
+  if (guard1) {
+    for (i = 0; i < 4; i++) {
+      for (i8 = 0; i8 < 4; i8++) {
+        ft_ch[i + (i8 << 2)] = fft_sel_loc[i8 + (i << 2)];
+        ft_ch[i + ((i8 + 4) << 2)] = psd_sel_loc[i8 + (i << 2)];
+        ft_ch[i + ((i8 + 8) << 2)] = fft_sel_pks[i8 + (i << 2)];
+        ft_ch[i + ((i8 + 12) << 2)] = psd_sel_pks[i8 + (i << 2)];
+      }
+
+      ft_ch[64 + i] = stft_sel_loc[i];
+      ft_ch[68 + i] = stft_sel_pks[i];
+    }
+
+    for (i8 = 0; i8 < 18; i8++) {
+      c_ft_ch[i8] = ft_ch[i8 << 2];
+      c_ft_ch[i8 + 18] = ft_ch[1 + (i8 << 2)];
+      c_ft_ch[i8 + 36] = ft_ch[2 + (i8 << 2)];
+      c_ft_ch[i8 + 54] = ft_ch[3 + (i8 << 2)];
+    }
+
+    i8 = F->size[0] * F->size[1];
+    F->size[0] = 1;
+    F->size[1] = 72;
+    emxEnsureCapacity((emxArray__common *)F, i8, (int)sizeof(double));
+    for (i8 = 0; i8 < 72; i8++) {
+      F->data[F->size[0] * i8] = c_ft_ch[i8];
+    }
+
+    // [1x72]
+  }
+
+  // END FUNCTION
+}
+
+//
+// featureExtraction Summary of this function goes here if I ever feel like
+// writing one up.
+//  samplesX = samplesX(:);
+// Arguments    : const double samplesX[250]
+//                emxArray_real_T *F
+// Return Type  : void
+//
+static void featureExtractionEOG(const double samplesX[250], emxArray_real_T *F)
+{
+  double y;
+  int ix;
+  double xbar;
+  int k;
+  double r;
+  double b_y;
+  int ixstart;
+  boolean_T exitg2;
+  boolean_T exitg1;
+  boolean_T x[250];
+  double T_countmin_1;
+  double T_countmin_2;
+  double T_countmax;
+  double s;
+  double ylast;
+  emxArray_real_T *peaks;
+  emxArray_real_T *loc;
+  emxArray_real_T *T_findpeaks_distX;
+  int T_count_findpeaks;
+  y = samplesX[0];
+  ix = 0;
+  xbar = samplesX[0];
+  for (k = 0; k < 249; k++) {
+    y += samplesX[k + 1];
+    ix++;
+    xbar += samplesX[ix];
+  }
+
+  xbar /= 250.0;
+  ix = 0;
+  r = samplesX[0] - xbar;
+  b_y = r * r;
+  for (k = 0; k < 249; k++) {
+    ix++;
+    r = samplesX[ix] - xbar;
+    b_y += r * r;
+  }
+
+  b_y /= 249.0;
+  ixstart = 1;
+  xbar = samplesX[0];
+  if (rtIsNaN(samplesX[0])) {
+    ix = 2;
+    exitg2 = false;
+    while ((!exitg2) && (ix < 251)) {
+      ixstart = ix;
+      if (!rtIsNaN(samplesX[ix - 1])) {
+        xbar = samplesX[ix - 1];
+        exitg2 = true;
+      } else {
+        ix++;
+      }
+    }
+  }
+
+  if (ixstart < 250) {
+    while (ixstart + 1 < 251) {
+      if (samplesX[ixstart] > xbar) {
+        xbar = samplesX[ixstart];
+      }
+
+      ixstart++;
+    }
+  }
+
+  ixstart = 1;
+  r = samplesX[0];
+  if (rtIsNaN(samplesX[0])) {
+    ix = 2;
+    exitg1 = false;
+    while ((!exitg1) && (ix < 251)) {
+      ixstart = ix;
+      if (!rtIsNaN(samplesX[ix - 1])) {
+        r = samplesX[ix - 1];
+        exitg1 = true;
+      } else {
+        ix++;
+      }
+    }
+  }
+
+  if (ixstart < 250) {
+    while (ixstart + 1 < 251) {
+      if (samplesX[ixstart] < r) {
+        r = samplesX[ixstart];
+      }
+
+      ixstart++;
+    }
+  }
+
+  for (ixstart = 0; ixstart < 250; ixstart++) {
+    x[ixstart] = ((samplesX[ixstart] < -9.9999999999999991E-6) &&
+                  (samplesX[ixstart] > -0.0001));
+  }
+
+  T_countmin_1 = x[0];
+  for (k = 0; k < 249; k++) {
+    T_countmin_1 += (double)x[k + 1];
+  }
+
+  for (ixstart = 0; ixstart < 250; ixstart++) {
+    x[ixstart] = (samplesX[ixstart] < -0.0001);
+  }
+
+  T_countmin_2 = x[0];
+  for (k = 0; k < 249; k++) {
+    T_countmin_2 += (double)x[k + 1];
+  }
+
+  for (ixstart = 0; ixstart < 250; ixstart++) {
+    x[ixstart] = (samplesX[ixstart] > 8.4999999999999993E-5);
+  }
+
+  T_countmax = x[0];
+  s = 0.0;
+  ixstart = 0;
+  ylast = samplesX[0];
+  for (k = 0; k < 249; k++) {
+    T_countmax += (double)x[k + 1];
+    ixstart++;
+    s += (ylast + samplesX[ixstart]) / 2.0;
+    ylast = samplesX[ixstart];
+  }
+
+  emxInit_real_T(&peaks, 2);
+  emxInit_real_T(&loc, 2);
+  findpeaks(samplesX, peaks, loc);
+  emxInit_real_T(&T_findpeaks_distX, 2);
+  if (peaks->size[1] == 0) {
+    T_count_findpeaks = 0;
+    ixstart = T_findpeaks_distX->size[0] * T_findpeaks_distX->size[1];
+    T_findpeaks_distX->size[0] = 1;
+    T_findpeaks_distX->size[1] = 1;
+    emxEnsureCapacity((emxArray__common *)T_findpeaks_distX, ixstart, (int)
+                      sizeof(double));
+    T_findpeaks_distX->data[0] = 0.0;
+  } else {
+    ixstart = peaks->size[1];
+    if (1 >= ixstart) {
+      ixstart = 1;
+    }
+
+    if (peaks->size[1] == 0) {
+      ixstart = 0;
+    }
+
+    T_count_findpeaks = ixstart;
+    ixstart = peaks->size[1];
+    if (1 >= ixstart) {
+      ixstart = 1;
+    }
+
+    if (peaks->size[1] == 0) {
+      ixstart = 0;
+    }
+
+    if (ixstart > 1) {
+      ixstart = T_findpeaks_distX->size[0] * T_findpeaks_distX->size[1];
+      T_findpeaks_distX->size[0] = 1;
+      T_findpeaks_distX->size[1] = 1;
+      emxEnsureCapacity((emxArray__common *)T_findpeaks_distX, ixstart, (int)
+                        sizeof(double));
+      T_findpeaks_distX->data[0] = loc->data[loc->size[1] - 1] - loc->data[0];
+
+      // TODO: TAKE AVG, NOT MAX-MIN
+    } else {
+      ixstart = T_findpeaks_distX->size[0] * T_findpeaks_distX->size[1];
+      T_findpeaks_distX->size[0] = 1;
+      T_findpeaks_distX->size[1] = 1;
+      emxEnsureCapacity((emxArray__common *)T_findpeaks_distX, ixstart, (int)
+                        sizeof(double));
+      T_findpeaks_distX->data[0] = 0.0;
+    }
+  }
+
+  emxFree_real_T(&loc);
+  emxFree_real_T(&peaks);
+
+  //  F = horzcat(T_mean, T_stdv, T_max, T_min, T_countmin_1, T_countmin_2, T_countmax, T_Integrate); 
+  ixstart = F->size[0] * F->size[1];
+  F->size[0] = 1;
+  F->size[1] = 10;
+  emxEnsureCapacity((emxArray__common *)F, ixstart, (int)sizeof(double));
+  F->data[0] = y / 250.0;
+  F->data[F->size[0]] = std::sqrt(b_y);
+  F->data[F->size[0] << 1] = xbar;
+  F->data[F->size[0] * 3] = r;
+  F->data[F->size[0] << 2] = T_countmin_1;
+  F->data[F->size[0] * 5] = T_countmin_2;
+  F->data[F->size[0] * 6] = T_countmax;
+  F->data[F->size[0] * 7] = s;
+  F->data[F->size[0] << 3] = T_count_findpeaks;
+  for (ixstart = 0; ixstart < 1; ixstart++) {
+    F->data[F->size[0] * 9] = T_findpeaks_distX->data[0];
+  }
+
+  emxFree_real_T(&T_findpeaks_distX);
+}
+
+//
+// Feature Extraction Function for Tri-channel SSVEP Feature Extraction:
+//  ----- INPUTS -----
+//  fch1, fch2, fch3: Tri-channel SSVEP Samples of certain window size
+//  MUST BE A VECTOR!
+//  MUST BE FILTERED!!
+//  Fs - Sampling Rate.
+//  Using 250-sample windows, feature extraction is obtained using FFT and
+//  PSD
+// ----FFT----%
+// Arguments    : const emxArray_real_T *fch1
+//                const emxArray_real_T *fch2
+//                const emxArray_real_T *fch3
+//                double Fs
+//                double F[30]
+// Return Type  : void
+//
+static void featureExtractionSSVEP(const emxArray_real_T *fch1, const
+  emxArray_real_T *fch2, const emxArray_real_T *fch3, double Fs, double F[30])
+{
+  double threshFFT[8];
+  int i3;
+  signed char wLFFT[4];
+  int i;
+  double threshPSD[8];
+  signed char wLPSD[4];
+  emxArray_real_T *fchw;
+  int fch1_idx_0;
+  emxArray_int32_T *r8;
+  emxArray_real_T *b_fch1;
+  emxArray_real_T *b_fch2;
+  emxArray_real_T *b_fch3;
+  double FFT_Ltop[8];
+  double FFT_PkRatio[4];
+  emxArray_real_T *PSD;
+  double y;
+  double PSD_Ltop[8];
+  double PSD_PkRatio[4];
+  emxArray_real_T *hW;
+  emxArray_real_T *fPSD;
+  double f[1025];
+  emxArray_real_T *FFT_PKS;
+  emxArray_real_T *FFT_L;
+  emxArray_real_T *b_PSD;
+  emxArray_real_T *b_fchw;
+  emxArray_real_T *c_fchw;
+  double FFT[4100];
+  int ch;
+  double b_FFT[1025];
+  double dv16[1025];
+  emxArray_real_T *c_PSD;
+  int w;
+  boolean_T exitg2;
+  boolean_T exitg4;
+  emxArray_real_T *d_PSD;
+  boolean_T exitg1;
+  double FFTPeaks1[4];
+  double PSDPeaks1[4];
+  int chn;
+  double b_FFT_Ltop[4];
+  boolean_T exitg3;
+  boolean_T b0;
+  boolean_T b2;
+  double b_PSD_Ltop[4];
+  double b_wLFFT[4];
+  double c_wLFFT[4];
+  boolean_T b1;
+  boolean_T b4;
+  double b_wLPSD[4];
+  double c_wLPSD[4];
+
+  // -% windows around certain target frequencies
+  for (i3 = 0; i3 < 2; i3++) {
+    threshFFT[i3 << 2] = 9.5 + 1.1300000000000008 * (double)i3;
+    threshFFT[1 + (i3 << 2)] = 11.9 + 0.79999999999999893 * (double)i3;
+    threshFFT[2 + (i3 << 2)] = 14.6 + 0.90000000000000036 * (double)i3;
+    threshFFT[3 + (i3 << 2)] = 16.2 + 0.53999999999999915 * (double)i3;
+  }
+
+  for (i = 0; i < 4; i++) {
+    wLFFT[i] = 0;
+  }
+
+  // ----PSD----%
+  for (i3 = 0; i3 < 2; i3++) {
+    threshPSD[i3 << 2] = 9.5 + (double)i3;
+    threshPSD[1 + (i3 << 2)] = 12.0 + (double)i3;
+    threshPSD[2 + (i3 << 2)] = 14.9 + 0.19999999999999929 * (double)i3;
+    threshPSD[3 + (i3 << 2)] = 16.0 + (double)i3;
+  }
+
+  for (i = 0; i < 4; i++) {
+    wLPSD[i] = 0;
+  }
+
+  emxInit_real_T(&fchw, 2);
+
+  // ----PREALLOCATE----%
+  i3 = fchw->size[0] * fchw->size[1];
+  fchw->size[0] = 3;
+  emxEnsureCapacity((emxArray__common *)fchw, i3, (int)sizeof(double));
+  fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  i3 = fchw->size[0] * fchw->size[1];
+  fchw->size[1] = fch1_idx_0;
+  emxEnsureCapacity((emxArray__common *)fchw, i3, (int)sizeof(double));
+  fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  i = 3 * fch1_idx_0;
+  for (i3 = 0; i3 < i; i3++) {
+    fchw->data[i3] = 0.0;
+  }
+
+  fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  if (1 > fch1_idx_0) {
+    fch1_idx_0 = 0;
+  } else {
+    fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  }
+
+  i = fch1->size[0] * fch1->size[1];
+  if (1 > i) {
+    i = 0;
+  } else {
+    i = fch1->size[0] * fch1->size[1];
+  }
+
+  emxInit_int32_T(&r8, 1);
+  i3 = r8->size[0];
+  r8->size[0] = i;
+  emxEnsureCapacity((emxArray__common *)r8, i3, (int)sizeof(int));
+  for (i3 = 0; i3 < i; i3++) {
+    r8->data[i3] = i3;
+  }
+
+  emxInit_real_T1(&b_fch1, 1);
+  i3 = b_fch1->size[0];
+  b_fch1->size[0] = fch1_idx_0;
+  emxEnsureCapacity((emxArray__common *)b_fch1, i3, (int)sizeof(double));
+  for (i3 = 0; i3 < fch1_idx_0; i3++) {
+    b_fch1->data[i3] = fch1->data[i3];
+  }
+
+  i = r8->size[0];
+  for (i3 = 0; i3 < i; i3++) {
+    fchw->data[fchw->size[0] * r8->data[i3]] = b_fch1->data[i3];
+  }
+
+  emxFree_real_T(&b_fch1);
+  fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  if (1 > fch1_idx_0) {
+    fch1_idx_0 = 0;
+  } else {
+    fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  }
+
+  i = fch1->size[0] * fch1->size[1];
+  if (1 > i) {
+    i = 0;
+  } else {
+    i = fch1->size[0] * fch1->size[1];
+  }
+
+  i3 = r8->size[0];
+  r8->size[0] = i;
+  emxEnsureCapacity((emxArray__common *)r8, i3, (int)sizeof(int));
+  for (i3 = 0; i3 < i; i3++) {
+    r8->data[i3] = i3;
+  }
+
+  emxInit_real_T1(&b_fch2, 1);
+  i3 = b_fch2->size[0];
+  b_fch2->size[0] = fch1_idx_0;
+  emxEnsureCapacity((emxArray__common *)b_fch2, i3, (int)sizeof(double));
+  for (i3 = 0; i3 < fch1_idx_0; i3++) {
+    b_fch2->data[i3] = fch2->data[i3];
+  }
+
+  i = r8->size[0];
+  for (i3 = 0; i3 < i; i3++) {
+    fchw->data[1 + fchw->size[0] * r8->data[i3]] = b_fch2->data[i3];
+  }
+
+  emxFree_real_T(&b_fch2);
+  fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  if (1 > fch1_idx_0) {
+    fch1_idx_0 = 0;
+  } else {
+    fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  }
+
+  i = fch1->size[0] * fch1->size[1];
+  if (1 > i) {
+    i = 0;
+  } else {
+    i = fch1->size[0] * fch1->size[1];
+  }
+
+  i3 = r8->size[0];
+  r8->size[0] = i;
+  emxEnsureCapacity((emxArray__common *)r8, i3, (int)sizeof(int));
+  for (i3 = 0; i3 < i; i3++) {
+    r8->data[i3] = i3;
+  }
+
+  emxInit_real_T1(&b_fch3, 1);
+  i3 = b_fch3->size[0];
+  b_fch3->size[0] = fch1_idx_0;
+  emxEnsureCapacity((emxArray__common *)b_fch3, i3, (int)sizeof(double));
+  for (i3 = 0; i3 < fch1_idx_0; i3++) {
+    b_fch3->data[i3] = fch3->data[i3];
+  }
+
+  i = r8->size[0];
+  for (i3 = 0; i3 < i; i3++) {
+    fchw->data[2 + fchw->size[0] * r8->data[i3]] = b_fch3->data[i3];
+  }
+
+  emxFree_real_T(&b_fch3);
+  emxFree_int32_T(&r8);
+
+  //  all windows should be the same size:
+  memset(&FFT_Ltop[0], 0, sizeof(double) << 3);
+  for (i = 0; i < 4; i++) {
+    FFT_PkRatio[i] = 0.0;
+  }
+
+  fch1_idx_0 = fch1->size[0] * fch1->size[1];
+  emxInit_real_T(&PSD, 2);
+  if (b_mod((double)fch1_idx_0, 2.0) == 1.0) {
+    fch1_idx_0 = fch1->size[0] * fch1->size[1];
+    y = ((double)fch1_idx_0 - 1.0) / 2.0;
+    i3 = PSD->size[0] * PSD->size[1];
+    PSD->size[0] = 4;
+    PSD->size[1] = (int)y;
+    emxEnsureCapacity((emxArray__common *)PSD, i3, (int)sizeof(double));
+    i = (int)y << 2;
+    for (i3 = 0; i3 < i; i3++) {
+      PSD->data[i3] = 0.0;
+    }
+  } else {
+    fch1_idx_0 = fch1->size[0] * fch1->size[1];
+    y = (double)fch1_idx_0 / 2.0;
+    i3 = PSD->size[0] * PSD->size[1];
+    PSD->size[0] = 4;
+    PSD->size[1] = (int)y;
+    emxEnsureCapacity((emxArray__common *)PSD, i3, (int)sizeof(double));
+    i = (int)y << 2;
+    for (i3 = 0; i3 < i; i3++) {
+      PSD->data[i3] = 0.0;
+    }
+  }
+
+  memset(&PSD_Ltop[0], 0, sizeof(double) << 3);
+  for (i = 0; i < 4; i++) {
+    PSD_PkRatio[i] = 0.0;
+  }
+
+  emxInit_real_T1(&hW, 1);
+  emxInit_real_T(&fPSD, 2);
+
+  // 0?
+  //  Data is already filtered:
+  // between 250?500dp
+  //  Preallocate for spd:
+  emxInit_real_T(&FFT_PKS, 2);
+  emxInit_real_T(&FFT_L, 2);
+  emxInit_real_T(&b_PSD, 2);
+  emxInit_real_T(&b_fchw, 2);
+  emxInit_real_T(&c_fchw, 2);
+  for (ch = 0; ch < 3; ch++) {
+    //  #1 Take FFT:
+    i = fchw->size[1];
+    i3 = c_fchw->size[0] * c_fchw->size[1];
+    c_fchw->size[0] = 1;
+    c_fchw->size[1] = i;
+    emxEnsureCapacity((emxArray__common *)c_fchw, i3, (int)sizeof(double));
+    for (i3 = 0; i3 < i; i3++) {
+      c_fchw->data[c_fchw->size[0] * i3] = fchw->data[ch + fchw->size[0] * i3];
+    }
+
+    get_nfft_data(c_fchw, Fs, f, dv16);
+
+    //  #1.1 Find Peaks and M/I
+    for (i3 = 0; i3 < 1025; i3++) {
+      FFT[ch + (i3 << 2)] = dv16[i3];
+      b_FFT[i3] = FFT[ch + (i3 << 2)];
+    }
+
+    b_findpeaks(b_FFT, FFT_PKS, FFT_L);
+    if (FFT_PKS->size[1] > 1) {
+      // Peak max minus min
+      for (i3 = 0; i3 < 2; i3++) {
+        FFT_Ltop[ch + (i3 << 2)] = f[(int)FFT_L->data[i3] - 1];
+      }
+
+      w = 0;
+      exitg4 = false;
+      while ((!exitg4) && (w < 4)) {
+        if ((FFT_Ltop[ch] > threshFFT[w]) && (FFT_Ltop[ch] < threshFFT[4 + w]))
+        {
+          FFT_PkRatio[ch] = FFT_PKS->data[0] / FFT_PKS->data[1];
+          wLFFT[ch] = (signed char)(1 + w);
+          exitg4 = true;
+        } else {
+          FFT_PkRatio[ch] = 0.0;
+          wLFFT[ch] = 0;
+          w++;
+        }
+      }
+    }
+
+    //  #2 Take PSD Estimate: (Welch method)
+    //  Prepare hanning window:
+    fch1_idx_0 = fch1->size[0] * fch1->size[1];
+    hannWin((double)fch1_idx_0, hW);
+    i = fchw->size[1];
+    i3 = b_fchw->size[0] * b_fchw->size[1];
+    b_fchw->size[0] = 1;
+    b_fchw->size[1] = i;
+    emxEnsureCapacity((emxArray__common *)b_fchw, i3, (int)sizeof(double));
+    for (i3 = 0; i3 < i; i3++) {
+      b_fchw->data[b_fchw->size[0] * i3] = fchw->data[ch + fchw->size[0] * i3];
+    }
+
+    welch_psd(b_fchw, Fs, hW, FFT_PKS, fPSD);
+    i = FFT_PKS->size[1];
+    for (i3 = 0; i3 < i; i3++) {
+      PSD->data[ch + PSD->size[0] * i3] = FFT_PKS->data[FFT_PKS->size[0] * i3];
+    }
+
+    // fin-start
+    //  #2.2 Find Peaks and Max
+    i = PSD->size[1];
+    i3 = b_PSD->size[0] * b_PSD->size[1];
+    b_PSD->size[0] = 1;
+    b_PSD->size[1] = i;
+    emxEnsureCapacity((emxArray__common *)b_PSD, i3, (int)sizeof(double));
+    for (i3 = 0; i3 < i; i3++) {
+      b_PSD->data[b_PSD->size[0] * i3] = PSD->data[ch + PSD->size[0] * i3];
+    }
+
+    c_findpeaks(b_PSD, FFT_PKS, FFT_L);
+    if (FFT_PKS->size[1] > 1) {
+      for (i3 = 0; i3 < 2; i3++) {
+        PSD_Ltop[ch + (i3 << 2)] = fPSD->data[(int)FFT_L->data[i3] - 1];
+      }
+
+      w = 0;
+      exitg3 = false;
+      while ((!exitg3) && (w < 4)) {
+        if ((PSD_Ltop[ch] >= threshPSD[w]) && (PSD_Ltop[ch] <= threshPSD[4 + w]))
+        {
+          PSD_PkRatio[ch] = FFT_PKS->data[0] / FFT_PKS->data[1];
+          wLPSD[ch] = (signed char)(1 + w);
+          exitg3 = true;
+        } else {
+          PSD_PkRatio[ch] = 0.0;
+          wLPSD[ch] = 0;
+          w++;
+        }
+      }
+    }
+  }
+
+  emxFree_real_T(&c_fchw);
+  emxFree_real_T(&b_fchw);
+  emxFree_real_T(&b_PSD);
+  emxFree_real_T(&hW);
+  emxFree_real_T(&fchw);
+
+  // Combine data into 'fourth' channel:
+  for (i3 = 0; i3 < 1025; i3++) {
+    FFT[3 + (i3 << 2)] = (FFT[i3 << 2] + FFT[1 + (i3 << 2)]) + FFT[2 + (i3 << 2)];
+    b_FFT[i3] = FFT[3 + (i3 << 2)];
+  }
+
+  b_findpeaks(b_FFT, FFT_PKS, FFT_L);
+  if (FFT_PKS->size[1] > 1) {
+    for (i3 = 0; i3 < 2; i3++) {
+      FFT_Ltop[3 + (i3 << 2)] = f[(int)FFT_L->data[i3] - 1];
+    }
+
+    w = 0;
+    exitg2 = false;
+    while ((!exitg2) && (w < 4)) {
+      if ((FFT_Ltop[3] > threshFFT[w]) && (FFT_Ltop[3] < threshFFT[4 + w])) {
+        FFT_PkRatio[3] = FFT_PKS->data[0] / FFT_PKS->data[1];
+        wLFFT[3] = (signed char)(1 + w);
+        exitg2 = true;
+      } else {
+        FFT_PkRatio[3] = 0.0;
+        wLFFT[3] = 0;
+        w++;
+      }
+    }
+  }
+
+  emxInit_real_T(&c_PSD, 2);
+  i = PSD->size[1];
+  i3 = c_PSD->size[0] * c_PSD->size[1];
+  c_PSD->size[0] = 1;
+  c_PSD->size[1] = i;
+  emxEnsureCapacity((emxArray__common *)c_PSD, i3, (int)sizeof(double));
+  for (i3 = 0; i3 < i; i3++) {
+    c_PSD->data[c_PSD->size[0] * i3] = (PSD->data[PSD->size[0] * i3] + PSD->
+      data[1 + PSD->size[0] * i3]) + PSD->data[2 + PSD->size[0] * i3];
+  }
+
+  i = c_PSD->size[1];
+  for (i3 = 0; i3 < i; i3++) {
+    PSD->data[3 + PSD->size[0] * i3] = c_PSD->data[c_PSD->size[0] * i3];
+  }
+
+  emxFree_real_T(&c_PSD);
+  emxInit_real_T(&d_PSD, 2);
+  i = PSD->size[1];
+  i3 = d_PSD->size[0] * d_PSD->size[1];
+  d_PSD->size[0] = 1;
+  d_PSD->size[1] = i;
+  emxEnsureCapacity((emxArray__common *)d_PSD, i3, (int)sizeof(double));
+  for (i3 = 0; i3 < i; i3++) {
+    d_PSD->data[d_PSD->size[0] * i3] = PSD->data[3 + PSD->size[0] * i3];
+  }
+
+  emxFree_real_T(&PSD);
+  c_findpeaks(d_PSD, FFT_PKS, FFT_L);
+  emxFree_real_T(&d_PSD);
+  if (FFT_PKS->size[1] > 1) {
+    for (i3 = 0; i3 < 2; i3++) {
+      PSD_Ltop[3 + (i3 << 2)] = fPSD->data[(int)FFT_L->data[i3] - 1];
+    }
+
+    w = 0;
+    exitg1 = false;
+    while ((!exitg1) && (w < 4)) {
+      if ((PSD_Ltop[3] >= threshPSD[w]) && (PSD_Ltop[3] <= threshPSD[4 + w])) {
+        PSD_PkRatio[3] = FFT_PKS->data[0] / FFT_PKS->data[1];
+        wLPSD[3] = (signed char)(1 + w);
+        exitg1 = true;
+      } else {
+        PSD_PkRatio[3] = 0.0;
+        wLPSD[3] = 0;
+        w++;
+      }
+    }
+  }
+
+  emxFree_real_T(&FFT_L);
+  emxFree_real_T(&FFT_PKS);
+  emxFree_real_T(&fPSD);
+  for (chn = 0; chn < 4; chn++) {
+    FFTPeaks1[chn] = FFT_Ltop[chn];
+    PSDPeaks1[chn] = PSD_Ltop[chn];
+  }
+
+  b_FFT_Ltop[0] = FFT_Ltop[0];
+  b_FFT_Ltop[1] = FFT_Ltop[1];
+  b_FFT_Ltop[2] = FFT_Ltop[2];
+  b_FFT_Ltop[3] = FFT_Ltop[3];
+  if ((wLFFT[0] != 0) && (wLFFT[1] != 0) && (wLFFT[2] != 0) && (wLFFT[3] != 0))
+  {
+    b0 = true;
+  } else {
+    b0 = false;
+  }
+
+  if (b0) {
+    // if a signal was detected on each FFT
+    // check that they are all the same;
+    b_wLFFT[0] = wLFFT[0];
+    b_wLFFT[1] = wLFFT[1];
+    b_wLFFT[2] = wLFFT[2];
+    b_wLFFT[3] = wLFFT[3];
+    c_wLFFT[0] = wLFFT[0];
+    c_wLFFT[1] = wLFFT[0];
+    c_wLFFT[2] = wLFFT[0];
+    c_wLFFT[3] = wLFFT[0];
+    b2 = isequal(b_wLFFT, c_wLFFT);
+  } else {
+    b2 = false;
+  }
+
+  b_PSD_Ltop[0] = PSD_Ltop[0];
+  b_PSD_Ltop[1] = PSD_Ltop[1];
+  b_PSD_Ltop[2] = PSD_Ltop[2];
+  b_PSD_Ltop[3] = PSD_Ltop[3];
+  if ((wLPSD[0] != 0) && (wLPSD[1] != 0) && (wLPSD[2] != 0) && (wLPSD[3] != 0))
+  {
+    b1 = true;
+  } else {
+    b1 = false;
+  }
+
+  if (b1) {
+    // if a signal was detected for PSD on all channels:
+    // check they are equivalent:
+    b_wLPSD[0] = wLPSD[0];
+    b_wLPSD[1] = wLPSD[1];
+    b_wLPSD[2] = wLPSD[2];
+    b_wLPSD[3] = wLPSD[3];
+    c_wLPSD[0] = wLPSD[0];
+    c_wLPSD[1] = wLPSD[0];
+    c_wLPSD[2] = wLPSD[0];
+    c_wLPSD[3] = wLPSD[0];
+    b4 = isequal(b_wLPSD, c_wLPSD);
+  } else {
+    b4 = false;
+  }
+
+  // % Collect Feature data into 'F'
+  // First separate features by channel: (row vects)
+  //  first to remove: *FFT_Ltop(2) ... not sure how I will use this
+  //  Also remove FFTPeaks2 and averageFFTPeak2
+  // WANT INFO TO PRINT IN ORDER:
+  //     %% FPRINTFs:
+  F[16] = mean(b_FFT_Ltop);
+  F[17] = mean(b_PSD_Ltop);
+  for (i3 = 0; i3 < 4; i3++) {
+    F[i3] = wLFFT[i3];
+    F[i3 + 4] = wLPSD[i3];
+    F[i3 + 8] = FFT_PkRatio[i3];
+    F[i3 + 12] = PSD_PkRatio[i3];
+    F[i3 + 18] = FFTPeaks1[i3];
+    F[i3 + 22] = PSDPeaks1[i3];
+  }
+
+  F[26] = b0;
+  F[27] = b2;
+  F[28] = b1;
+  F[29] = b4;
+
+  // END FUNCTION
+}
+
+//
+// Arguments    : const emxArray_real_T *x
+//                emxArray_creal_T *y
+// Return Type  : void
+//
+static void fft(const emxArray_real_T *x, emxArray_creal_T *y)
+{
+  int n1;
+  boolean_T useRadix2;
+  int pmin;
+  int pmax;
+  int nn1m1;
+  emxArray_real_T *costab1q;
+  double e;
+  int nRowsD4;
+  boolean_T exitg1;
+  int n;
+  int pow2p;
+  emxArray_real_T *costab;
+  emxArray_real_T *sintab;
+  emxArray_real_T *sintabinv;
+  int nRowsD2;
+  int i;
+  double temp_re;
+  double temp_im;
+  double twid_im;
+  n1 = x->size[0];
+  if (x->size[0] == 0) {
+    pmax = y->size[0];
+    y->size[0] = 0;
+    emxEnsureCapacity((emxArray__common *)y, pmax, (int)sizeof(creal_T));
+  } else {
+    useRadix2 = ((x->size[0] & (x->size[0] - 1)) == 0);
+    pmin = 1;
+    if (useRadix2) {
+      nn1m1 = x->size[0];
+    } else {
+      nn1m1 = (x->size[0] + x->size[0]) - 1;
+      pmax = 31;
+      if (nn1m1 > MIN_int32_T) {
+        if (nn1m1 < 0) {
+          nn1m1 = -nn1m1;
+        }
+
+        if (nn1m1 <= 1) {
+          pmax = 0;
+        } else {
+          pmin = 0;
+          exitg1 = false;
+          while ((!exitg1) && (pmax - pmin > 1)) {
+            n = (pmin + pmax) >> 1;
+            pow2p = 1 << n;
+            if (pow2p == nn1m1) {
+              pmax = n;
+              exitg1 = true;
+            } else if (pow2p > nn1m1) {
+              pmax = n;
+            } else {
+              pmin = n;
+            }
+          }
+        }
+      }
+
+      pmin = 1 << pmax;
+      nn1m1 = pmin;
+    }
+
+    emxInit_real_T(&costab1q, 2);
+    e = 6.2831853071795862 / (double)nn1m1;
+    nRowsD4 = nn1m1 / 2 / 2;
+    pmax = costab1q->size[0] * costab1q->size[1];
+    costab1q->size[0] = 1;
+    costab1q->size[1] = nRowsD4 + 1;
+    emxEnsureCapacity((emxArray__common *)costab1q, pmax, (int)sizeof(double));
+    costab1q->data[0] = 1.0;
+    nn1m1 = nRowsD4 / 2;
+    for (pmax = 1; pmax <= nn1m1; pmax++) {
+      costab1q->data[pmax] = std::cos(e * (double)pmax);
+    }
+
+    for (pmax = nn1m1 + 1; pmax < nRowsD4; pmax++) {
+      costab1q->data[pmax] = std::sin(e * (double)(nRowsD4 - pmax));
+    }
+
+    costab1q->data[nRowsD4] = 0.0;
+    emxInit_real_T(&costab, 2);
+    emxInit_real_T(&sintab, 2);
+    emxInit_real_T(&sintabinv, 2);
+    if (!useRadix2) {
+      n = costab1q->size[1] - 1;
+      nn1m1 = (costab1q->size[1] - 1) << 1;
+      pmax = costab->size[0] * costab->size[1];
+      costab->size[0] = 1;
+      costab->size[1] = nn1m1 + 1;
+      emxEnsureCapacity((emxArray__common *)costab, pmax, (int)sizeof(double));
+      pmax = sintab->size[0] * sintab->size[1];
+      sintab->size[0] = 1;
+      sintab->size[1] = nn1m1 + 1;
+      emxEnsureCapacity((emxArray__common *)sintab, pmax, (int)sizeof(double));
+      costab->data[0] = 1.0;
+      sintab->data[0] = 0.0;
+      pmax = sintabinv->size[0] * sintabinv->size[1];
+      sintabinv->size[0] = 1;
+      sintabinv->size[1] = nn1m1 + 1;
+      emxEnsureCapacity((emxArray__common *)sintabinv, pmax, (int)sizeof(double));
+      for (pmax = 1; pmax <= n; pmax++) {
+        sintabinv->data[pmax] = costab1q->data[n - pmax];
+      }
+
+      for (pmax = costab1q->size[1]; pmax <= nn1m1; pmax++) {
+        sintabinv->data[pmax] = costab1q->data[pmax - n];
+      }
+
+      for (pmax = 1; pmax <= n; pmax++) {
+        costab->data[pmax] = costab1q->data[pmax];
+        sintab->data[pmax] = -costab1q->data[n - pmax];
+      }
+
+      for (pmax = costab1q->size[1]; pmax <= nn1m1; pmax++) {
+        costab->data[pmax] = -costab1q->data[nn1m1 - pmax];
+        sintab->data[pmax] = -costab1q->data[pmax - n];
+      }
+    } else {
+      n = costab1q->size[1] - 1;
+      nn1m1 = (costab1q->size[1] - 1) << 1;
+      pmax = costab->size[0] * costab->size[1];
+      costab->size[0] = 1;
+      costab->size[1] = nn1m1 + 1;
+      emxEnsureCapacity((emxArray__common *)costab, pmax, (int)sizeof(double));
+      pmax = sintab->size[0] * sintab->size[1];
+      sintab->size[0] = 1;
+      sintab->size[1] = nn1m1 + 1;
+      emxEnsureCapacity((emxArray__common *)sintab, pmax, (int)sizeof(double));
+      costab->data[0] = 1.0;
+      sintab->data[0] = 0.0;
+      for (pmax = 1; pmax <= n; pmax++) {
+        costab->data[pmax] = costab1q->data[pmax];
+        sintab->data[pmax] = -costab1q->data[n - pmax];
+      }
+
+      for (pmax = costab1q->size[1]; pmax <= nn1m1; pmax++) {
+        costab->data[pmax] = -costab1q->data[nn1m1 - pmax];
+        sintab->data[pmax] = -costab1q->data[pmax - n];
+      }
+
+      pmax = sintabinv->size[0] * sintabinv->size[1];
+      sintabinv->size[0] = 1;
+      sintabinv->size[1] = 0;
+      emxEnsureCapacity((emxArray__common *)sintabinv, pmax, (int)sizeof(double));
+    }
+
+    emxFree_real_T(&costab1q);
+    if (useRadix2) {
+      pow2p = x->size[0];
+      nRowsD2 = x->size[0] / 2;
+      nRowsD4 = nRowsD2 / 2;
+      nn1m1 = x->size[0];
+      pmax = y->size[0];
+      y->size[0] = nn1m1;
+      emxEnsureCapacity((emxArray__common *)y, pmax, (int)sizeof(creal_T));
+      pmax = 0;
+      pmin = 0;
+      nn1m1 = 0;
+      for (i = 1; i < pow2p; i++) {
+        y->data[nn1m1].re = x->data[pmax];
+        y->data[nn1m1].im = 0.0;
+        n = n1;
+        useRadix2 = true;
+        while (useRadix2) {
+          n >>= 1;
+          pmin ^= n;
+          useRadix2 = ((pmin & n) == 0);
+        }
+
+        nn1m1 = pmin;
+        pmax++;
+      }
+
+      y->data[nn1m1].re = x->data[pmax];
+      y->data[nn1m1].im = 0.0;
+      if (x->size[0] > 1) {
+        for (i = 0; i <= n1 - 2; i += 2) {
+          temp_re = y->data[i + 1].re;
+          temp_im = y->data[i + 1].im;
+          y->data[i + 1].re = y->data[i].re - y->data[i + 1].re;
+          y->data[i + 1].im = y->data[i].im - y->data[i + 1].im;
+          y->data[i].re += temp_re;
+          y->data[i].im += temp_im;
+        }
+      }
+
+      nn1m1 = 2;
+      pmax = 4;
+      pmin = 1 + ((nRowsD4 - 1) << 2);
+      while (nRowsD4 > 0) {
+        for (i = 0; i < pmin; i += pmax) {
+          temp_re = y->data[i + nn1m1].re;
+          temp_im = y->data[i + nn1m1].im;
+          y->data[i + nn1m1].re = y->data[i].re - temp_re;
+          y->data[i + nn1m1].im = y->data[i].im - temp_im;
+          y->data[i].re += temp_re;
+          y->data[i].im += temp_im;
+        }
+
+        n = 1;
+        for (pow2p = nRowsD4; pow2p < nRowsD2; pow2p += nRowsD4) {
+          e = costab->data[pow2p];
+          twid_im = sintab->data[pow2p];
+          i = n;
+          n1 = n + pmin;
+          while (i < n1) {
+            temp_re = e * y->data[i + nn1m1].re - twid_im * y->data[i + nn1m1].
+              im;
+            temp_im = e * y->data[i + nn1m1].im + twid_im * y->data[i + nn1m1].
+              re;
+            y->data[i + nn1m1].re = y->data[i].re - temp_re;
+            y->data[i + nn1m1].im = y->data[i].im - temp_im;
+            y->data[i].re += temp_re;
+            y->data[i].im += temp_im;
+            i += pmax;
+          }
+
+          n++;
+        }
+
+        nRowsD4 /= 2;
+        nn1m1 = pmax;
+        pmax <<= 1;
+        pmin -= nn1m1;
+      }
+    } else {
+      dobluesteinfft(x, pmin, x->size[0], costab, sintab, sintabinv, y);
+    }
+
+    emxFree_real_T(&sintabinv);
+    emxFree_real_T(&sintab);
+    emxFree_real_T(&costab);
+  }
+}
+
+//
+// Arguments    : double b[4]
+//                double a[4]
+//                const double x[268]
+//                const double zi[3]
+//                double y[268]
+// Return Type  : void
+//
+static void filter(double b[4], double a[4], const double x[268], const double
+                   zi[3], double y[268])
+{
+  double a1;
+  int k;
+  double dbuffer[4];
+  int j;
+  a1 = a[0];
+  if ((!((!rtIsInf(a[0])) && (!rtIsNaN(a[0])))) || (a[0] == 0.0) || (!(a[0] !=
+        1.0))) {
+  } else {
+    for (k = 0; k < 4; k++) {
+      b[k] /= a1;
+    }
+
+    for (k = 0; k < 3; k++) {
+      a[k + 1] /= a1;
+    }
+
+    a[0] = 1.0;
+  }
+
+  for (k = 0; k < 3; k++) {
+    dbuffer[k + 1] = zi[k];
+  }
+
+  for (j = 0; j < 268; j++) {
+    for (k = 0; k < 3; k++) {
+      dbuffer[k] = dbuffer[k + 1];
+    }
+
+    dbuffer[3] = 0.0;
+    for (k = 0; k < 4; k++) {
+      dbuffer[k] += x[j] * b[k];
+    }
+
+    for (k = 0; k < 3; k++) {
+      dbuffer[k + 1] -= dbuffer[0] * a[k + 1];
+    }
+
+    y[j] = dbuffer[0];
+  }
+}
+
+//
+// Arguments    : const double x_in[250]
+//                double y_out[250]
+// Return Type  : void
+//
+static void filtfilt(const double x_in[250], double y_out[250])
+{
+  double xtmp;
+  double d0;
+  int i;
+  double y[268];
+  double dv6[4];
+  double dv7[4];
+  double a[3];
+  static const double dv8[4] = { 0.00156701035058832, 0.00470103105176495,
+    0.00470103105176495, 0.00156701035058832 };
+
+  static const double dv9[4] = { 1.0, -2.49860834469118, 2.11525412700316,
+    -0.604109699507275 };
+
+  double b_y[268];
+  static const double b_a[3] = { 0.99843298964950811, -1.5048763860936776,
+    0.60567670985792155 };
+
+  double c_y[268];
+  xtmp = 2.0 * x_in[0];
+  d0 = 2.0 * x_in[249];
+  for (i = 0; i < 9; i++) {
+    y[i] = xtmp - x_in[9 - i];
+  }
+
+  memcpy(&y[9], &x_in[0], 250U * sizeof(double));
+  for (i = 0; i < 9; i++) {
+    y[i + 259] = d0 - x_in[248 - i];
+  }
+
+  for (i = 0; i < 4; i++) {
+    dv6[i] = dv8[i];
+    dv7[i] = dv9[i];
+  }
+
+  for (i = 0; i < 3; i++) {
+    a[i] = b_a[i] * y[0];
+  }
+
+  memcpy(&b_y[0], &y[0], 268U * sizeof(double));
+  filter(dv6, dv7, b_y, a, y);
+  for (i = 0; i < 134; i++) {
+    xtmp = y[i];
+    y[i] = y[267 - i];
+    y[267 - i] = xtmp;
+  }
+
+  for (i = 0; i < 4; i++) {
+    dv6[i] = dv8[i];
+    dv7[i] = dv9[i];
+  }
+
+  for (i = 0; i < 3; i++) {
+    a[i] = b_a[i] * y[0];
+  }
+
+  memcpy(&c_y[0], &y[0], 268U * sizeof(double));
+  filter(dv6, dv7, c_y, a, y);
+  for (i = 0; i < 134; i++) {
+    xtmp = y[i];
+    y[i] = y[267 - i];
+    y[267 - i] = xtmp;
+  }
+
+  memcpy(&y_out[0], &y[9], 250U * sizeof(double));
+}
+
+//
+// Arguments    : const double yTemp[250]
+//                emxArray_real_T *iPk
+//                emxArray_real_T *iInflect
+// Return Type  : void
+//
+static void findLocalMaxima(const double yTemp[250], emxArray_real_T *iPk,
+  emxArray_real_T *iInflect)
+{
+  double b_yTemp[252];
+  boolean_T yFinite[252];
+  int ii;
+  boolean_T x[251];
+  emxArray_int32_T *b_ii;
+  int idx;
+  int i1;
+  boolean_T exitg3;
+  emxArray_int32_T *r5;
+  boolean_T guard3 = false;
+  emxArray_real_T *iTemp;
+  emxArray_real_T *c_yTemp;
+  emxArray_real_T *s;
+  emxArray_boolean_T *b_x;
+  emxArray_real_T *r6;
+  int nx;
+  boolean_T exitg2;
+  boolean_T guard2 = false;
+  emxArray_int32_T *c_ii;
+  boolean_T exitg1;
+  boolean_T guard1 = false;
+  b_yTemp[0] = rtNaN;
+  memcpy(&b_yTemp[1], &yTemp[0], 250U * sizeof(double));
+  b_yTemp[251] = rtNaN;
+  for (ii = 0; ii < 252; ii++) {
+    yFinite[ii] = !rtIsNaN(b_yTemp[ii]);
+  }
+
+  for (ii = 0; ii < 251; ii++) {
+    x[ii] = ((b_yTemp[ii] != b_yTemp[ii + 1]) && (yFinite[ii] || yFinite[ii + 1]));
+  }
+
+  emxInit_int32_T(&b_ii, 1);
+  idx = 0;
+  i1 = b_ii->size[0];
+  b_ii->size[0] = 251;
+  emxEnsureCapacity((emxArray__common *)b_ii, i1, (int)sizeof(int));
+  ii = 1;
+  exitg3 = false;
+  while ((!exitg3) && (ii < 252)) {
+    guard3 = false;
+    if (x[ii - 1]) {
+      idx++;
+      b_ii->data[idx - 1] = ii;
+      if (idx >= 251) {
+        exitg3 = true;
+      } else {
+        guard3 = true;
+      }
+    } else {
+      guard3 = true;
+    }
+
+    if (guard3) {
+      ii++;
+    }
+  }
+
+  emxInit_int32_T(&r5, 1);
+  i1 = b_ii->size[0];
+  if (1 > idx) {
+    b_ii->size[0] = 0;
+  } else {
+    b_ii->size[0] = idx;
+  }
+
+  emxEnsureCapacity((emxArray__common *)b_ii, i1, (int)sizeof(int));
+  i1 = r5->size[0];
+  r5->size[0] = 1 + b_ii->size[0];
+  emxEnsureCapacity((emxArray__common *)r5, i1, (int)sizeof(int));
+  r5->data[0] = 1;
+  ii = b_ii->size[0];
+  for (i1 = 0; i1 < ii; i1++) {
+    r5->data[i1 + 1] = b_ii->data[i1] + 1;
+  }
+
+  emxInit_real_T1(&iTemp, 1);
+  i1 = iTemp->size[0];
+  iTemp->size[0] = r5->size[0];
+  emxEnsureCapacity((emxArray__common *)iTemp, i1, (int)sizeof(double));
+  ii = r5->size[0];
+  for (i1 = 0; i1 < ii; i1++) {
+    iTemp->data[i1] = 1.0 + (double)(r5->data[i1] - 1);
+  }
+
+  emxFree_int32_T(&r5);
+  emxInit_real_T1(&c_yTemp, 1);
+  i1 = c_yTemp->size[0];
+  c_yTemp->size[0] = iTemp->size[0];
+  emxEnsureCapacity((emxArray__common *)c_yTemp, i1, (int)sizeof(double));
+  ii = iTemp->size[0];
+  for (i1 = 0; i1 < ii; i1++) {
+    c_yTemp->data[i1] = b_yTemp[(int)iTemp->data[i1] - 1];
+  }
+
+  emxInit_real_T1(&s, 1);
+  emxInit_boolean_T(&b_x, 1);
+  emxInit_real_T1(&r6, 1);
+  diff(c_yTemp, s);
+  b_sign(s);
+  diff(s, r6);
+  i1 = b_x->size[0];
+  b_x->size[0] = r6->size[0];
+  emxEnsureCapacity((emxArray__common *)b_x, i1, (int)sizeof(boolean_T));
+  ii = r6->size[0];
+  emxFree_real_T(&c_yTemp);
+  for (i1 = 0; i1 < ii; i1++) {
+    b_x->data[i1] = (r6->data[i1] < 0.0);
+  }
+
+  emxFree_real_T(&r6);
+  nx = b_x->size[0];
+  idx = 0;
+  i1 = b_ii->size[0];
+  b_ii->size[0] = b_x->size[0];
+  emxEnsureCapacity((emxArray__common *)b_ii, i1, (int)sizeof(int));
+  ii = 1;
+  exitg2 = false;
+  while ((!exitg2) && (ii <= nx)) {
+    guard2 = false;
+    if (b_x->data[ii - 1]) {
+      idx++;
+      b_ii->data[idx - 1] = ii;
+      if (idx >= nx) {
+        exitg2 = true;
+      } else {
+        guard2 = true;
+      }
+    } else {
+      guard2 = true;
+    }
+
+    if (guard2) {
+      ii++;
+    }
+  }
+
+  if (b_x->size[0] == 1) {
+    if (idx == 0) {
+      i1 = b_ii->size[0];
+      b_ii->size[0] = 0;
+      emxEnsureCapacity((emxArray__common *)b_ii, i1, (int)sizeof(int));
+    }
+  } else {
+    i1 = b_ii->size[0];
+    if (1 > idx) {
+      b_ii->size[0] = 0;
+    } else {
+      b_ii->size[0] = idx;
+    }
+
+    emxEnsureCapacity((emxArray__common *)b_ii, i1, (int)sizeof(int));
+  }
+
+  if (1.0 > (double)s->size[0] - 1.0) {
+    ii = 0;
+  } else {
+    ii = (int)((double)s->size[0] - 1.0);
+  }
+
+  if (2 > s->size[0]) {
+    i1 = 0;
+  } else {
+    i1 = 1;
+  }
+
+  idx = b_x->size[0];
+  b_x->size[0] = ii;
+  emxEnsureCapacity((emxArray__common *)b_x, idx, (int)sizeof(boolean_T));
+  for (idx = 0; idx < ii; idx++) {
+    b_x->data[idx] = (s->data[idx] != s->data[i1 + idx]);
+  }
+
+  emxFree_real_T(&s);
+  emxInit_int32_T(&c_ii, 1);
+  nx = b_x->size[0];
+  idx = 0;
+  i1 = c_ii->size[0];
+  c_ii->size[0] = b_x->size[0];
+  emxEnsureCapacity((emxArray__common *)c_ii, i1, (int)sizeof(int));
+  ii = 1;
+  exitg1 = false;
+  while ((!exitg1) && (ii <= nx)) {
+    guard1 = false;
+    if (b_x->data[ii - 1]) {
+      idx++;
+      c_ii->data[idx - 1] = ii;
+      if (idx >= nx) {
+        exitg1 = true;
+      } else {
+        guard1 = true;
+      }
+    } else {
+      guard1 = true;
+    }
+
+    if (guard1) {
+      ii++;
+    }
+  }
+
+  if (b_x->size[0] == 1) {
+    if (idx == 0) {
+      i1 = c_ii->size[0];
+      c_ii->size[0] = 0;
+      emxEnsureCapacity((emxArray__common *)c_ii, i1, (int)sizeof(int));
+    }
+  } else {
+    i1 = c_ii->size[0];
+    if (1 > idx) {
+      c_ii->size[0] = 0;
+    } else {
+      c_ii->size[0] = idx;
+    }
+
+    emxEnsureCapacity((emxArray__common *)c_ii, i1, (int)sizeof(int));
+  }
+
+  emxFree_boolean_T(&b_x);
+  i1 = iInflect->size[0];
+  iInflect->size[0] = c_ii->size[0];
+  emxEnsureCapacity((emxArray__common *)iInflect, i1, (int)sizeof(double));
+  ii = c_ii->size[0];
+  for (i1 = 0; i1 < ii; i1++) {
+    iInflect->data[i1] = iTemp->data[c_ii->data[i1]] - 1.0;
+  }
+
+  emxFree_int32_T(&c_ii);
+  i1 = iPk->size[0];
+  iPk->size[0] = b_ii->size[0];
+  emxEnsureCapacity((emxArray__common *)iPk, i1, (int)sizeof(double));
+  ii = b_ii->size[0];
+  for (i1 = 0; i1 < ii; i1++) {
+    iPk->data[i1] = iTemp->data[b_ii->data[i1]] - 1.0;
+  }
+
+  emxFree_int32_T(&b_ii);
+  emxFree_real_T(&iTemp);
+}
+
+//
+// Arguments    : double x
+//                const emxArray_real_T *bin_edges
+// Return Type  : int
+//
+static int findbin(double x, const emxArray_real_T *bin_edges)
+{
+  int k;
+  int low_ip1;
+  int high_i;
+  int mid_i;
+  k = 0;
+  if ((!(bin_edges->size[1] == 0)) && (!rtIsNaN(x))) {
+    if ((x >= bin_edges->data[0]) && (x < bin_edges->data[bin_edges->size[1] - 1]))
+    {
+      k = 1;
+      low_ip1 = 2;
+      high_i = bin_edges->size[1];
+      while (high_i > low_ip1) {
+        mid_i = (k >> 1) + (high_i >> 1);
+        if (((k & 1) == 1) && ((high_i & 1) == 1)) {
+          mid_i++;
+        }
+
+        if (x >= bin_edges->data[mid_i - 1]) {
+          k = mid_i;
+          low_ip1 = mid_i + 1;
+        } else {
+          high_i = mid_i;
+        }
+      }
+    }
+
+    if (x == bin_edges->data[bin_edges->size[1] - 1]) {
+      k = bin_edges->size[1];
+    }
+  }
+
+  return k;
+}
+
+//
+// Arguments    : const double Yin[250]
+//                emxArray_real_T *Ypk
+//                emxArray_real_T *Xpk
+// Return Type  : void
+//
+static void findpeaks(const double Yin[250], emxArray_real_T *Ypk,
+                      emxArray_real_T *Xpk)
+{
+  boolean_T x[250];
+  int k;
+  emxArray_int32_T *ii;
+  int idx;
+  int cdiff;
+  boolean_T exitg1;
+  emxArray_real_T *iInfite;
+  boolean_T guard1 = false;
+  double yTemp[250];
+  emxArray_real_T *iPk;
+  emxArray_real_T *b_idx;
+  int ndbl;
+  emxArray_real_T *base;
+  double extremum;
+  emxArray_real_T *varargin_2;
+  int apnd;
+  emxArray_real_T *y;
+  emxArray_real_T *c_idx;
+  for (k = 0; k < 250; k++) {
+    x[k] = (rtIsInf(Yin[k]) && (Yin[k] > 0.0));
+  }
+
+  emxInit_int32_T(&ii, 1);
+  idx = 0;
+  k = ii->size[0];
+  ii->size[0] = 250;
+  emxEnsureCapacity((emxArray__common *)ii, k, (int)sizeof(int));
+  cdiff = 1;
+  exitg1 = false;
+  while ((!exitg1) && (cdiff < 251)) {
+    guard1 = false;
+    if (x[cdiff - 1]) {
+      idx++;
+      ii->data[idx - 1] = cdiff;
+      if (idx >= 250) {
+        exitg1 = true;
+      } else {
+        guard1 = true;
+      }
+    } else {
+      guard1 = true;
+    }
+
+    if (guard1) {
+      cdiff++;
+    }
+  }
+
+  emxInit_real_T1(&iInfite, 1);
+  k = ii->size[0];
+  if (1 > idx) {
+    ii->size[0] = 0;
+  } else {
+    ii->size[0] = idx;
+  }
+
+  emxEnsureCapacity((emxArray__common *)ii, k, (int)sizeof(int));
+  k = iInfite->size[0];
+  iInfite->size[0] = ii->size[0];
+  emxEnsureCapacity((emxArray__common *)iInfite, k, (int)sizeof(double));
+  cdiff = ii->size[0];
+  for (k = 0; k < cdiff; k++) {
+    iInfite->data[k] = ii->data[k];
+  }
+
+  memcpy(&yTemp[0], &Yin[0], 250U * sizeof(double));
+  k = ii->size[0];
+  ii->size[0] = iInfite->size[0];
+  emxEnsureCapacity((emxArray__common *)ii, k, (int)sizeof(int));
+  cdiff = iInfite->size[0];
+  for (k = 0; k < cdiff; k++) {
+    ii->data[k] = (int)iInfite->data[k];
+  }
+
+  cdiff = ii->size[0];
+  for (k = 0; k < cdiff; k++) {
+    yTemp[ii->data[k] - 1] = rtNaN;
+  }
+
+  emxFree_int32_T(&ii);
+  emxInit_real_T1(&iPk, 1);
+  emxInit_real_T1(&b_idx, 1);
+  findLocalMaxima(yTemp, iPk, b_idx);
+  if (!(iPk->size[0] == 0)) {
+    cdiff = iPk->size[0] - 1;
+    ndbl = 0;
+    for (idx = 0; idx <= cdiff; idx++) {
+      if (Yin[(int)iPk->data[idx] - 1] > 6.5E-5) {
+        ndbl++;
+      }
+    }
+
+    k = 0;
+    for (idx = 0; idx <= cdiff; idx++) {
+      if (Yin[(int)iPk->data[idx] - 1] > 6.5E-5) {
+        iPk->data[k] = iPk->data[idx];
+        k++;
+      }
+    }
+
+    k = iPk->size[0];
+    iPk->size[0] = ndbl;
+    emxEnsureCapacity((emxArray__common *)iPk, k, (int)sizeof(double));
+  }
+
+  cdiff = iPk->size[0];
+  emxInit_real_T1(&base, 1);
+  k = base->size[0];
+  base->size[0] = cdiff;
+  emxEnsureCapacity((emxArray__common *)base, k, (int)sizeof(double));
+  for (k = 0; k + 1 <= cdiff; k++) {
+    if ((Yin[(int)(iPk->data[k] - 1.0) - 1] >= Yin[(int)(iPk->data[k] + 1.0) - 1])
+        || rtIsNaN(Yin[(int)(iPk->data[k] + 1.0) - 1])) {
+      extremum = Yin[(int)(iPk->data[k] - 1.0) - 1];
+    } else {
+      extremum = Yin[(int)(iPk->data[k] + 1.0) - 1];
+    }
+
+    base->data[k] = extremum;
+  }
+
+  cdiff = iPk->size[0] - 1;
+  ndbl = 0;
+  for (idx = 0; idx <= cdiff; idx++) {
+    if (Yin[(int)iPk->data[idx] - 1] - base->data[idx] >= 0.0) {
+      ndbl++;
+    }
+  }
+
+  k = 0;
+  for (idx = 0; idx <= cdiff; idx++) {
+    if (Yin[(int)iPk->data[idx] - 1] - base->data[idx] >= 0.0) {
+      iPk->data[k] = iPk->data[idx];
+      k++;
+    }
+  }
+
+  emxFree_real_T(&base);
+  emxInit_real_T1(&varargin_2, 1);
+  k = iPk->size[0];
+  iPk->size[0] = ndbl;
+  emxEnsureCapacity((emxArray__common *)iPk, k, (int)sizeof(double));
+  combinePeaks(iPk, iInfite, varargin_2);
+  emxFree_real_T(&iInfite);
+  if (varargin_2->size[0] < 1) {
     ndbl = 0;
     apnd = 0;
   } else {
-    ndbl = (int)std::floor(((double)iPk->size[0] - 1.0) + 0.5);
+    ndbl = (int)std::floor(((double)varargin_2->size[0] - 1.0) + 0.5);
     apnd = ndbl + 1;
-    cdiff = (ndbl - iPk->size[0]) + 1;
-    absb = iPk->size[0];
-    if (std::abs((double)cdiff) < 4.4408920985006262E-16 * (double)absb) {
+    cdiff = (ndbl - varargin_2->size[0]) + 1;
+    idx = varargin_2->size[0];
+    if (std::abs((double)cdiff) < 4.4408920985006262E-16 * (double)idx) {
       ndbl++;
-      apnd = iPk->size[0];
+      apnd = varargin_2->size[0];
     } else if (cdiff > 0) {
       apnd = ndbl;
     } else {
@@ -4404,161 +6682,234 @@ static void e_findPeaksSeparatedByMoreThanM(const emxArray_real_T *iPk,
   }
 
   emxInit_real_T(&y, 2);
-  absb = y->size[0] * y->size[1];
+  k = y->size[0] * y->size[1];
   y->size[0] = 1;
   y->size[1] = ndbl;
-  emxEnsureCapacity((emxArray__common *)y, absb, (int)sizeof(double));
+  emxEnsureCapacity((emxArray__common *)y, k, (int)sizeof(double));
   if (ndbl > 0) {
     y->data[0] = 1.0;
     if (ndbl > 1) {
       y->data[ndbl - 1] = apnd;
-      cdiff = (ndbl - 1) / 2;
-      for (absb = 1; absb < cdiff; absb++) {
-        y->data[absb] = 1.0 + (double)absb;
-        y->data[(ndbl - absb) - 1] = apnd - absb;
+      idx = (ndbl - 1) / 2;
+      for (k = 1; k < idx; k++) {
+        y->data[k] = 1.0 + (double)k;
+        y->data[(ndbl - k) - 1] = apnd - k;
       }
 
-      if (cdiff << 1 == ndbl - 1) {
-        y->data[cdiff] = (1.0 + (double)apnd) / 2.0;
+      if (idx << 1 == ndbl - 1) {
+        y->data[idx] = (1.0 + (double)apnd) / 2.0;
       } else {
-        y->data[cdiff] = 1.0 + (double)cdiff;
-        y->data[cdiff + 1] = apnd - cdiff;
+        y->data[idx] = 1.0 + (double)idx;
+        y->data[idx + 1] = apnd - idx;
       }
     }
   }
 
-  absb = idx->size[0];
-  idx->size[0] = y->size[1];
-  emxEnsureCapacity((emxArray__common *)idx, absb, (int)sizeof(double));
+  k = b_idx->size[0];
+  b_idx->size[0] = y->size[1];
+  emxEnsureCapacity((emxArray__common *)b_idx, k, (int)sizeof(double));
   cdiff = y->size[1];
-  for (absb = 0; absb < cdiff; absb++) {
-    idx->data[absb] = y->data[y->size[0] * absb];
+  for (k = 0; k < cdiff; k++) {
+    b_idx->data[k] = y->data[y->size[0] * k];
   }
 
   emxFree_real_T(&y);
+  if (b_idx->size[0] > 250) {
+    emxInit_real_T1(&c_idx, 1);
+    k = c_idx->size[0];
+    c_idx->size[0] = 250;
+    emxEnsureCapacity((emxArray__common *)c_idx, k, (int)sizeof(double));
+    for (k = 0; k < 250; k++) {
+      c_idx->data[k] = b_idx->data[k];
+    }
+
+    k = b_idx->size[0];
+    b_idx->size[0] = c_idx->size[0];
+    emxEnsureCapacity((emxArray__common *)b_idx, k, (int)sizeof(double));
+    cdiff = c_idx->size[0];
+    for (k = 0; k < cdiff; k++) {
+      b_idx->data[k] = c_idx->data[k];
+    }
+
+    emxFree_real_T(&c_idx);
+  }
+
+  k = iPk->size[0];
+  iPk->size[0] = b_idx->size[0];
+  emxEnsureCapacity((emxArray__common *)iPk, k, (int)sizeof(double));
+  cdiff = b_idx->size[0];
+  for (k = 0; k < cdiff; k++) {
+    iPk->data[k] = varargin_2->data[(int)b_idx->data[k] - 1];
+  }
+
+  emxFree_real_T(&varargin_2);
+  emxFree_real_T(&b_idx);
+  k = Ypk->size[0] * Ypk->size[1];
+  Ypk->size[0] = 1;
+  Ypk->size[1] = iPk->size[0];
+  emxEnsureCapacity((emxArray__common *)Ypk, k, (int)sizeof(double));
+  cdiff = iPk->size[0];
+  for (k = 0; k < cdiff; k++) {
+    Ypk->data[Ypk->size[0] * k] = Yin[(int)iPk->data[k] - 1];
+  }
+
+  k = Xpk->size[0] * Xpk->size[1];
+  Xpk->size[0] = 1;
+  Xpk->size[1] = iPk->size[0];
+  emxEnsureCapacity((emxArray__common *)Xpk, k, (int)sizeof(double));
+  cdiff = iPk->size[0];
+  for (k = 0; k < cdiff; k++) {
+    Xpk->data[Xpk->size[0] * k] = 1.0 + (double)((int)iPk->data[k] - 1);
+  }
+
+  emxFree_real_T(&iPk);
 }
 
 //
-// EOGCFILT EEG filter for conversion to C.
-//  Vectorize:
-// Arguments    : double X_data[]
-//                int X_size[1]
-//                emxArray_real_T *Y
+// Arguments    : const emxArray_real_T *y
+//                emxArray_real_T *iPk
+//                emxArray_real_T *iInf
+//                emxArray_real_T *iInflect
 // Return Type  : void
 //
-static void eegcfilt(double X_data[], int X_size[1], emxArray_real_T *Y)
+static void getAllPeaks(const emxArray_real_T *y, emxArray_real_T *iPk,
+  emxArray_real_T *iInf, emxArray_real_T *iInflect)
 {
-  int x_size_idx_0;
-  int loop_ub;
-  double x_data[5000];
-  int i7;
-  double d2;
-  double d3;
-  double y_data[5060];
-  double a[10];
-  double b_y_data[5060];
-  static const double b_a[10] = { -2.1396152021655335E-5, -2.1396152489276133E-5,
-    8.558460975207999E-5, 8.5584605288149449E-5, -0.00012837690837852629,
-    -0.00012837691616921775, 8.5584610596008311E-5, 8.5584607376171939E-5,
-    -2.1396151855180404E-5, -2.1396152098550849E-5 };
-
-  int y_size[1];
-  int b_y_size[1];
-  int c_y_size[1];
-  int tmp_data[5000];
-
-  //  Fs = 250, N = 5
-  //  flim = [8 18], bandpass
-  if (X_size[0] == 1) {
-    x_size_idx_0 = 1;
-    x_data[0] = X_data[0];
-  } else {
-    x_size_idx_0 = X_size[0];
-    loop_ub = X_size[0];
-    for (i7 = 0; i7 < loop_ub; i7++) {
-      x_data[i7] = X_data[i7];
-    }
+  emxArray_boolean_T *x;
+  int i6;
+  int ii;
+  emxArray_int32_T *b_ii;
+  int nx;
+  int idx;
+  boolean_T exitg1;
+  boolean_T guard1 = false;
+  emxArray_real_T *yTemp;
+  emxInit_boolean_T(&x, 1);
+  i6 = x->size[0];
+  x->size[0] = y->size[0];
+  emxEnsureCapacity((emxArray__common *)x, i6, (int)sizeof(boolean_T));
+  ii = y->size[0];
+  for (i6 = 0; i6 < ii; i6++) {
+    x->data[i6] = rtIsInf(y->data[i6]);
   }
 
-  if (x_size_idx_0 == 0) {
-    i7 = Y->size[0] * Y->size[1];
-    Y->size[0] = 0;
-    Y->size[1] = 0;
-    emxEnsureCapacity((emxArray__common *)Y, i7, (int)sizeof(double));
-  } else {
-    d2 = 2.0 * x_data[0];
-    d3 = 2.0 * x_data[x_size_idx_0 - 1];
-    for (i7 = 0; i7 < 30; i7++) {
-      y_data[i7] = d2 - x_data[30 - i7];
-    }
+  i6 = x->size[0];
+  emxEnsureCapacity((emxArray__common *)x, i6, (int)sizeof(boolean_T));
+  ii = x->size[0];
+  for (i6 = 0; i6 < ii; i6++) {
+    x->data[i6] = (x->data[i6] && (y->data[i6] > 0.0));
+  }
 
-    for (i7 = 0; i7 < x_size_idx_0; i7++) {
-      y_data[i7 + 30] = x_data[i7];
-    }
-
-    for (i7 = 0; i7 < 30; i7++) {
-      y_data[(i7 + x_size_idx_0) + 30] = d3 - x_data[(x_size_idx_0 - i7) - 2];
-    }
-
-    for (i7 = 0; i7 < 10; i7++) {
-      a[i7] = b_a[i7] * y_data[0];
-    }
-
-    y_size[0] = 60 + x_size_idx_0;
-    loop_ub = 60 + x_size_idx_0;
-    for (i7 = 0; i7 < loop_ub; i7++) {
-      b_y_data[i7] = y_data[i7];
-    }
-
-    b_filter(b_y_data, y_size, a, y_data, b_y_size);
-    flipud(y_data, b_y_size);
-    for (i7 = 0; i7 < 10; i7++) {
-      a[i7] = b_a[i7] * y_data[0];
-    }
-
-    c_y_size[0] = b_y_size[0];
-    loop_ub = b_y_size[0];
-    for (i7 = 0; i7 < loop_ub; i7++) {
-      b_y_data[i7] = y_data[i7];
-    }
-
-    b_filter(b_y_data, c_y_size, a, y_data, b_y_size);
-    flipud(y_data, b_y_size);
-    if (X_size[0] == 1) {
-      i7 = Y->size[0] * Y->size[1];
-      Y->size[0] = 1;
-      Y->size[1] = x_size_idx_0;
-      emxEnsureCapacity((emxArray__common *)Y, i7, (int)sizeof(double));
-      for (i7 = 0; i7 < x_size_idx_0; i7++) {
-        Y->data[Y->size[0] * i7] = y_data[30 + i7];
+  emxInit_int32_T(&b_ii, 1);
+  nx = x->size[0];
+  idx = 0;
+  i6 = b_ii->size[0];
+  b_ii->size[0] = x->size[0];
+  emxEnsureCapacity((emxArray__common *)b_ii, i6, (int)sizeof(int));
+  ii = 1;
+  exitg1 = false;
+  while ((!exitg1) && (ii <= nx)) {
+    guard1 = false;
+    if (x->data[ii - 1]) {
+      idx++;
+      b_ii->data[idx - 1] = ii;
+      if (idx >= nx) {
+        exitg1 = true;
+      } else {
+        guard1 = true;
       }
     } else {
-      i7 = Y->size[0] * Y->size[1];
-      Y->size[0] = x_size_idx_0;
-      Y->size[1] = 1;
-      emxEnsureCapacity((emxArray__common *)Y, i7, (int)sizeof(double));
-      for (i7 = 0; i7 < x_size_idx_0; i7++) {
-        tmp_data[i7] = 31 + i7;
-      }
+      guard1 = true;
+    }
 
-      for (i7 = 0; i7 < x_size_idx_0; i7++) {
-        Y->data[i7] = y_data[tmp_data[i7] - 1];
-      }
+    if (guard1) {
+      ii++;
     }
   }
+
+  if (x->size[0] == 1) {
+    if (idx == 0) {
+      i6 = b_ii->size[0];
+      b_ii->size[0] = 0;
+      emxEnsureCapacity((emxArray__common *)b_ii, i6, (int)sizeof(int));
+    }
+  } else {
+    i6 = b_ii->size[0];
+    if (1 > idx) {
+      b_ii->size[0] = 0;
+    } else {
+      b_ii->size[0] = idx;
+    }
+
+    emxEnsureCapacity((emxArray__common *)b_ii, i6, (int)sizeof(int));
+  }
+
+  emxFree_boolean_T(&x);
+  i6 = iInf->size[0];
+  iInf->size[0] = b_ii->size[0];
+  emxEnsureCapacity((emxArray__common *)iInf, i6, (int)sizeof(double));
+  ii = b_ii->size[0];
+  for (i6 = 0; i6 < ii; i6++) {
+    iInf->data[i6] = b_ii->data[i6];
+  }
+
+  emxInit_real_T1(&yTemp, 1);
+  i6 = yTemp->size[0];
+  yTemp->size[0] = y->size[0];
+  emxEnsureCapacity((emxArray__common *)yTemp, i6, (int)sizeof(double));
+  ii = y->size[0];
+  for (i6 = 0; i6 < ii; i6++) {
+    yTemp->data[i6] = y->data[i6];
+  }
+
+  i6 = b_ii->size[0];
+  b_ii->size[0] = iInf->size[0];
+  emxEnsureCapacity((emxArray__common *)b_ii, i6, (int)sizeof(int));
+  ii = iInf->size[0];
+  for (i6 = 0; i6 < ii; i6++) {
+    b_ii->data[i6] = (int)iInf->data[i6];
+  }
+
+  ii = b_ii->size[0];
+  for (i6 = 0; i6 < ii; i6++) {
+    yTemp->data[b_ii->data[i6] - 1] = rtNaN;
+  }
+
+  emxFree_int32_T(&b_ii);
+  c_findLocalMaxima(yTemp, iPk, iInflect);
+  emxFree_real_T(&yTemp);
 }
 
 //
-// Arguments    : const emxArray_real_T *x
-//                creal_T y[2048]
+// get_fft_data:
+//  X is filtered data
+//  L = size(X,1);
+//  L = number of FFT points
+// Arguments    : const emxArray_real_T *X
+//                double Fs
+//                double f[1025]
+//                double C[1025]
 // Return Type  : void
 //
-static void eml_fft(const emxArray_real_T *x, creal_T y[2048])
+static void get_nfft_data(const emxArray_real_T *X, double Fs, double f[1025],
+  double C[1025])
 {
+  int iy;
+  emxArray_real_T *x;
+  creal_T b_y1[2048];
+  int iDelta2;
   int i;
-  int b_x[1];
-  emxArray_real_T c_x;
-  static const double dv11[1025] = { 1.0, 0.99999529380957619,
+  creal_T c_y1[2048];
+  int k;
+  double B[2048];
+  int ix;
+  int ju;
+  boolean_T tst;
+  double temp_re;
+  double temp_im;
+  int j;
+  double twid_re;
+  static const double dv17[1025] = { 1.0, 0.99999529380957619,
     0.99998117528260111, 0.9999576445519639, 0.9999247018391445,
     0.99988234745421256, 0.9998305817958234, 0.99976940535121528,
     0.99969881869620425, 0.99961882249517864, 0.99952941750109314,
@@ -4900,7 +7251,8 @@ static void eml_fft(const emxArray_real_T *x, creal_T y[2048])
     -0.9998305817958234, -0.99988234745421256, -0.9999247018391445,
     -0.9999576445519639, -0.99998117528260111, -0.99999529380957619, -1.0 };
 
-  static const double dv12[1025] = { 0.0, -0.0030679567629659761,
+  double twid_im;
+  static const double dv18[1025] = { 0.0, -0.0030679567629659761,
     -0.0061358846491544753, -0.00920375478205982, -0.012271538285719925,
     -0.0153392062849881, -0.01840672990580482, -0.021474080275469508,
     -0.024541228522912288, -0.02760814577896574, -0.030674803176636626,
@@ -5243,1936 +7595,130 @@ static void eml_fft(const emxArray_real_T *x, creal_T y[2048])
     -0.012271538285719925, -0.00920375478205982, -0.0061358846491544753,
     -0.0030679567629659761, -0.0 };
 
-  i = x->size[0];
-  if (i == 0) {
-    i = x->size[0];
-    if (2048 > i) {
+  int ihi;
+  iy = X->size[1];
+  if (iy == 0) {
+    iy = X->size[1];
+    if (2048 > iy) {
       for (i = 0; i < 2048; i++) {
-        y[i].re = 0.0;
-        y[i].im = 0.0;
+        b_y1[i].re = 0.0;
+        b_y1[i].im = 0.0;
       }
     }
   } else {
-    b_x[0] = x->size[0];
-    c_x = *x;
-    c_x.size = (int *)&b_x;
-    c_x.numDimensions = 1;
-    r2br_r2dit_trig(&c_x, dv11, dv12, y);
-  }
-}
-
-//
-// Arguments    : emxArray__common *emxArray
-//                int oldNumel
-//                int elementSize
-// Return Type  : void
-//
-static void emxEnsureCapacity(emxArray__common *emxArray, int oldNumel, int
-  elementSize)
-{
-  int newNumel;
-  int i;
-  void *newData;
-  newNumel = 1;
-  for (i = 0; i < emxArray->numDimensions; i++) {
-    newNumel *= emxArray->size[i];
-  }
-
-  if (newNumel > emxArray->allocatedSize) {
-    i = emxArray->allocatedSize;
-    if (i < 16) {
-      i = 16;
+    emxInit_real_T1(&x, 1);
+    iy = X->size[1];
+    iDelta2 = x->size[0];
+    x->size[0] = iy;
+    emxEnsureCapacity((emxArray__common *)x, iDelta2, (int)sizeof(double));
+    for (iDelta2 = 0; iDelta2 < iy; iDelta2++) {
+      x->data[iDelta2] = X->data[iDelta2];
     }
 
-    while (i < newNumel) {
-      if (i > 1073741823) {
-        i = MAX_int32_T;
-      } else {
-        i <<= 1;
-      }
-    }
-
-    newData = calloc((unsigned int)i, (unsigned int)elementSize);
-    if (emxArray->data != NULL) {
-      memcpy(newData, emxArray->data, (unsigned int)(elementSize * oldNumel));
-      if (emxArray->canFreeData) {
-        free(emxArray->data);
-      }
-    }
-
-    emxArray->data = newData;
-    emxArray->allocatedSize = i;
-    emxArray->canFreeData = true;
-  }
-}
-
-//
-// Arguments    : emxArray_boolean_T **pEmxArray
-// Return Type  : void
-//
-static void emxFree_boolean_T(emxArray_boolean_T **pEmxArray)
-{
-  if (*pEmxArray != (emxArray_boolean_T *)NULL) {
-    if (((*pEmxArray)->data != (boolean_T *)NULL) && (*pEmxArray)->canFreeData)
-    {
-      free((void *)(*pEmxArray)->data);
-    }
-
-    free((void *)(*pEmxArray)->size);
-    free((void *)*pEmxArray);
-    *pEmxArray = (emxArray_boolean_T *)NULL;
-  }
-}
-
-//
-// Arguments    : emxArray_creal_T **pEmxArray
-// Return Type  : void
-//
-static void emxFree_creal_T(emxArray_creal_T **pEmxArray)
-{
-  if (*pEmxArray != (emxArray_creal_T *)NULL) {
-    if (((*pEmxArray)->data != (creal_T *)NULL) && (*pEmxArray)->canFreeData) {
-      free((void *)(*pEmxArray)->data);
-    }
-
-    free((void *)(*pEmxArray)->size);
-    free((void *)*pEmxArray);
-    *pEmxArray = (emxArray_creal_T *)NULL;
-  }
-}
-
-//
-// Arguments    : emxArray_int32_T **pEmxArray
-// Return Type  : void
-//
-static void emxFree_int32_T(emxArray_int32_T **pEmxArray)
-{
-  if (*pEmxArray != (emxArray_int32_T *)NULL) {
-    if (((*pEmxArray)->data != (int *)NULL) && (*pEmxArray)->canFreeData) {
-      free((void *)(*pEmxArray)->data);
-    }
-
-    free((void *)(*pEmxArray)->size);
-    free((void *)*pEmxArray);
-    *pEmxArray = (emxArray_int32_T *)NULL;
-  }
-}
-
-//
-// Arguments    : emxArray_real_T **pEmxArray
-// Return Type  : void
-//
-static void emxFree_real_T(emxArray_real_T **pEmxArray)
-{
-  if (*pEmxArray != (emxArray_real_T *)NULL) {
-    if (((*pEmxArray)->data != (double *)NULL) && (*pEmxArray)->canFreeData) {
-      free((void *)(*pEmxArray)->data);
-    }
-
-    free((void *)(*pEmxArray)->size);
-    free((void *)*pEmxArray);
-    *pEmxArray = (emxArray_real_T *)NULL;
-  }
-}
-
-//
-// Arguments    : emxArray_boolean_T **pEmxArray
-//                int numDimensions
-// Return Type  : void
-//
-static void emxInit_boolean_T(emxArray_boolean_T **pEmxArray, int numDimensions)
-{
-  emxArray_boolean_T *emxArray;
-  int i;
-  *pEmxArray = (emxArray_boolean_T *)malloc(sizeof(emxArray_boolean_T));
-  emxArray = *pEmxArray;
-  emxArray->data = (boolean_T *)NULL;
-  emxArray->numDimensions = numDimensions;
-  emxArray->size = (int *)malloc((unsigned int)(sizeof(int) * numDimensions));
-  emxArray->allocatedSize = 0;
-  emxArray->canFreeData = true;
-  for (i = 0; i < numDimensions; i++) {
-    emxArray->size[i] = 0;
-  }
-}
-
-//
-// Arguments    : emxArray_creal_T **pEmxArray
-//                int numDimensions
-// Return Type  : void
-//
-static void emxInit_creal_T(emxArray_creal_T **pEmxArray, int numDimensions)
-{
-  emxArray_creal_T *emxArray;
-  int i;
-  *pEmxArray = (emxArray_creal_T *)malloc(sizeof(emxArray_creal_T));
-  emxArray = *pEmxArray;
-  emxArray->data = (creal_T *)NULL;
-  emxArray->numDimensions = numDimensions;
-  emxArray->size = (int *)malloc((unsigned int)(sizeof(int) * numDimensions));
-  emxArray->allocatedSize = 0;
-  emxArray->canFreeData = true;
-  for (i = 0; i < numDimensions; i++) {
-    emxArray->size[i] = 0;
-  }
-}
-
-//
-// Arguments    : emxArray_creal_T **pEmxArray
-//                int numDimensions
-// Return Type  : void
-//
-static void emxInit_creal_T1(emxArray_creal_T **pEmxArray, int numDimensions)
-{
-  emxArray_creal_T *emxArray;
-  int i;
-  *pEmxArray = (emxArray_creal_T *)malloc(sizeof(emxArray_creal_T));
-  emxArray = *pEmxArray;
-  emxArray->data = (creal_T *)NULL;
-  emxArray->numDimensions = numDimensions;
-  emxArray->size = (int *)malloc((unsigned int)(sizeof(int) * numDimensions));
-  emxArray->allocatedSize = 0;
-  emxArray->canFreeData = true;
-  for (i = 0; i < numDimensions; i++) {
-    emxArray->size[i] = 0;
-  }
-}
-
-//
-// Arguments    : emxArray_int32_T **pEmxArray
-//                int numDimensions
-// Return Type  : void
-//
-static void emxInit_int32_T(emxArray_int32_T **pEmxArray, int numDimensions)
-{
-  emxArray_int32_T *emxArray;
-  int i;
-  *pEmxArray = (emxArray_int32_T *)malloc(sizeof(emxArray_int32_T));
-  emxArray = *pEmxArray;
-  emxArray->data = (int *)NULL;
-  emxArray->numDimensions = numDimensions;
-  emxArray->size = (int *)malloc((unsigned int)(sizeof(int) * numDimensions));
-  emxArray->allocatedSize = 0;
-  emxArray->canFreeData = true;
-  for (i = 0; i < numDimensions; i++) {
-    emxArray->size[i] = 0;
-  }
-}
-
-//
-// Arguments    : emxArray_real_T **pEmxArray
-//                int numDimensions
-// Return Type  : void
-//
-static void emxInit_real_T(emxArray_real_T **pEmxArray, int numDimensions)
-{
-  emxArray_real_T *emxArray;
-  int i;
-  *pEmxArray = (emxArray_real_T *)malloc(sizeof(emxArray_real_T));
-  emxArray = *pEmxArray;
-  emxArray->data = (double *)NULL;
-  emxArray->numDimensions = numDimensions;
-  emxArray->size = (int *)malloc((unsigned int)(sizeof(int) * numDimensions));
-  emxArray->allocatedSize = 0;
-  emxArray->canFreeData = true;
-  for (i = 0; i < numDimensions; i++) {
-    emxArray->size[i] = 0;
-  }
-}
-
-//
-// Arguments    : emxArray_real_T **pEmxArray
-//                int numDimensions
-// Return Type  : void
-//
-static void emxInit_real_T1(emxArray_real_T **pEmxArray, int numDimensions)
-{
-  emxArray_real_T *emxArray;
-  int i;
-  *pEmxArray = (emxArray_real_T *)malloc(sizeof(emxArray_real_T));
-  emxArray = *pEmxArray;
-  emxArray->data = (double *)NULL;
-  emxArray->numDimensions = numDimensions;
-  emxArray->size = (int *)malloc((unsigned int)(sizeof(int) * numDimensions));
-  emxArray->allocatedSize = 0;
-  emxArray->canFreeData = true;
-  for (i = 0; i < numDimensions; i++) {
-    emxArray->size[i] = 0;
-  }
-}
-
-//
-// EOGCFILT EOG Filter for conversion to C. All inputs must be constant.
-//  Vectorize:
-// Arguments    : const double X[250]
-//                double Y[250]
-// Return Type  : void
-//
-static void eogcfilt(const double X[250], double Y[250])
-{
-  double dv1[250];
-
-  //  Sampling Frequency = 250;
-  // BW for 10Hz upper bound, Order of 3.
-  // BW filt for 2Hz lower bound, Order of 3:
-  filtfilt(X, dv1);
-  b_filtfilt(dv1, Y);
-}
-
-//
-// Arguments    : double x
-// Return Type  : double
-//
-static double eps(double x)
-{
-  double r;
-  double absxk;
-  int exponent;
-  absxk = std::abs(x);
-  if ((!rtIsInf(absxk)) && (!rtIsNaN(absxk))) {
-    if (absxk <= 2.2250738585072014E-308) {
-      r = 4.94065645841247E-324;
+    if (x->size[0] <= 2048) {
+      k = x->size[0];
     } else {
-      frexp(absxk, &exponent);
-      r = std::ldexp(1.0, exponent - 53);
-    }
-  } else {
-    r = rtNaN;
-  }
-
-  return r;
-}
-
-//
-// featureExtraction Summary of this function goes here if I ever feel like
-// writing one up.
-//  samplesX = samplesX(:);
-// Arguments    : const double samplesX[250]
-//                double F_data[]
-//                int F_size[2]
-// Return Type  : void
-//
-static void featureExtractionEOG(const double samplesX[250], double F_data[],
-  int F_size[2])
-{
-  double peaks_data[500];
-  int peaks_size[2];
-  double loc_data[500];
-  int loc_size[2];
-  int T_count_findpeaks;
-  double T_findpeaks_distX_data[1];
-  boolean_T b_samplesX[250];
-  int i1;
-  findpeaks(samplesX, peaks_data, peaks_size, loc_data, loc_size);
-  if (peaks_size[1] == 0) {
-    T_count_findpeaks = 0;
-    T_findpeaks_distX_data[0] = 0.0;
-  } else {
-    T_count_findpeaks = peaks_size[1];
-    if (peaks_size[1] > 1) {
-      T_findpeaks_distX_data[0] = loc_data[loc_size[1] - 1] - loc_data[0];
-
-      // TODO: TAKE AVG, NOT MAX-MIN
-    } else {
-      T_findpeaks_distX_data[0] = 0.0;
-    }
-  }
-
-  //  F = horzcat(T_mean, T_stdv, T_max, T_min, T_countmin_1, T_countmin_2, T_countmax, T_Integrate); 
-  for (i1 = 0; i1 < 250; i1++) {
-    b_samplesX[i1] = ((samplesX[i1] < -9.9999999999999991E-6) && (samplesX[i1] >
-      -0.0001));
-  }
-
-  F_size[0] = 1;
-  F_size[1] = 10;
-  F_data[0] = Wmean(samplesX);
-  F_data[1] = Wstd(samplesX);
-  F_data[2] = Wmax(samplesX);
-  F_data[3] = Wmin(samplesX);
-  F_data[4] = sum(b_samplesX);
-  F_data[5] = WCountMin(samplesX);
-  F_data[6] = WCountMax(samplesX);
-  F_data[7] = trapz(samplesX);
-  F_data[8] = T_count_findpeaks;
-  for (i1 = 0; i1 < 1; i1++) {
-    F_data[9] = T_findpeaks_distX_data[0];
-  }
-}
-
-//
-// Feature Extraction Function for Tri-channel SSVEP Feature Extraction:
-//  ----- INPUTS -----
-//  fch1, fch2, fch3: Tri-channel SSVEP Samples of certain window size
-//  MUST BE A VECTOR!
-//  MUST BE FILTERED!!
-//  Fs - Sampling Rate.
-//  Using 250-sample windows, feature extraction is obtained using FFT and
-//  PSD
-// ----FFT----%
-// Arguments    : const emxArray_real_T *fch1
-//                const emxArray_real_T *fch2
-//                const emxArray_real_T *fch3
-//                double Fs
-//                double F[30]
-// Return Type  : void
-//
-static void featureExtractionSSVEP2(const emxArray_real_T *fch1, const
-  emxArray_real_T *fch2, const emxArray_real_T *fch3, double Fs, double F[30])
-{
-  double threshFFT[8];
-  int i8;
-  signed char wLFFT[4];
-  int i;
-  double threshPSD[8];
-  signed char wLPSD[4];
-  emxArray_real_T *fchw;
-  int loop_ub;
-  emxArray_int32_T *r1;
-  emxArray_real_T *b_fch1;
-  emxArray_real_T *b_fch2;
-  emxArray_real_T *b_fch3;
-  double FFT_Ltop[8];
-  double FFT_PkRatio[4];
-  emxArray_real_T *PSD;
-  double y;
-  double PSD_Ltop[8];
-  double PSD_PkRatio[4];
-  emxArray_real_T *hW;
-  emxArray_real_T *fPSD;
-  double f[1025];
-  emxArray_real_T *PSD_PKS;
-  emxArray_real_T *PSD_L;
-  emxArray_real_T *r2;
-  emxArray_real_T *b_PSD;
-  emxArray_real_T *b_fchw;
-  emxArray_real_T *c_fchw;
-  static double FFT[4100];
-  int ch;
-  double b_FFT[1025];
-  double FFT_PKS_data[2050];
-  int FFT_PKS_size[2];
-  double FFT_L_data[2050];
-  int FFT_L_size[2];
-  double dv9[1025];
-  emxArray_real_T *c_PSD;
-  int w;
-  boolean_T exitg2;
-  boolean_T exitg4;
-  emxArray_real_T *d_PSD;
-  boolean_T exitg1;
-  double FFTPeaks1[4];
-  double PSDPeaks1[4];
-  int chn;
-  boolean_T b0;
-  boolean_T exitg3;
-  boolean_T b2;
-  double b_wLFFT[4];
-  boolean_T b1;
-  boolean_T b4;
-  double c_wLFFT[4];
-  double b_wLPSD[4];
-  emxArray_real_T *d_fchw;
-  double c_wLPSD[4];
-  emxArray_creal_T *S1;
-  emxArray_real_T *T;
-  emxArray_real_T *e_fchw;
-  double b_F[1025];
-  double b_FFT_Ltop[4];
-  double b_PSD_Ltop[4];
-  emxArray_creal_T *S2;
-  emxArray_real_T *f_fchw;
-  emxArray_creal_T *S3;
-  emxArray_real_T *x;
-  emxArray_real_T *b_x;
-  emxArray_real_T *c_x;
-  emxArray_real_T *d_x;
-  emxArray_real_T *e_x;
-  emxArray_real_T *f_x;
-  emxArray_real_T *g_x;
-  short tmp_data[1025];
-  int trueCount;
-  emxArray_creal_T *b_S1;
-  emxArray_real_T *h_x;
-  emxArray_creal_T *b_S2;
-  emxArray_real_T *i_x;
-  emxArray_creal_T *b_S3;
-  emxArray_real_T *j_x;
-
-  // -% windows around certain target frequencies
-  for (i8 = 0; i8 < 2; i8++) {
-    threshFFT[i8 << 2] = 9.5 + 1.1300000000000008 * (double)i8;
-    threshFFT[1 + (i8 << 2)] = 11.9 + 0.79999999999999893 * (double)i8;
-    threshFFT[2 + (i8 << 2)] = 14.6 + 0.90000000000000036 * (double)i8;
-    threshFFT[3 + (i8 << 2)] = 16.2 + 0.53999999999999915 * (double)i8;
-  }
-
-  for (i = 0; i < 4; i++) {
-    wLFFT[i] = 0;
-  }
-
-  // ----PSD----%
-  for (i8 = 0; i8 < 2; i8++) {
-    threshPSD[i8 << 2] = 9.5 + (double)i8;
-    threshPSD[1 + (i8 << 2)] = 12.0 + (double)i8;
-    threshPSD[2 + (i8 << 2)] = 14.9 + 0.19999999999999929 * (double)i8;
-    threshPSD[3 + (i8 << 2)] = 16.0 + (double)i8;
-  }
-
-  for (i = 0; i < 4; i++) {
-    wLPSD[i] = 0;
-  }
-
-  emxInit_real_T(&fchw, 2);
-
-  // ----PREALLOCATE----%
-  i8 = fchw->size[0] * fchw->size[1];
-  fchw->size[0] = 3;
-  emxEnsureCapacity((emxArray__common *)fchw, i8, (int)sizeof(double));
-  i = fch1->size[0] * fch1->size[1];
-  i8 = fchw->size[0] * fchw->size[1];
-  fchw->size[1] = i;
-  emxEnsureCapacity((emxArray__common *)fchw, i8, (int)sizeof(double));
-  i = fch1->size[0] * fch1->size[1];
-  loop_ub = 3 * i;
-  for (i8 = 0; i8 < loop_ub; i8++) {
-    fchw->data[i8] = 0.0;
-  }
-
-  i = fch1->size[0] * fch1->size[1];
-  if (1 > i) {
-    i = 0;
-  } else {
-    i = fch1->size[0] * fch1->size[1];
-  }
-
-  loop_ub = fch1->size[0] * fch1->size[1];
-  if (1 > loop_ub) {
-    loop_ub = 0;
-  } else {
-    loop_ub = fch1->size[0] * fch1->size[1];
-  }
-
-  emxInit_int32_T(&r1, 1);
-  i8 = r1->size[0];
-  r1->size[0] = loop_ub;
-  emxEnsureCapacity((emxArray__common *)r1, i8, (int)sizeof(int));
-  for (i8 = 0; i8 < loop_ub; i8++) {
-    r1->data[i8] = i8;
-  }
-
-  emxInit_real_T1(&b_fch1, 1);
-  i8 = b_fch1->size[0];
-  b_fch1->size[0] = i;
-  emxEnsureCapacity((emxArray__common *)b_fch1, i8, (int)sizeof(double));
-  for (i8 = 0; i8 < i; i8++) {
-    b_fch1->data[i8] = fch1->data[i8];
-  }
-
-  i = r1->size[0];
-  for (i8 = 0; i8 < i; i8++) {
-    fchw->data[fchw->size[0] * r1->data[i8]] = b_fch1->data[i8];
-  }
-
-  emxFree_real_T(&b_fch1);
-  i = fch1->size[0] * fch1->size[1];
-  if (1 > i) {
-    i = 0;
-  } else {
-    i = fch1->size[0] * fch1->size[1];
-  }
-
-  loop_ub = fch1->size[0] * fch1->size[1];
-  if (1 > loop_ub) {
-    loop_ub = 0;
-  } else {
-    loop_ub = fch1->size[0] * fch1->size[1];
-  }
-
-  i8 = r1->size[0];
-  r1->size[0] = loop_ub;
-  emxEnsureCapacity((emxArray__common *)r1, i8, (int)sizeof(int));
-  for (i8 = 0; i8 < loop_ub; i8++) {
-    r1->data[i8] = i8;
-  }
-
-  emxInit_real_T1(&b_fch2, 1);
-  i8 = b_fch2->size[0];
-  b_fch2->size[0] = i;
-  emxEnsureCapacity((emxArray__common *)b_fch2, i8, (int)sizeof(double));
-  for (i8 = 0; i8 < i; i8++) {
-    b_fch2->data[i8] = fch2->data[i8];
-  }
-
-  i = r1->size[0];
-  for (i8 = 0; i8 < i; i8++) {
-    fchw->data[1 + fchw->size[0] * r1->data[i8]] = b_fch2->data[i8];
-  }
-
-  emxFree_real_T(&b_fch2);
-  i = fch1->size[0] * fch1->size[1];
-  if (1 > i) {
-    i = 0;
-  } else {
-    i = fch1->size[0] * fch1->size[1];
-  }
-
-  loop_ub = fch1->size[0] * fch1->size[1];
-  if (1 > loop_ub) {
-    loop_ub = 0;
-  } else {
-    loop_ub = fch1->size[0] * fch1->size[1];
-  }
-
-  i8 = r1->size[0];
-  r1->size[0] = loop_ub;
-  emxEnsureCapacity((emxArray__common *)r1, i8, (int)sizeof(int));
-  for (i8 = 0; i8 < loop_ub; i8++) {
-    r1->data[i8] = i8;
-  }
-
-  emxInit_real_T1(&b_fch3, 1);
-  i8 = b_fch3->size[0];
-  b_fch3->size[0] = i;
-  emxEnsureCapacity((emxArray__common *)b_fch3, i8, (int)sizeof(double));
-  for (i8 = 0; i8 < i; i8++) {
-    b_fch3->data[i8] = fch3->data[i8];
-  }
-
-  i = r1->size[0];
-  for (i8 = 0; i8 < i; i8++) {
-    fchw->data[2 + fchw->size[0] * r1->data[i8]] = b_fch3->data[i8];
-  }
-
-  emxFree_real_T(&b_fch3);
-  emxFree_int32_T(&r1);
-
-  //  all windows should be the same size:
-  memset(&FFT_Ltop[0], 0, sizeof(double) << 3);
-  for (i = 0; i < 4; i++) {
-    FFT_PkRatio[i] = 0.0;
-  }
-
-  emxInit_real_T(&PSD, 2);
-  i = fch1->size[0] * fch1->size[1];
-  y = (double)i / 2.0;
-  i8 = PSD->size[0] * PSD->size[1];
-  PSD->size[0] = 4;
-  PSD->size[1] = (int)y;
-  emxEnsureCapacity((emxArray__common *)PSD, i8, (int)sizeof(double));
-  loop_ub = (int)y << 2;
-  for (i8 = 0; i8 < loop_ub; i8++) {
-    PSD->data[i8] = 0.0;
-  }
-
-  memset(&PSD_Ltop[0], 0, sizeof(double) << 3);
-  for (i = 0; i < 4; i++) {
-    PSD_PkRatio[i] = 0.0;
-  }
-
-  emxInit_real_T1(&hW, 1);
-  emxInit_real_T(&fPSD, 2);
-
-  // 0?
-  //  Data is already filtered:
-  // between 250?500dp
-  //  Preallocate for spd:
-  emxInit_real_T(&PSD_PKS, 2);
-  emxInit_real_T(&PSD_L, 2);
-  emxInit_real_T(&r2, 2);
-  emxInit_real_T(&b_PSD, 2);
-  emxInit_real_T(&b_fchw, 2);
-  emxInit_real_T(&c_fchw, 2);
-  for (ch = 0; ch < 3; ch++) {
-    //  #1 Take FFT:
-    loop_ub = fchw->size[1];
-    i8 = c_fchw->size[0] * c_fchw->size[1];
-    c_fchw->size[0] = 1;
-    c_fchw->size[1] = loop_ub;
-    emxEnsureCapacity((emxArray__common *)c_fchw, i8, (int)sizeof(double));
-    for (i8 = 0; i8 < loop_ub; i8++) {
-      c_fchw->data[c_fchw->size[0] * i8] = fchw->data[ch + fchw->size[0] * i8];
+      k = 2048;
     }
 
-    get_nfft_data(c_fchw, Fs, f, dv9);
-
-    //  #1.1 Find Peaks and M/I
-    for (i8 = 0; i8 < 1025; i8++) {
-      FFT[ch + (i8 << 2)] = dv9[i8];
-      b_FFT[i8] = FFT[ch + (i8 << 2)];
-    }
-
-    b_findpeaks(b_FFT, FFT_PKS_data, FFT_PKS_size, FFT_L_data, FFT_L_size);
-    if (FFT_PKS_size[1] > 1) {
-      // Peak max minus min
-      for (i8 = 0; i8 < 2; i8++) {
-        FFT_Ltop[ch + (i8 << 2)] = f[(int)FFT_L_data[i8] - 1];
+    if (2048 > x->size[0]) {
+      for (i = 0; i < 2048; i++) {
+        b_y1[i].re = 0.0;
+        b_y1[i].im = 0.0;
       }
-
-      w = 0;
-      exitg4 = false;
-      while ((!exitg4) && (w < 4)) {
-        if ((FFT_Ltop[ch] > threshFFT[w]) && (FFT_Ltop[ch] < threshFFT[4 + w]))
-        {
-          FFT_PkRatio[ch] = FFT_PKS_data[0] / FFT_PKS_data[1];
-          wLFFT[ch] = (signed char)(1 + w);
-          exitg4 = true;
-        } else {
-          FFT_PkRatio[ch] = 0.0;
-          wLFFT[ch] = 0;
-          w++;
-        }
-      }
-    }
-
-    //  #2 Take PSD Estimate: (Welch method)
-    //  Prepare hanning window:
-    i = fch1->size[0] * fch1->size[1];
-    hannWin((double)i, hW);
-    loop_ub = fchw->size[1];
-    i8 = b_fchw->size[0] * b_fchw->size[1];
-    b_fchw->size[0] = 1;
-    b_fchw->size[1] = loop_ub;
-    emxEnsureCapacity((emxArray__common *)b_fchw, i8, (int)sizeof(double));
-    for (i8 = 0; i8 < loop_ub; i8++) {
-      b_fchw->data[b_fchw->size[0] * i8] = fchw->data[ch + fchw->size[0] * i8];
-    }
-
-    welch_psd(b_fchw, Fs, hW, r2, fPSD);
-    loop_ub = r2->size[1];
-    for (i8 = 0; i8 < loop_ub; i8++) {
-      PSD->data[ch + PSD->size[0] * i8] = r2->data[r2->size[0] * i8];
-    }
-
-    // fin-start
-    //  #2.2 Find Peaks and Max
-    loop_ub = PSD->size[1];
-    i8 = b_PSD->size[0] * b_PSD->size[1];
-    b_PSD->size[0] = 1;
-    b_PSD->size[1] = loop_ub;
-    emxEnsureCapacity((emxArray__common *)b_PSD, i8, (int)sizeof(double));
-    for (i8 = 0; i8 < loop_ub; i8++) {
-      b_PSD->data[b_PSD->size[0] * i8] = PSD->data[ch + PSD->size[0] * i8];
-    }
-
-    c_findpeaks(b_PSD, PSD_PKS, PSD_L);
-    if (PSD_PKS->size[1] > 1) {
-      for (i8 = 0; i8 < 2; i8++) {
-        PSD_Ltop[ch + (i8 << 2)] = fPSD->data[(int)PSD_L->data[i8] - 1];
-      }
-
-      w = 0;
-      exitg3 = false;
-      while ((!exitg3) && (w < 4)) {
-        if ((PSD_Ltop[ch] >= threshPSD[w]) && (PSD_Ltop[ch] <= threshPSD[4 + w]))
-        {
-          PSD_PkRatio[ch] = PSD_PKS->data[0] / PSD_PKS->data[1];
-          wLPSD[ch] = (signed char)(1 + w);
-          exitg3 = true;
-        } else {
-          PSD_PkRatio[ch] = 0.0;
-          wLPSD[ch] = 0;
-          w++;
-        }
-      }
-    }
-  }
-
-  emxFree_real_T(&c_fchw);
-  emxFree_real_T(&b_fchw);
-  emxFree_real_T(&b_PSD);
-  emxFree_real_T(&r2);
-  emxFree_real_T(&hW);
-
-  // Combine data into 'fourth' channel:
-  for (i8 = 0; i8 < 1025; i8++) {
-    FFT[3 + (i8 << 2)] = (FFT[i8 << 2] + FFT[1 + (i8 << 2)]) + FFT[2 + (i8 << 2)];
-    b_FFT[i8] = FFT[3 + (i8 << 2)];
-  }
-
-  b_findpeaks(b_FFT, FFT_PKS_data, FFT_PKS_size, FFT_L_data, FFT_L_size);
-  if (FFT_PKS_size[1] > 1) {
-    for (i8 = 0; i8 < 2; i8++) {
-      FFT_Ltop[3 + (i8 << 2)] = f[(int)FFT_L_data[i8] - 1];
-    }
-
-    w = 0;
-    exitg2 = false;
-    while ((!exitg2) && (w < 4)) {
-      if ((FFT_Ltop[3] > threshFFT[w]) && (FFT_Ltop[3] < threshFFT[4 + w])) {
-        FFT_PkRatio[3] = FFT_PKS_data[0] / FFT_PKS_data[1];
-        wLFFT[3] = (signed char)(1 + w);
-        exitg2 = true;
-      } else {
-        FFT_PkRatio[3] = 0.0;
-        wLFFT[3] = 0;
-        w++;
-      }
-    }
-  }
-
-  emxInit_real_T(&c_PSD, 2);
-  i = PSD->size[1];
-  i8 = c_PSD->size[0] * c_PSD->size[1];
-  c_PSD->size[0] = 1;
-  c_PSD->size[1] = i;
-  emxEnsureCapacity((emxArray__common *)c_PSD, i8, (int)sizeof(double));
-  for (i8 = 0; i8 < i; i8++) {
-    c_PSD->data[c_PSD->size[0] * i8] = (PSD->data[PSD->size[0] * i8] + PSD->
-      data[1 + PSD->size[0] * i8]) + PSD->data[2 + PSD->size[0] * i8];
-  }
-
-  loop_ub = c_PSD->size[1];
-  for (i8 = 0; i8 < loop_ub; i8++) {
-    PSD->data[3 + PSD->size[0] * i8] = c_PSD->data[c_PSD->size[0] * i8];
-  }
-
-  emxFree_real_T(&c_PSD);
-  emxInit_real_T(&d_PSD, 2);
-  loop_ub = PSD->size[1];
-  i8 = d_PSD->size[0] * d_PSD->size[1];
-  d_PSD->size[0] = 1;
-  d_PSD->size[1] = loop_ub;
-  emxEnsureCapacity((emxArray__common *)d_PSD, i8, (int)sizeof(double));
-  for (i8 = 0; i8 < loop_ub; i8++) {
-    d_PSD->data[d_PSD->size[0] * i8] = PSD->data[3 + PSD->size[0] * i8];
-  }
-
-  emxFree_real_T(&PSD);
-  c_findpeaks(d_PSD, PSD_PKS, PSD_L);
-  emxFree_real_T(&d_PSD);
-  if (PSD_PKS->size[1] > 1) {
-    for (i8 = 0; i8 < 2; i8++) {
-      PSD_Ltop[3 + (i8 << 2)] = fPSD->data[(int)PSD_L->data[i8] - 1];
-    }
-
-    w = 0;
-    exitg1 = false;
-    while ((!exitg1) && (w < 4)) {
-      if ((PSD_Ltop[3] >= threshPSD[w]) && (PSD_Ltop[3] <= threshPSD[4 + w])) {
-        PSD_PkRatio[3] = PSD_PKS->data[0] / PSD_PKS->data[1];
-        wLPSD[3] = (signed char)(1 + w);
-        exitg1 = true;
-      } else {
-        PSD_PkRatio[3] = 0.0;
-        wLPSD[3] = 0;
-        w++;
-      }
-    }
-  }
-
-  emxFree_real_T(&PSD_L);
-  emxFree_real_T(&PSD_PKS);
-  emxFree_real_T(&fPSD);
-  for (chn = 0; chn < 4; chn++) {
-    FFTPeaks1[chn] = FFT_Ltop[chn];
-    PSDPeaks1[chn] = PSD_Ltop[chn];
-  }
-
-  if ((wLFFT[0] != 0) && (wLFFT[1] != 0) && (wLFFT[2] != 0) && (wLFFT[3] != 0))
-  {
-    b0 = true;
-  } else {
-    b0 = false;
-  }
-
-  if (b0) {
-    // if a signal was detected on each FFT
-    // check that they are all the same;
-    b_wLFFT[0] = wLFFT[0];
-    b_wLFFT[1] = wLFFT[1];
-    b_wLFFT[2] = wLFFT[2];
-    b_wLFFT[3] = wLFFT[3];
-    c_wLFFT[0] = wLFFT[0];
-    c_wLFFT[1] = wLFFT[0];
-    c_wLFFT[2] = wLFFT[0];
-    c_wLFFT[3] = wLFFT[0];
-    b2 = isequal(b_wLFFT, c_wLFFT);
-  } else {
-    b2 = false;
-  }
-
-  if ((wLPSD[0] != 0) && (wLPSD[1] != 0) && (wLPSD[2] != 0) && (wLPSD[3] != 0))
-  {
-    b1 = true;
-  } else {
-    b1 = false;
-  }
-
-  if (b1) {
-    // if a signal was detected for PSD on all channels:
-    // check they are equivalent:
-    b_wLPSD[0] = wLPSD[0];
-    b_wLPSD[1] = wLPSD[1];
-    b_wLPSD[2] = wLPSD[2];
-    b_wLPSD[3] = wLPSD[3];
-    c_wLPSD[0] = wLPSD[0];
-    c_wLPSD[1] = wLPSD[0];
-    c_wLPSD[2] = wLPSD[0];
-    c_wLPSD[3] = wLPSD[0];
-    b4 = isequal(b_wLPSD, c_wLPSD);
-  } else {
-    b4 = false;
-  }
-
-  i = fch1->size[0] * fch1->size[1];
-  if (i >= 500) {
-    emxInit_real_T(&d_fchw, 2);
-
-    // Classification method #2 (w/ STFT):
-    //  Use CCA with longer time periods.(?)
-    // TODO:
-    loop_ub = fchw->size[1];
-    i8 = d_fchw->size[0] * d_fchw->size[1];
-    d_fchw->size[0] = 1;
-    d_fchw->size[1] = loop_ub;
-    emxEnsureCapacity((emxArray__common *)d_fchw, i8, (int)sizeof(double));
-    for (i8 = 0; i8 < loop_ub; i8++) {
-      d_fchw->data[d_fchw->size[0] * i8] = fchw->data[fchw->size[0] * i8];
-    }
-
-    emxInit_creal_T(&S1, 2);
-    emxInit_real_T(&T, 2);
-    emxInit_real_T(&e_fchw, 2);
-    stft(d_fchw, Fs, S1, b_F, T);
-    loop_ub = fchw->size[1];
-    i8 = e_fchw->size[0] * e_fchw->size[1];
-    e_fchw->size[0] = 1;
-    e_fchw->size[1] = loop_ub;
-    emxEnsureCapacity((emxArray__common *)e_fchw, i8, (int)sizeof(double));
-    emxFree_real_T(&d_fchw);
-    for (i8 = 0; i8 < loop_ub; i8++) {
-      e_fchw->data[e_fchw->size[0] * i8] = fchw->data[1 + fchw->size[0] * i8];
-    }
-
-    emxInit_creal_T(&S2, 2);
-    emxInit_real_T(&f_fchw, 2);
-    stft(e_fchw, Fs, S2, f, T);
-    loop_ub = fchw->size[1];
-    i8 = f_fchw->size[0] * f_fchw->size[1];
-    f_fchw->size[0] = 1;
-    f_fchw->size[1] = loop_ub;
-    emxEnsureCapacity((emxArray__common *)f_fchw, i8, (int)sizeof(double));
-    emxFree_real_T(&e_fchw);
-    for (i8 = 0; i8 < loop_ub; i8++) {
-      f_fchw->data[f_fchw->size[0] * i8] = fchw->data[2 + fchw->size[0] * i8];
-    }
-
-    emxInit_creal_T(&S3, 2);
-    emxInit_real_T(&x, 2);
-    emxInit_real_T(&b_x, 2);
-    stft(f_fchw, Fs, S3, f, T);
-    c_abs(S1, x);
-    i8 = b_x->size[0] * b_x->size[1];
-    b_x->size[0] = 1025;
-    b_x->size[1] = x->size[1];
-    emxEnsureCapacity((emxArray__common *)b_x, i8, (int)sizeof(double));
-    loop_ub = x->size[0] * x->size[1];
-    emxFree_real_T(&f_fchw);
-    emxFree_real_T(&T);
-    for (i8 = 0; i8 < loop_ub; i8++) {
-      b_x->data[i8] = x->data[i8] / 256.0 / 0.54000000000000059 + 1.0E-6;
-    }
-
-    emxInit_real_T(&c_x, 2);
-    emxInit_real_T(&d_x, 2);
-    b_log10(b_x, d_x);
-    c_abs(S2, x);
-    i8 = c_x->size[0] * c_x->size[1];
-    c_x->size[0] = 1025;
-    c_x->size[1] = x->size[1];
-    emxEnsureCapacity((emxArray__common *)c_x, i8, (int)sizeof(double));
-    loop_ub = x->size[0] * x->size[1];
-    emxFree_real_T(&d_x);
-    emxFree_real_T(&b_x);
-    for (i8 = 0; i8 < loop_ub; i8++) {
-      c_x->data[i8] = x->data[i8] / 256.0 / 0.54000000000000059 + 1.0E-6;
-    }
-
-    emxInit_real_T(&e_x, 2);
-    emxInit_real_T(&f_x, 2);
-    b_log10(c_x, f_x);
-    c_abs(S3, x);
-    i8 = e_x->size[0] * e_x->size[1];
-    e_x->size[0] = 1025;
-    e_x->size[1] = x->size[1];
-    emxEnsureCapacity((emxArray__common *)e_x, i8, (int)sizeof(double));
-    loop_ub = x->size[0] * x->size[1];
-    emxFree_real_T(&f_x);
-    emxFree_real_T(&c_x);
-    for (i8 = 0; i8 < loop_ub; i8++) {
-      e_x->data[i8] = x->data[i8] / 256.0 / 0.54000000000000059 + 1.0E-6;
     }
 
     emxFree_real_T(&x);
-    emxInit_real_T(&g_x, 2);
-    b_log10(e_x, g_x);
-    trueCount = 0;
-    emxFree_real_T(&g_x);
-    emxFree_real_T(&e_x);
-    for (i = 0; i < 1025; i++) {
-      if ((b_F[i] < 17.6) && (b_F[i] > 9.0)) {
-        trueCount++;
+    ix = 0;
+    ju = 0;
+    iy = 0;
+    for (i = 1; i < k; i++) {
+      b_y1[iy].re = X->data[ix];
+      b_y1[iy].im = 0.0;
+      iDelta2 = 2048;
+      tst = true;
+      while (tst) {
+        iDelta2 >>= 1;
+        ju ^= iDelta2;
+        tst = ((ju & iDelta2) == 0);
       }
+
+      iy = ju;
+      ix++;
     }
 
-    loop_ub = 0;
-    for (i = 0; i < 1025; i++) {
-      if ((b_F[i] < 17.6) && (b_F[i] > 9.0)) {
-        tmp_data[loop_ub] = (short)(i + 1);
-        loop_ub++;
+    b_y1[iy].re = X->data[ix];
+    b_y1[iy].im = 0.0;
+    for (i = 0; i <= 2047; i += 2) {
+      temp_re = b_y1[i + 1].re;
+      temp_im = b_y1[i + 1].im;
+      b_y1[i + 1].re = b_y1[i].re - b_y1[i + 1].re;
+      b_y1[i + 1].im = b_y1[i].im - b_y1[i + 1].im;
+      b_y1[i].re += temp_re;
+      b_y1[i].im += temp_im;
+    }
+
+    iy = 2;
+    iDelta2 = 4;
+    k = 512;
+    ix = 2045;
+    while (k > 0) {
+      for (i = 0; i < ix; i += iDelta2) {
+        temp_re = b_y1[i + iy].re;
+        temp_im = b_y1[i + iy].im;
+        b_y1[i + iy].re = b_y1[i].re - temp_re;
+        b_y1[i + iy].im = b_y1[i].im - temp_im;
+        b_y1[i].re += temp_re;
+        b_y1[i].im += temp_im;
       }
-    }
 
-    emxInit_creal_T(&b_S1, 2);
-    loop_ub = S1->size[1];
-    i8 = b_S1->size[0] * b_S1->size[1];
-    b_S1->size[0] = trueCount;
-    b_S1->size[1] = loop_ub;
-    emxEnsureCapacity((emxArray__common *)b_S1, i8, (int)sizeof(creal_T));
-    for (i8 = 0; i8 < loop_ub; i8++) {
-      for (i = 0; i < trueCount; i++) {
-        b_S1->data[i + b_S1->size[0] * i8] = S1->data[(tmp_data[i] + S1->size[0]
-          * i8) - 1];
-      }
-    }
-
-    emxFree_creal_T(&S1);
-    emxInit_real_T(&h_x, 2);
-    d_abs(b_S1, h_x);
-    i8 = h_x->size[0] * h_x->size[1];
-    emxEnsureCapacity((emxArray__common *)h_x, i8, (int)sizeof(double));
-    i = h_x->size[0];
-    loop_ub = h_x->size[1];
-    loop_ub *= i;
-    emxFree_creal_T(&b_S1);
-    for (i8 = 0; i8 < loop_ub; i8++) {
-      h_x->data[i8] = h_x->data[i8] / 256.0 / 0.54000000000000059 + 1.0E-6;
-    }
-
-    d_log10(h_x);
-    trueCount = 0;
-    emxFree_real_T(&h_x);
-    for (i = 0; i < 1025; i++) {
-      if ((b_F[i] < 17.6) && (b_F[i] > 9.0)) {
-        trueCount++;
-      }
-    }
-
-    loop_ub = 0;
-    for (i = 0; i < 1025; i++) {
-      if ((b_F[i] < 17.6) && (b_F[i] > 9.0)) {
-        tmp_data[loop_ub] = (short)(i + 1);
-        loop_ub++;
-      }
-    }
-
-    emxInit_creal_T(&b_S2, 2);
-    loop_ub = S2->size[1];
-    i8 = b_S2->size[0] * b_S2->size[1];
-    b_S2->size[0] = trueCount;
-    b_S2->size[1] = loop_ub;
-    emxEnsureCapacity((emxArray__common *)b_S2, i8, (int)sizeof(creal_T));
-    for (i8 = 0; i8 < loop_ub; i8++) {
-      for (i = 0; i < trueCount; i++) {
-        b_S2->data[i + b_S2->size[0] * i8] = S2->data[(tmp_data[i] + S2->size[0]
-          * i8) - 1];
-      }
-    }
-
-    emxFree_creal_T(&S2);
-    emxInit_real_T(&i_x, 2);
-    d_abs(b_S2, i_x);
-    i8 = i_x->size[0] * i_x->size[1];
-    emxEnsureCapacity((emxArray__common *)i_x, i8, (int)sizeof(double));
-    i = i_x->size[0];
-    loop_ub = i_x->size[1];
-    loop_ub *= i;
-    emxFree_creal_T(&b_S2);
-    for (i8 = 0; i8 < loop_ub; i8++) {
-      i_x->data[i8] = i_x->data[i8] / 256.0 / 0.54000000000000059 + 1.0E-6;
-    }
-
-    d_log10(i_x);
-    trueCount = 0;
-    emxFree_real_T(&i_x);
-    for (i = 0; i < 1025; i++) {
-      if ((b_F[i] < 17.6) && (b_F[i] > 9.0)) {
-        trueCount++;
-      }
-    }
-
-    loop_ub = 0;
-    for (i = 0; i < 1025; i++) {
-      if ((b_F[i] < 17.6) && (b_F[i] > 9.0)) {
-        tmp_data[loop_ub] = (short)(i + 1);
-        loop_ub++;
-      }
-    }
-
-    emxInit_creal_T(&b_S3, 2);
-    loop_ub = S3->size[1];
-    i8 = b_S3->size[0] * b_S3->size[1];
-    b_S3->size[0] = trueCount;
-    b_S3->size[1] = loop_ub;
-    emxEnsureCapacity((emxArray__common *)b_S3, i8, (int)sizeof(creal_T));
-    for (i8 = 0; i8 < loop_ub; i8++) {
-      for (i = 0; i < trueCount; i++) {
-        b_S3->data[i + b_S3->size[0] * i8] = S3->data[(tmp_data[i] + S3->size[0]
-          * i8) - 1];
-      }
-    }
-
-    emxFree_creal_T(&S3);
-    emxInit_real_T(&j_x, 2);
-    d_abs(b_S3, j_x);
-    i8 = j_x->size[0] * j_x->size[1];
-    emxEnsureCapacity((emxArray__common *)j_x, i8, (int)sizeof(double));
-    i = j_x->size[0];
-    loop_ub = j_x->size[1];
-    loop_ub *= i;
-    emxFree_creal_T(&b_S3);
-    for (i8 = 0; i8 < loop_ub; i8++) {
-      j_x->data[i8] = j_x->data[i8] / 256.0 / 0.54000000000000059 + 1.0E-6;
-    }
-
-    d_log10(j_x);
-
-    // TODO: ADD TO FEATURES AND USE IN FINAL DECISION!
-    emxFree_real_T(&j_x);
-  }
-
-  emxFree_real_T(&fchw);
-
-  // /windowLength>=500
-  // % Collect Feature data into 'F'
-  // First separate features by channel: (row vects)
-  //  first to remove: *FFT_Ltop(2) ... not sure how I will use this
-  //  Also remove FFTPeaks2 and averageFFTPeak2
-  // WANT INFO TO PRINT IN ORDER:
-  //     %% FPRINTFs:
-  //      fprintf('Important Data: [l = %d]\n',windowLength);
-  //      fprintf('FFT Matching Class %d %d %d %d \n',wLFFT(1),wLFFT(2)...
-  //          ,wLFFT(3),wLFFT(4));
-  //      fprintf('PSD Matching Class %d %d %d %d \n',wLPSD(1),wLPSD(2)...
-  //          ,wLPSD(3),wLPSD(4));
-  //      fprintf('FFT Peak Ratio: %1.3f\n',FFT_PkRatio);
-  //      fprintf('PSD Peak Ratio: %1.3f\n',PSD_PkRatio);
-  //      fprintf('Avg FFTL: %1.3f \n',averageFFTPeak);
-  //      fprintf('Avg PSDL: %1.3f \n',averagePSDPeak);
-  //      fprintf('Booleans: [%d %d %d %d] \n',b1,b2,b3,b4);
-  //      fprintf('Avg FFTPkRatio: %1.3f \n',averagePkRatioFFT);
-  //      fprintf('Avg PSDPkRatio: %1.3f \n',averagePkRatioPSD);
-  b_FFT_Ltop[0] = FFT_Ltop[0];
-  b_FFT_Ltop[1] = FFT_Ltop[1];
-  b_FFT_Ltop[2] = FFT_Ltop[2];
-  b_FFT_Ltop[3] = FFT_Ltop[3];
-  b_PSD_Ltop[0] = PSD_Ltop[0];
-  b_PSD_Ltop[1] = PSD_Ltop[1];
-  b_PSD_Ltop[2] = PSD_Ltop[2];
-  b_PSD_Ltop[3] = PSD_Ltop[3];
-  F[16] = b_mean(b_FFT_Ltop);
-  F[17] = b_mean(b_PSD_Ltop);
-  for (i8 = 0; i8 < 4; i8++) {
-    F[i8] = wLFFT[i8];
-    F[i8 + 4] = wLPSD[i8];
-    F[i8 + 8] = FFT_PkRatio[i8];
-    F[i8 + 12] = PSD_PkRatio[i8];
-    F[i8 + 18] = FFTPeaks1[i8];
-    F[i8 + 22] = PSDPeaks1[i8];
-  }
-
-  F[26] = b0;
-  F[27] = b2;
-  F[28] = b1;
-  F[29] = b4;
-
-  // END FUNCTION
-}
-
-//
-// Arguments    : const emxArray_real_T *x
-//                creal_T y[2048]
-// Return Type  : void
-//
-static void fft(const emxArray_real_T *x, creal_T y[2048])
-{
-  int b_x[2];
-  emxArray_real_T c_x;
-  creal_T b_y1[2048];
-  b_x[0] = x->size[1];
-  b_x[1] = 1;
-  c_x = *x;
-  c_x.size = (int *)&b_x;
-  c_x.numDimensions = 1;
-  eml_fft(&c_x, b_y1);
-  memcpy(&y[0], &b_y1[0], sizeof(creal_T) << 11);
-}
-
-//
-// Arguments    : const double b[4]
-//                const double a[4]
-//                const double x[268]
-//                const double zi[3]
-//                double y[268]
-// Return Type  : void
-//
-static void filter(const double b[4], const double a[4], const double x[268],
-                   const double zi[3], double y[268])
-{
-  double dbuffer[4];
-  int k;
-  int j;
-  for (k = 0; k < 3; k++) {
-    dbuffer[k + 1] = zi[k];
-  }
-
-  for (j = 0; j < 268; j++) {
-    for (k = 0; k < 3; k++) {
-      dbuffer[k] = dbuffer[k + 1];
-    }
-
-    dbuffer[3] = 0.0;
-    for (k = 0; k < 4; k++) {
-      dbuffer[k] += x[j] * b[k];
-    }
-
-    for (k = 0; k < 3; k++) {
-      dbuffer[k + 1] -= dbuffer[0] * a[k + 1];
-    }
-
-    y[j] = dbuffer[0];
-  }
-}
-
-//
-// Arguments    : const double x_in[250]
-//                double y_out[250]
-// Return Type  : void
-//
-static void filtfilt(const double x_in[250], double y_out[250])
-{
-  double xtmp;
-  double d0;
-  int i;
-  double y[268];
-  double a[3];
-  double b_y[268];
-  static const double b_a[3] = { 0.99843298964950811, -1.5048763860936776,
-    0.60567670985792155 };
-
-  static const double dv2[4] = { 0.00156701035058832, 0.00470103105176495,
-    0.00470103105176495, 0.00156701035058832 };
-
-  static const double dv3[4] = { 1.0, -2.49860834469118, 2.11525412700316,
-    -0.604109699507275 };
-
-  double c_y[268];
-  xtmp = 2.0 * x_in[0];
-  d0 = 2.0 * x_in[249];
-  for (i = 0; i < 9; i++) {
-    y[i] = xtmp - x_in[9 - i];
-  }
-
-  memcpy(&y[9], &x_in[0], 250U * sizeof(double));
-  for (i = 0; i < 9; i++) {
-    y[i + 259] = d0 - x_in[248 - i];
-  }
-
-  for (i = 0; i < 3; i++) {
-    a[i] = b_a[i] * y[0];
-  }
-
-  memcpy(&b_y[0], &y[0], 268U * sizeof(double));
-  filter(dv2, dv3, b_y, a, y);
-  for (i = 0; i < 134; i++) {
-    xtmp = y[i];
-    y[i] = y[267 - i];
-    y[267 - i] = xtmp;
-  }
-
-  for (i = 0; i < 3; i++) {
-    a[i] = b_a[i] * y[0];
-  }
-
-  memcpy(&c_y[0], &y[0], 268U * sizeof(double));
-  filter(dv2, dv3, c_y, a, y);
-  for (i = 0; i < 134; i++) {
-    xtmp = y[i];
-    y[i] = y[267 - i];
-    y[267 - i] = xtmp;
-  }
-
-  memcpy(&y_out[0], &y[9], 250U * sizeof(double));
-}
-
-//
-// Arguments    : const double yTemp[250]
-//                double iPk_data[]
-//                int iPk_size[1]
-//                double iInflect_data[]
-//                int iInflect_size[1]
-// Return Type  : void
-//
-static void findLocalMaxima(const double yTemp[250], double iPk_data[], int
-  iPk_size[1], double iInflect_data[], int iInflect_size[1])
-{
-  double b_yTemp[252];
-  boolean_T yFinite[252];
-  int ii;
-  boolean_T x[251];
-  int idx;
-  unsigned char ii_data[251];
-  boolean_T exitg3;
-  boolean_T guard3 = false;
-  int nx;
-  unsigned char tmp_data[252];
-  int i3;
-  int i4;
-  double yTemp_data[252];
-  unsigned char iTemp_data[252];
-  int yTemp_size[1];
-  emxArray_real_T *r0;
-  emxArray_real_T b_yTemp_data;
-  int s_size[1];
-  emxArray_boolean_T *b_x;
-  double s_data[251];
-  emxArray_real_T b_s_data;
-  emxArray_int32_T *b_ii;
-  boolean_T exitg2;
-  boolean_T guard2 = false;
-  emxArray_int32_T *c_ii;
-  boolean_T exitg1;
-  boolean_T guard1 = false;
-  b_yTemp[0] = rtNaN;
-  memcpy(&b_yTemp[1], &yTemp[0], 250U * sizeof(double));
-  b_yTemp[251] = rtNaN;
-  for (ii = 0; ii < 252; ii++) {
-    yFinite[ii] = !rtIsNaN(b_yTemp[ii]);
-  }
-
-  for (ii = 0; ii < 251; ii++) {
-    x[ii] = ((b_yTemp[ii] != b_yTemp[ii + 1]) && (yFinite[ii] || yFinite[ii + 1]));
-  }
-
-  idx = 0;
-  ii = 1;
-  exitg3 = false;
-  while ((!exitg3) && (ii < 252)) {
-    guard3 = false;
-    if (x[ii - 1]) {
-      idx++;
-      ii_data[idx - 1] = (unsigned char)ii;
-      if (idx >= 251) {
-        exitg3 = true;
-      } else {
-        guard3 = true;
-      }
-    } else {
-      guard3 = true;
-    }
-
-    if (guard3) {
-      ii++;
-    }
-  }
-
-  if (1 > idx) {
-    nx = 0;
-  } else {
-    nx = idx;
-  }
-
-  tmp_data[0] = 1;
-  for (i3 = 0; i3 < nx; i3++) {
-    tmp_data[i3 + 1] = (unsigned char)(ii_data[i3] + 1);
-  }
-
-  if (1 > idx) {
-    i4 = 0;
-  } else {
-    i4 = idx;
-  }
-
-  ii = 1 + i4;
-  for (i3 = 0; i3 < ii; i3++) {
-    iTemp_data[i3] = tmp_data[i3];
-  }
-
-  yTemp_size[0] = 1 + nx;
-  nx++;
-  for (i3 = 0; i3 < nx; i3++) {
-    yTemp_data[i3] = b_yTemp[iTemp_data[i3] - 1];
-  }
-
-  emxInit_real_T1(&r0, 1);
-  b_yTemp_data.data = (double *)&yTemp_data;
-  b_yTemp_data.size = (int *)&yTemp_size;
-  b_yTemp_data.allocatedSize = 252;
-  b_yTemp_data.numDimensions = 1;
-  b_yTemp_data.canFreeData = false;
-  diff(&b_yTemp_data, r0);
-  b_sign(r0);
-  s_size[0] = r0->size[0];
-  nx = r0->size[0];
-  for (i3 = 0; i3 < nx; i3++) {
-    s_data[i3] = r0->data[i3];
-  }
-
-  emxInit_boolean_T(&b_x, 1);
-  b_s_data.data = (double *)&s_data;
-  b_s_data.size = (int *)&s_size;
-  b_s_data.allocatedSize = 251;
-  b_s_data.numDimensions = 1;
-  b_s_data.canFreeData = false;
-  diff(&b_s_data, r0);
-  i3 = b_x->size[0];
-  b_x->size[0] = r0->size[0];
-  emxEnsureCapacity((emxArray__common *)b_x, i3, (int)sizeof(boolean_T));
-  nx = r0->size[0];
-  for (i3 = 0; i3 < nx; i3++) {
-    b_x->data[i3] = (r0->data[i3] < 0.0);
-  }
-
-  emxFree_real_T(&r0);
-  emxInit_int32_T(&b_ii, 1);
-  nx = b_x->size[0];
-  idx = 0;
-  i3 = b_ii->size[0];
-  b_ii->size[0] = b_x->size[0];
-  emxEnsureCapacity((emxArray__common *)b_ii, i3, (int)sizeof(int));
-  ii = 1;
-  exitg2 = false;
-  while ((!exitg2) && (ii <= nx)) {
-    guard2 = false;
-    if (b_x->data[ii - 1]) {
-      idx++;
-      b_ii->data[idx - 1] = ii;
-      if (idx >= nx) {
-        exitg2 = true;
-      } else {
-        guard2 = true;
-      }
-    } else {
-      guard2 = true;
-    }
-
-    if (guard2) {
-      ii++;
-    }
-  }
-
-  if (b_x->size[0] == 1) {
-    if (idx == 0) {
-      i3 = b_ii->size[0];
-      b_ii->size[0] = 0;
-      emxEnsureCapacity((emxArray__common *)b_ii, i3, (int)sizeof(int));
-    }
-  } else {
-    i3 = b_ii->size[0];
-    if (1 > idx) {
-      b_ii->size[0] = 0;
-    } else {
-      b_ii->size[0] = idx;
-    }
-
-    emxEnsureCapacity((emxArray__common *)b_ii, i3, (int)sizeof(int));
-  }
-
-  if (1 > s_size[0] - 1) {
-    nx = 0;
-  } else {
-    nx = s_size[0] - 1;
-  }
-
-  if (2 > s_size[0]) {
-    i3 = 0;
-  } else {
-    i3 = 1;
-  }
-
-  ii = b_x->size[0];
-  b_x->size[0] = nx;
-  emxEnsureCapacity((emxArray__common *)b_x, ii, (int)sizeof(boolean_T));
-  for (ii = 0; ii < nx; ii++) {
-    b_x->data[ii] = (s_data[ii] != s_data[i3 + ii]);
-  }
-
-  emxInit_int32_T(&c_ii, 1);
-  nx = b_x->size[0];
-  idx = 0;
-  i3 = c_ii->size[0];
-  c_ii->size[0] = b_x->size[0];
-  emxEnsureCapacity((emxArray__common *)c_ii, i3, (int)sizeof(int));
-  ii = 1;
-  exitg1 = false;
-  while ((!exitg1) && (ii <= nx)) {
-    guard1 = false;
-    if (b_x->data[ii - 1]) {
-      idx++;
-      c_ii->data[idx - 1] = ii;
-      if (idx >= nx) {
-        exitg1 = true;
-      } else {
-        guard1 = true;
-      }
-    } else {
-      guard1 = true;
-    }
-
-    if (guard1) {
-      ii++;
-    }
-  }
-
-  if (b_x->size[0] == 1) {
-    if (idx == 0) {
-      i3 = c_ii->size[0];
-      c_ii->size[0] = 0;
-      emxEnsureCapacity((emxArray__common *)c_ii, i3, (int)sizeof(int));
-    }
-  } else {
-    i3 = c_ii->size[0];
-    if (1 > idx) {
-      c_ii->size[0] = 0;
-    } else {
-      c_ii->size[0] = idx;
-    }
-
-    emxEnsureCapacity((emxArray__common *)c_ii, i3, (int)sizeof(int));
-  }
-
-  emxFree_boolean_T(&b_x);
-  iInflect_size[0] = c_ii->size[0];
-  nx = c_ii->size[0];
-  for (i3 = 0; i3 < nx; i3++) {
-    iInflect_data[i3] = (double)iTemp_data[c_ii->data[i3]] - 1.0;
-  }
-
-  emxFree_int32_T(&c_ii);
-  iPk_size[0] = b_ii->size[0];
-  nx = b_ii->size[0];
-  for (i3 = 0; i3 < nx; i3++) {
-    iPk_data[i3] = (double)iTemp_data[b_ii->data[i3]] - 1.0;
-  }
-
-  emxFree_int32_T(&b_ii);
-}
-
-//
-// Arguments    : double x
-//                const double bin_edges_data[]
-//                const int bin_edges_size[2]
-// Return Type  : int
-//
-static int findbin(double x, const double bin_edges_data[], const int
-                   bin_edges_size[2])
-{
-  int k;
-  int low_ip1;
-  int high_i;
-  int mid_i;
-  k = 0;
-  if ((!(bin_edges_size[1] == 0)) && (!rtIsNaN(x))) {
-    if ((x >= bin_edges_data[0]) && (x < bin_edges_data[bin_edges_size[1] - 1]))
-    {
-      k = 1;
-      low_ip1 = 2;
-      high_i = bin_edges_size[1];
-      while (high_i > low_ip1) {
-        mid_i = (k >> 1) + (high_i >> 1);
-        if (((k & 1) == 1) && ((high_i & 1) == 1)) {
-          mid_i++;
+      ju = 1;
+      for (j = k; j < 1024; j += k) {
+        twid_re = dv17[j];
+        twid_im = dv18[j];
+        i = ju;
+        ihi = ju + ix;
+        while (i < ihi) {
+          temp_re = twid_re * b_y1[i + iy].re - twid_im * b_y1[i + iy].im;
+          temp_im = twid_re * b_y1[i + iy].im + twid_im * b_y1[i + iy].re;
+          b_y1[i + iy].re = b_y1[i].re - temp_re;
+          b_y1[i + iy].im = b_y1[i].im - temp_im;
+          b_y1[i].re += temp_re;
+          b_y1[i].im += temp_im;
+          i += iDelta2;
         }
 
-        if (x >= bin_edges_data[mid_i - 1]) {
-          k = mid_i;
-          low_ip1 = mid_i + 1;
-        } else {
-          high_i = mid_i;
-        }
+        ju++;
       }
+
+      k /= 2;
+      iy = iDelta2;
+      iDelta2 <<= 1;
+      ix -= iy;
     }
-
-    if (x == bin_edges_data[bin_edges_size[1] - 1]) {
-      k = bin_edges_size[1];
-    }
   }
 
-  return k;
-}
-
-//
-// Arguments    : const double Yin[250]
-//                double Ypk_data[]
-//                int Ypk_size[2]
-//                double Xpk_data[]
-//                int Xpk_size[2]
-// Return Type  : void
-//
-static void findpeaks(const double Yin[250], double Ypk_data[], int Ypk_size[2],
-                      double Xpk_data[], int Xpk_size[2])
-{
-  double iFinite_data[250];
-  int iFinite_size[1];
-  double iInfite_data[250];
-  int iInfite_size[1];
-  double iInflect_data[250];
-  int iInflect_size[1];
-  int iPk_size[1];
-  int loop_ub;
-  int i2;
-  double iPk_data[500];
-  emxArray_real_T *iPkOut;
-  emxArray_int32_T *ia;
-  emxArray_int32_T *ib;
-  emxArray_real_T b_iPk_data;
-  emxArray_real_T b_iInfite_data;
-  double iPkOut_data[500];
-  int iPkOut_size[1];
-  getAllPeaks(Yin, iFinite_data, iFinite_size, iInfite_data, iInfite_size,
-              iInflect_data, iInflect_size);
-  removePeaksBelowMinPeakHeight(Yin, iFinite_data, iFinite_size);
-  iPk_size[0] = iFinite_size[0];
-  loop_ub = iFinite_size[0];
-  for (i2 = 0; i2 < loop_ub; i2++) {
-    iPk_data[i2] = iFinite_data[i2];
-  }
-
-  iFinite_size[0] = iPk_size[0];
-  loop_ub = iPk_size[0];
-  for (i2 = 0; i2 < loop_ub; i2++) {
-    iFinite_data[i2] = iPk_data[i2];
-  }
-
-  removePeaksBelowThreshold(Yin, iFinite_data, iFinite_size);
-  iPk_size[0] = iFinite_size[0];
-  loop_ub = iFinite_size[0];
-  for (i2 = 0; i2 < loop_ub; i2++) {
-    iPk_data[i2] = iFinite_data[i2];
-  }
-
-  emxInit_real_T1(&iPkOut, 1);
-  emxInit_int32_T(&ia, 1);
-  emxInit_int32_T(&ib, 1);
-  b_iPk_data.data = (double *)&iPk_data;
-  b_iPk_data.size = (int *)&iPk_size;
-  b_iPk_data.allocatedSize = 500;
-  b_iPk_data.numDimensions = 1;
-  b_iPk_data.canFreeData = false;
-  b_iInfite_data.data = (double *)&iInfite_data;
-  b_iInfite_data.size = (int *)&iInfite_size;
-  b_iInfite_data.allocatedSize = 250;
-  b_iInfite_data.numDimensions = 1;
-  b_iInfite_data.canFreeData = false;
-  do_vectors(&b_iPk_data, &b_iInfite_data, iPkOut, ia, ib);
-  c_findPeaksSeparatedByMoreThanM(iPkOut->size, iPk_data, iPk_size);
-  keepAtMostNpPeaks(iPk_data, iPk_size);
-  emxFree_int32_T(&ib);
-  emxFree_int32_T(&ia);
-  for (i2 = 0; i2 < 250; i2++) {
-    iFinite_data[i2] = 1.0 + (double)i2;
-  }
-
-  iPkOut_size[0] = iPk_size[0];
-  loop_ub = iPk_size[0];
-  for (i2 = 0; i2 < loop_ub; i2++) {
-    iPkOut_data[i2] = iPkOut->data[(int)iPk_data[i2] - 1];
-  }
-
-  emxFree_real_T(&iPkOut);
-  assignOutputs(Yin, iFinite_data, iPkOut_data, iPkOut_size, Ypk_data, Ypk_size,
-                Xpk_data, Xpk_size);
-}
-
-//
-// Arguments    : double x_data[]
-//                int x_size[1]
-// Return Type  : void
-//
-static void flipud(double x_data[], int x_size[1])
-{
-  int m;
-  int md2;
-  int i;
-  double xtmp;
-  m = x_size[0];
-  md2 = x_size[0] >> 1;
-  for (i = 1; i <= md2; i++) {
-    xtmp = x_data[i - 1];
-    x_data[i - 1] = x_data[m - i];
-    x_data[m - i] = xtmp;
-  }
-}
-
-//
-// Arguments    : int nRows
-//                boolean_T useRadix2
-//                emxArray_real_T *costab
-//                emxArray_real_T *sintab
-//                emxArray_real_T *sintabinv
-// Return Type  : void
-//
-static void generate_twiddle_tables(int nRows, boolean_T useRadix2,
-  emxArray_real_T *costab, emxArray_real_T *sintab, emxArray_real_T *sintabinv)
-{
-  emxArray_real_T *costab1q;
-  double e;
-  int nRowsD4;
-  int nd2;
-  int k;
-  int n2;
-  emxInit_real_T(&costab1q, 2);
-  e = 6.2831853071795862 / (double)nRows;
-  nRowsD4 = nRows / 2 / 2;
-  nd2 = costab1q->size[0] * costab1q->size[1];
-  costab1q->size[0] = 1;
-  costab1q->size[1] = nRowsD4 + 1;
-  emxEnsureCapacity((emxArray__common *)costab1q, nd2, (int)sizeof(double));
-  costab1q->data[0] = 1.0;
-  nd2 = nRowsD4 / 2;
-  for (k = 1; k <= nd2; k++) {
-    costab1q->data[k] = std::cos(e * (double)k);
-  }
-
-  for (k = nd2 + 1; k < nRowsD4; k++) {
-    costab1q->data[k] = std::sin(e * (double)(nRowsD4 - k));
-  }
-
-  costab1q->data[nRowsD4] = 0.0;
-  if (!useRadix2) {
-    nRowsD4 = costab1q->size[1] - 1;
-    n2 = (costab1q->size[1] - 1) << 1;
-    nd2 = costab->size[0] * costab->size[1];
-    costab->size[0] = 1;
-    costab->size[1] = n2 + 1;
-    emxEnsureCapacity((emxArray__common *)costab, nd2, (int)sizeof(double));
-    nd2 = sintab->size[0] * sintab->size[1];
-    sintab->size[0] = 1;
-    sintab->size[1] = n2 + 1;
-    emxEnsureCapacity((emxArray__common *)sintab, nd2, (int)sizeof(double));
-    costab->data[0] = 1.0;
-    sintab->data[0] = 0.0;
-    nd2 = sintabinv->size[0] * sintabinv->size[1];
-    sintabinv->size[0] = 1;
-    sintabinv->size[1] = n2 + 1;
-    emxEnsureCapacity((emxArray__common *)sintabinv, nd2, (int)sizeof(double));
-    for (k = 1; k <= nRowsD4; k++) {
-      sintabinv->data[k] = costab1q->data[nRowsD4 - k];
-    }
-
-    for (k = costab1q->size[1]; k <= n2; k++) {
-      sintabinv->data[k] = costab1q->data[k - nRowsD4];
-    }
-
-    for (k = 1; k <= nRowsD4; k++) {
-      costab->data[k] = costab1q->data[k];
-      sintab->data[k] = -costab1q->data[nRowsD4 - k];
-    }
-
-    for (k = costab1q->size[1]; k <= n2; k++) {
-      costab->data[k] = -costab1q->data[n2 - k];
-      sintab->data[k] = -costab1q->data[k - nRowsD4];
-    }
-  } else {
-    nRowsD4 = costab1q->size[1] - 1;
-    n2 = (costab1q->size[1] - 1) << 1;
-    nd2 = costab->size[0] * costab->size[1];
-    costab->size[0] = 1;
-    costab->size[1] = n2 + 1;
-    emxEnsureCapacity((emxArray__common *)costab, nd2, (int)sizeof(double));
-    nd2 = sintab->size[0] * sintab->size[1];
-    sintab->size[0] = 1;
-    sintab->size[1] = n2 + 1;
-    emxEnsureCapacity((emxArray__common *)sintab, nd2, (int)sizeof(double));
-    costab->data[0] = 1.0;
-    sintab->data[0] = 0.0;
-    for (k = 1; k <= nRowsD4; k++) {
-      costab->data[k] = costab1q->data[k];
-      sintab->data[k] = -costab1q->data[nRowsD4 - k];
-    }
-
-    for (k = costab1q->size[1]; k <= n2; k++) {
-      costab->data[k] = -costab1q->data[n2 - k];
-      sintab->data[k] = -costab1q->data[k - nRowsD4];
-    }
-
-    nd2 = sintabinv->size[0] * sintabinv->size[1];
-    sintabinv->size[0] = 1;
-    sintabinv->size[1] = 0;
-    emxEnsureCapacity((emxArray__common *)sintabinv, nd2, (int)sizeof(double));
-  }
-
-  emxFree_real_T(&costab1q);
-}
-
-//
-// Arguments    : const double y[250]
-//                double iPk_data[]
-//                int iPk_size[1]
-//                double iInf_data[]
-//                int iInf_size[1]
-//                double iInflect_data[]
-//                int iInflect_size[1]
-// Return Type  : void
-//
-static void getAllPeaks(const double y[250], double iPk_data[], int iPk_size[1],
-  double iInf_data[], int iInf_size[1], double iInflect_data[], int
-  iInflect_size[1])
-{
-  boolean_T x[250];
-  int idx;
-  unsigned char ii_data[250];
-  int ii;
-  boolean_T exitg1;
-  boolean_T guard1 = false;
-  double yTemp[250];
-  for (idx = 0; idx < 250; idx++) {
-    x[idx] = (rtIsInf(y[idx]) && (y[idx] > 0.0));
-  }
-
-  idx = 0;
-  ii = 1;
-  exitg1 = false;
-  while ((!exitg1) && (ii < 251)) {
-    guard1 = false;
-    if (x[ii - 1]) {
-      idx++;
-      ii_data[idx - 1] = (unsigned char)ii;
-      if (idx >= 250) {
-        exitg1 = true;
-      } else {
-        guard1 = true;
-      }
+  for (iDelta2 = 0; iDelta2 < 2048; iDelta2++) {
+    if (b_y1[iDelta2].im == 0.0) {
+      c_y1[iDelta2].re = b_y1[iDelta2].re / 2048.0;
+      c_y1[iDelta2].im = 0.0;
+    } else if (b_y1[iDelta2].re == 0.0) {
+      c_y1[iDelta2].re = 0.0;
+      c_y1[iDelta2].im = b_y1[iDelta2].im / 2048.0;
     } else {
-      guard1 = true;
-    }
-
-    if (guard1) {
-      ii++;
+      c_y1[iDelta2].re = b_y1[iDelta2].re / 2048.0;
+      c_y1[iDelta2].im = b_y1[iDelta2].im / 2048.0;
     }
   }
 
-  if (1 > idx) {
-    idx = 0;
+  b_abs(c_y1, B);
+  memcpy(&C[0], &B[0], 1025U * sizeof(double));
+  for (iDelta2 = 0; iDelta2 < 1023; iDelta2++) {
+    C[1 + iDelta2] = 2.0 * B[1 + iDelta2];
   }
 
-  iInf_size[0] = idx;
-  for (ii = 0; ii < idx; ii++) {
-    iInf_data[ii] = ii_data[ii];
-  }
-
-  memcpy(&yTemp[0], &y[0], 250U * sizeof(double));
-  for (ii = 0; ii < idx; ii++) {
-    ii_data[ii] = (unsigned char)iInf_data[ii];
-  }
-
-  for (ii = 0; ii < idx; ii++) {
-    yTemp[ii_data[ii] - 1] = rtNaN;
-  }
-
-  findLocalMaxima(yTemp, iPk_data, iPk_size, iInflect_data, iInflect_size);
-}
-
-//
-// Arguments    : int n1
-//                boolean_T useRadix2
-//                int *N2blue
-//                int *nRows
-// Return Type  : void
-//
-static void get_algo_sizes(int n1, boolean_T useRadix2, int *N2blue, int *nRows)
-{
-  int nn1m1;
-  int pmax;
-  int pmin;
-  boolean_T exitg1;
-  int p;
-  int pow2p;
-  *N2blue = 1;
-  if (useRadix2) {
-    *nRows = n1;
-  } else {
-    nn1m1 = (n1 + n1) - 1;
-    pmax = 31;
-    if (nn1m1 <= 1) {
-      pmax = 0;
-    } else {
-      pmin = 0;
-      exitg1 = false;
-      while ((!exitg1) && (pmax - pmin > 1)) {
-        p = (pmin + pmax) >> 1;
-        pow2p = 1 << p;
-        if (pow2p == nn1m1) {
-          pmax = p;
-          exitg1 = true;
-        } else if (pow2p > nn1m1) {
-          pmax = p;
-        } else {
-          pmin = p;
-        }
-      }
-    }
-
-    *N2blue = 1 << pmax;
-    *nRows = *N2blue;
-  }
-}
-
-//
-// get_fft_data:
-//  X is filtered data
-//  L = size(X,1);
-//  L = number of FFT points
-// Arguments    : const emxArray_real_T *X
-//                double Fs
-//                double f[1025]
-//                double C[1025]
-// Return Type  : void
-//
-static void get_nfft_data(const emxArray_real_T *X, double Fs, double f[1025],
-  double C[1025])
-{
-  creal_T A[2048];
-  creal_T b_A[2048];
-  int i9;
-  double dv10[2048];
-  fft(X, A);
-  for (i9 = 0; i9 < 2048; i9++) {
-    if (A[i9].im == 0.0) {
-      b_A[i9].re = A[i9].re / 2048.0;
-      b_A[i9].im = 0.0;
-    } else if (A[i9].re == 0.0) {
-      b_A[i9].re = 0.0;
-      b_A[i9].im = A[i9].im / 2048.0;
-    } else {
-      b_A[i9].re = A[i9].re / 2048.0;
-      b_A[i9].im = A[i9].im / 2048.0;
-    }
-  }
-
-  b_abs(b_A, dv10);
-  memcpy(&C[0], &dv10[0], 1025U * sizeof(double));
-  for (i9 = 0; i9 < 2048; i9++) {
-    if (A[i9].im == 0.0) {
-      b_A[i9].re = A[i9].re / 2048.0;
-      b_A[i9].im = 0.0;
-    } else if (A[i9].re == 0.0) {
-      b_A[i9].re = 0.0;
-      b_A[i9].im = A[i9].im / 2048.0;
-    } else {
-      b_A[i9].re = A[i9].re / 2048.0;
-      b_A[i9].im = A[i9].im / 2048.0;
-    }
-  }
-
-  b_abs(b_A, dv10);
-  for (i9 = 0; i9 < 1023; i9++) {
-    C[1 + i9] = 2.0 * dv10[1 + i9];
-  }
-
-  for (i9 = 0; i9 < 1025; i9++) {
-    f[i9] = Fs * (double)i9 / 2048.0;
+  for (iDelta2 = 0; iDelta2 < 1025; iDelta2++) {
+    f[iDelta2] = Fs * (double)iDelta2 / 2048.0;
   }
 }
 
@@ -7220,7 +7766,11 @@ static void hannWin(double x, emxArray_real_T *w)
       ndbl++;
     }
 
-    n = (int)ndbl;
+    if (ndbl >= 0.0) {
+      n = (int)ndbl;
+    } else {
+      n = 0;
+    }
   }
 
   emxInit_real_T(&y, 2);
@@ -7279,77 +7829,6 @@ static void hannWin(double x, emxArray_real_T *w)
 }
 
 //
-// Arguments    : const double Y[3]
-//                const double X_data[]
-//                const int X_size[1]
-//                double no_data[]
-//                int no_size[2]
-// Return Type  : void
-//
-static void hist(const double Y[3], const double X_data[], const int X_size[1],
-                 double no_data[], int no_size[2])
-{
-  double edges_data[713];
-  int edges_size[2];
-  int k;
-  double nn_data[713];
-  int nn_size[1];
-  edges_size[0] = 1;
-  edges_size[1] = (short)(X_size[0] + 1);
-  for (k = 0; k <= X_size[0] - 2; k++) {
-    edges_data[1 + k] = X_data[k] + (X_data[1 + k] - X_data[k]) / 2.0;
-  }
-
-  edges_data[0] = rtMinusInf;
-  edges_data[(short)(X_size[0] + 1) - 1] = rtInf;
-  for (k = 1; k - 1 <= X_size[0] - 2; k++) {
-    edges_data[k] += eps(edges_data[k]);
-  }
-
-  histc(Y, edges_data, edges_size, nn_data, nn_size);
-  no_size[0] = 1;
-  no_size[1] = nn_size[0] - 1;
-  for (k = 0; k <= nn_size[0] - 2; k++) {
-    no_data[k] = nn_data[k];
-  }
-
-  if (nn_size[0] - 1 > 0) {
-    no_data[no_size[1] - 1] += nn_data[nn_size[0] - 1];
-  }
-}
-
-//
-// Arguments    : const double X[3]
-//                const double edges_data[]
-//                const int edges_size[2]
-//                double N_data[]
-//                int N_size[1]
-// Return Type  : void
-//
-static void histc(const double X[3], const double edges_data[], const int
-                  edges_size[2], double N_data[], int N_size[1])
-{
-  int xind;
-  int k;
-  int bin;
-  N_size[0] = (short)edges_size[1];
-  xind = (short)edges_size[1];
-  for (k = 0; k < xind; k++) {
-    N_data[k] = 0.0;
-  }
-
-  xind = 0;
-  for (k = 0; k < 3; k++) {
-    bin = findbin(X[xind], edges_data, edges_size);
-    if (bin > 0) {
-      N_data[bin - 1]++;
-    }
-
-    xind++;
-  }
-}
-
-//
 // Arguments    : const double varargin_1[4]
 //                const double varargin_2[4]
 // Return Type  : boolean_T
@@ -7382,20 +7861,39 @@ static boolean_T isequal(const double varargin_1[4], const double varargin_2[4])
 }
 
 //
-// Arguments    : double idx_data[]
-//                int idx_size[1]
+// Arguments    : emxArray_real_T *idx
+//                double Np
 // Return Type  : void
 //
-static void keepAtMostNpPeaks(double idx_data[], int idx_size[1])
+static void keepAtMostNpPeaks(emxArray_real_T *idx, double Np)
 {
-  double b_idx_data[500];
-  int i24;
-  if (idx_size[0] > 250) {
-    memcpy(&b_idx_data[0], &idx_data[0], 250U * sizeof(double));
-    idx_size[0] = 250;
-    for (i24 = 0; i24 < 250; i24++) {
-      idx_data[i24] = b_idx_data[i24];
+  int loop_ub;
+  emxArray_real_T *b_idx;
+  int i15;
+  if (idx->size[0] > Np) {
+    if (1.0 > Np) {
+      loop_ub = 0;
+    } else {
+      loop_ub = (int)Np;
     }
+
+    emxInit_real_T1(&b_idx, 1);
+    i15 = b_idx->size[0];
+    b_idx->size[0] = loop_ub;
+    emxEnsureCapacity((emxArray__common *)b_idx, i15, (int)sizeof(double));
+    for (i15 = 0; i15 < loop_ub; i15++) {
+      b_idx->data[i15] = idx->data[i15];
+    }
+
+    i15 = idx->size[0];
+    idx->size[0] = b_idx->size[0];
+    emxEnsureCapacity((emxArray__common *)idx, i15, (int)sizeof(double));
+    loop_ub = b_idx->size[0];
+    for (i15 = 0; i15 < loop_ub; i15++) {
+      idx->data[i15] = b_idx->data[i15];
+    }
+
+    emxFree_real_T(&b_idx);
   }
 }
 
@@ -7418,72 +7916,55 @@ static void keepAtMostNpPeaks(double idx_data[], int idx_size[1])
 //
 static double knn(const double tsX[40])
 {
-  static const double tY[712] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-    1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-    1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0,
-    1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
-
+  double yfit;
+  int iwork[712];
   int idx[712];
-  double Uc_data[712];
   int k;
-  int khi;
-  int nInf;
-  int nNaN;
+  int i;
+  static const signed char a[712] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+    1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0,
+    0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0,
+    0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0,
+    0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+  emxArray_real_T *Uc;
+  int i2;
   int nb;
-  int n;
-  int exitg2;
-  double absxk;
-  int i6;
-  int ix;
-  int Uc_size[1];
-  static double tX[28480];
-  static double dv6[28480];
-  double unusedU0[712];
-  static const double b_tX[28480] = { 3.41758581347478E-7, -3.73853011436922E-7,
+  int pEnd;
+  int p;
+  int q;
+  int qEnd;
+  int kEnd;
+  int b_i2;
+  int exitg5;
+  boolean_T eok;
+  static double x[28480];
+  static double y[28480];
+  int b_k;
+  static const double tX[28480] = { 3.41758581347478E-7, -3.73853011436922E-7,
     7.94193180133536E-7, -1.51695397945949E-7, -5.88638007205537E-7,
     2.10615347916054E-8, 9.31928748239796E-7, 4.52103848979293E-7,
     -3.45154501461168E-7, 7.22698117305282E-8, -3.19617643504927E-8,
@@ -13219,132 +13700,298 @@ static double knn(const double tsX[40])
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 
-  double b_tY[3];
-  int varargin_1_size[2];
+  double dist[712];
+  int c_k;
+  double s;
+  signed char Y[3];
+  emxArray_real_T *edges;
+  int exitg4;
+  int exitg3;
+  emxArray_real_T *nn;
+  short outsize_idx_0;
+  boolean_T guard1 = false;
+  int exitg2;
   boolean_T exitg1;
-  sortIdx(tY, idx);
+  for (k = 0; k <= 711; k += 2) {
+    if (a[k] <= a[k + 1]) {
+      idx[k] = k + 1;
+      idx[k + 1] = k + 2;
+    } else {
+      idx[k] = k + 2;
+      idx[k + 1] = k + 1;
+    }
+  }
+
+  i = 2;
+  while (i < 712) {
+    i2 = i << 1;
+    nb = 1;
+    for (pEnd = 1 + i; pEnd < 713; pEnd = qEnd + i) {
+      p = nb;
+      q = pEnd;
+      qEnd = nb + i2;
+      if (qEnd > 713) {
+        qEnd = 713;
+      }
+
+      k = 0;
+      kEnd = qEnd - nb;
+      while (k + 1 <= kEnd) {
+        if (a[idx[p - 1] - 1] <= a[idx[q - 1] - 1]) {
+          iwork[k] = idx[p - 1];
+          p++;
+          if (p == pEnd) {
+            while (q < qEnd) {
+              k++;
+              iwork[k] = idx[q - 1];
+              q++;
+            }
+          }
+        } else {
+          iwork[k] = idx[q - 1];
+          q++;
+          if (q == qEnd) {
+            while (p < pEnd) {
+              k++;
+              iwork[k] = idx[p - 1];
+              p++;
+            }
+          }
+        }
+
+        k++;
+      }
+
+      for (k = 0; k + 1 <= kEnd; k++) {
+        idx[(nb + k) - 1] = iwork[k];
+      }
+
+      nb = qEnd;
+    }
+
+    i = i2;
+  }
+
+  emxInit_real_T1(&Uc, 1);
+  i2 = Uc->size[0];
+  Uc->size[0] = 712;
+  emxEnsureCapacity((emxArray__common *)Uc, i2, (int)sizeof(double));
   for (k = 0; k < 712; k++) {
-    Uc_data[k] = tY[idx[k] - 1];
+    Uc->data[k] = a[idx[k] - 1];
   }
 
-  count_nonfinites(Uc_data, &k, &khi, &nInf, &nNaN);
   nb = -1;
-  if (k > 0) {
-    nb = 0;
+  k = 0;
+  while (k + 1 <= 712) {
+    i = (int)Uc->data[k];
+    do {
+      exitg5 = 0;
+      k++;
+      if (k + 1 > 712) {
+        exitg5 = 1;
+      } else {
+        eok = (std::abs((double)i - Uc->data[k]) < eps((double)i / 2.0));
+        if (!eok) {
+          exitg5 = 1;
+        }
+      }
+    } while (exitg5 == 0);
+
+    nb++;
+    Uc->data[nb] = i;
   }
 
-  khi += k;
-  while (k + 1 <= khi) {
-    n = (int)Uc_data[k];
+  i2 = Uc->size[0];
+  if (1 > nb + 1) {
+    b_i2 = -1;
+  } else {
+    b_i2 = nb;
+  }
+
+  Uc->size[0] = b_i2 + 1;
+  emxEnsureCapacity((emxArray__common *)Uc, i2, (int)sizeof(double));
+  for (i2 = 0; i2 < 712; i2++) {
+    for (i = 0; i < 40; i++) {
+      x[i2 + 712 * i] = tX[i2 + 712 * i] - tsX[i];
+    }
+  }
+
+//#pragma omp parallel for \
+// num_threads(omp_get_max_threads()) \
+// private(c_k)
+
+  for (b_k = 1; b_k < 28481; b_k++) {
+    c_k = b_k;
+    y[c_k - 1] = x[c_k - 1] * x[c_k - 1];
+  }
+
+  for (nb = 0; nb < 712; nb++) {
+    s = y[nb];
+    for (k = 0; k < 39; k++) {
+      s += y[nb + (k + 1) * 712];
+    }
+
+    dist[nb] = s;
+  }
+
+  sort(dist, idx);
+  for (i = 0; i < 3; i++) {
+    Y[i] = a[idx[i] - 1];
+  }
+
+  emxInit_real_T(&edges, 2);
+  i = Uc->size[0];
+  i2 = edges->size[0] * edges->size[1];
+  edges->size[0] = 1;
+  edges->size[1] = (short)(i + 1);
+  emxEnsureCapacity((emxArray__common *)edges, i2, (int)sizeof(double));
+  k = 0;
+  do {
+    exitg4 = 0;
+    i = Uc->size[0];
+    if (k <= i - 2) {
+      edges->data[1 + k] = Uc->data[k] + (Uc->data[1 + k] - Uc->data[k]) / 2.0;
+      k++;
+    } else {
+      exitg4 = 1;
+    }
+  } while (exitg4 == 0);
+
+  edges->data[0] = rtMinusInf;
+  edges->data[edges->size[1] - 1] = rtInf;
+  k = 1;
+  do {
+    exitg3 = 0;
+    i = Uc->size[0];
+    if (k - 1 <= i - 2) {
+      edges->data[k] += eps(edges->data[k]);
+      k++;
+    } else {
+      exitg3 = 1;
+    }
+  } while (exitg3 == 0);
+
+  emxInit_real_T1(&nn, 1);
+  outsize_idx_0 = (short)edges->size[1];
+  i2 = nn->size[0];
+  nn->size[0] = outsize_idx_0;
+  emxEnsureCapacity((emxArray__common *)nn, i2, (int)sizeof(double));
+  i = outsize_idx_0;
+  for (i2 = 0; i2 < i; i2++) {
+    nn->data[i2] = 0.0;
+  }
+
+  i = edges->size[1];
+  guard1 = false;
+  if (i > 1) {
+    nb = 1;
     do {
       exitg2 = 0;
-      k++;
-      if (k + 1 > khi) {
-        exitg2 = 1;
-      } else {
-        absxk = (double)n / 2.0;
-        if (absxk <= 2.2250738585072014E-308) {
-          absxk = 4.94065645841247E-324;
-        } else {
-          frexp(absxk, &ix);
-          absxk = std::ldexp(1.0, ix - 53);
-        }
-
-        if (!(std::abs((double)n - Uc_data[k]) < absxk)) {
+      if (nb + 1 <= i) {
+        if (!(edges->data[nb] >= edges->data[nb - 1])) {
+          eok = false;
           exitg2 = 1;
+        } else {
+          nb++;
         }
+      } else {
+        guard1 = true;
+        exitg2 = 1;
       }
     } while (exitg2 == 0);
-
-    nb++;
-    Uc_data[nb] = n;
-  }
-
-  if (nInf > 0) {
-    nb++;
-    Uc_data[nb] = Uc_data[khi];
-  }
-
-  k = khi + nInf;
-  for (n = 1; n <= nNaN; n++) {
-    nb++;
-    Uc_data[nb] = Uc_data[(k + n) - 1];
-  }
-
-  if (1 > nb + 1) {
-    i6 = -1;
   } else {
-    i6 = nb;
+    guard1 = true;
   }
 
-  Uc_size[0] = i6 + 1;
-  for (n = 0; n < 712; n++) {
-    for (khi = 0; khi < 40; khi++) {
-      tX[n + 712 * khi] = b_tX[n + 712 * khi] - tsX[khi];
+  if (guard1) {
+    eok = true;
+  }
+
+  if (!eok) {
+    i2 = nn->size[0];
+    nn->size[0] = outsize_idx_0;
+    emxEnsureCapacity((emxArray__common *)nn, i2, (int)sizeof(double));
+    i = outsize_idx_0;
+    for (i2 = 0; i2 < i; i2++) {
+      nn->data[i2] = rtNaN;
+    }
+  } else {
+    i = 0;
+    for (k = 0; k < 3; k++) {
+      nb = findbin((double)Y[i], edges);
+      if (nb > 0) {
+        nn->data[nb - 1]++;
+      }
+
+      i++;
     }
   }
 
-  power(tX, dv6);
-  b_sum(dv6, unusedU0);
-  sort(unusedU0, idx);
-  for (n = 0; n < 3; n++) {
-    b_tY[n] = tY[idx[n] - 1];
+  i2 = edges->size[0] * edges->size[1];
+  edges->size[0] = 1;
+  edges->size[1] = nn->size[0] - 1;
+  emxEnsureCapacity((emxArray__common *)edges, i2, (int)sizeof(double));
+  for (k = 0; k <= nn->size[0] - 2; k++) {
+    edges->data[k] = nn->data[k];
   }
 
-  hist(b_tY, Uc_data, Uc_size, unusedU0, varargin_1_size);
-  khi = 1;
-  n = varargin_1_size[1];
-  absxk = unusedU0[0];
-  nInf = 0;
-  if (varargin_1_size[1] > 1) {
-    if (rtIsNaN(unusedU0[0])) {
-      ix = 2;
+  if (nn->size[0] - 1 > 0) {
+    edges->data[edges->size[1] - 1] += nn->data[nn->size[0] - 1];
+  }
+
+  emxFree_real_T(&nn);
+  i = 1;
+  nb = edges->size[1];
+  s = edges->data[0];
+  i2 = 0;
+  if (edges->size[1] > 1) {
+    if (rtIsNaN(edges->data[0])) {
+      pEnd = 2;
       exitg1 = false;
-      while ((!exitg1) && (ix <= n)) {
-        khi = ix;
-        if (!rtIsNaN(unusedU0[ix - 1])) {
-          absxk = unusedU0[ix - 1];
-          nInf = ix - 1;
+      while ((!exitg1) && (pEnd <= nb)) {
+        i = pEnd;
+        if (!rtIsNaN(edges->data[pEnd - 1])) {
+          s = edges->data[pEnd - 1];
+          i2 = pEnd - 1;
           exitg1 = true;
         } else {
-          ix++;
+          pEnd++;
         }
       }
     }
 
-    if (khi < varargin_1_size[1]) {
-      while (khi + 1 <= n) {
-        if (unusedU0[khi] > absxk) {
-          absxk = unusedU0[khi];
-          nInf = khi;
+    if (i < edges->size[1]) {
+      while (i + 1 <= nb) {
+        if (edges->data[i] > s) {
+          s = edges->data[i];
+          i2 = i;
         }
 
-        khi++;
+        i++;
       }
     }
   }
 
-  return Uc_data[nInf];
+  emxFree_real_T(&edges);
+  yfit = Uc->data[i2];
+  emxFree_real_T(&Uc);
+  return yfit;
 }
 
 //
-// Arguments    : const emxArray_real_T *x
+// Arguments    : const double x[4]
 // Return Type  : double
 //
-static double mean(const emxArray_real_T *x)
+static double mean(const double x[4])
 {
   double y;
   int k;
-  if (x->size[0] == 0) {
-    y = 0.0;
-  } else {
-    y = x->data[0];
-    for (k = 2; k <= x->size[0]; k++) {
-      y += x->data[k - 1];
-    }
+  y = x[0];
+  for (k = 0; k < 3; k++) {
+    y += x[k + 1];
   }
 
-  y /= (double)x->size[0];
+  y /= 4.0;
   return y;
 }
 
@@ -13366,7 +14013,7 @@ static void merge(int idx[712], double x[712], int offset, int np, int nq, int
   int p;
   int iout;
   int exitg1;
-  if (nq == 0) {
+  if ((np == 0) || (nq == 0)) {
   } else {
     n = np + nq;
     for (qend = 0; qend + 1 <= n; qend++) {
@@ -13395,10 +14042,10 @@ static void merge(int idx[712], double x[712], int offset, int np, int nq, int
         if (n + 1 < qend) {
           n++;
         } else {
-          n = (iout - p) + 1;
+          n = iout - p;
           while (p + 1 <= np) {
-            idx[n + p] = iwork[p];
-            x[n + p] = xwork[p];
+            idx[(n + p) + 1] = iwork[p];
+            x[(n + p) + 1] = xwork[p];
             p++;
           }
 
@@ -13517,272 +14164,67 @@ static void merge_pow2_block(int idx[712], double x[712], int offset)
 }
 
 //
-// Arguments    : const double Y[1025]
-//                const double iPk_data[]
-//                double idx_data[]
-//                int idx_size[1]
+// Arguments    : const emxArray_real_T *Y
+//                const emxArray_real_T *iPk
+//                emxArray_real_T *idx
 // Return Type  : void
 //
-static void orderPeaks(const double Y[1025], const double iPk_data[], double
-  idx_data[], int idx_size[1])
+static void orderPeaks(const emxArray_real_T *Y, const emxArray_real_T *iPk,
+  emxArray_real_T *idx)
 {
   emxArray_real_T *x;
-  int i25;
+  int i14;
   int loop_ub;
   emxArray_int32_T *iidx;
-  double b_idx_data[2050];
-  int idx_size_idx_0;
-  if (idx_size[0] == 0) {
+  emxArray_real_T *b_idx;
+  if (idx->size[0] == 0) {
   } else {
     emxInit_real_T1(&x, 1);
-    i25 = x->size[0];
-    x->size[0] = idx_size[0];
-    emxEnsureCapacity((emxArray__common *)x, i25, (int)sizeof(double));
-    loop_ub = idx_size[0];
-    for (i25 = 0; i25 < loop_ub; i25++) {
-      x->data[i25] = Y[(int)iPk_data[(int)idx_data[i25] - 1] - 1];
+    i14 = x->size[0];
+    x->size[0] = idx->size[0];
+    emxEnsureCapacity((emxArray__common *)x, i14, (int)sizeof(double));
+    loop_ub = idx->size[0];
+    for (i14 = 0; i14 < loop_ub; i14++) {
+      x->data[i14] = Y->data[(int)iPk->data[(int)idx->data[i14] - 1] - 1];
     }
 
     emxInit_int32_T(&iidx, 1);
+    emxInit_real_T1(&b_idx, 1);
     b_sort(x, iidx);
-    idx_size_idx_0 = iidx->size[0];
+    i14 = b_idx->size[0];
+    b_idx->size[0] = iidx->size[0];
+    emxEnsureCapacity((emxArray__common *)b_idx, i14, (int)sizeof(double));
     loop_ub = iidx->size[0];
     emxFree_real_T(&x);
-    for (i25 = 0; i25 < loop_ub; i25++) {
-      b_idx_data[i25] = idx_data[iidx->data[i25] - 1];
+    for (i14 = 0; i14 < loop_ub; i14++) {
+      b_idx->data[i14] = idx->data[iidx->data[i14] - 1];
     }
 
     emxFree_int32_T(&iidx);
-    idx_size[0] = idx_size_idx_0;
-    for (i25 = 0; i25 < idx_size_idx_0; i25++) {
-      idx_data[i25] = b_idx_data[i25];
-    }
-  }
-}
-
-//
-// Arguments    : const emxArray_real_T *Yin
-//                emxArray_real_T *y
-//                emxArray_real_T *x
-//                double *NpOut
-// Return Type  : void
-//
-static void parse_inputs(const emxArray_real_T *Yin, emxArray_real_T *y,
-  emxArray_real_T *x, double *NpOut)
-{
-  int cdiff;
-  int nm1d2;
-  int ndbl;
-  int apnd;
-  emxArray_real_T *b_y;
-  cdiff = y->size[0];
-  y->size[0] = Yin->size[1];
-  emxEnsureCapacity((emxArray__common *)y, cdiff, (int)sizeof(double));
-  nm1d2 = Yin->size[1];
-  for (cdiff = 0; cdiff < nm1d2; cdiff++) {
-    y->data[cdiff] = Yin->data[cdiff];
-  }
-
-  nm1d2 = Yin->size[1];
-  if (nm1d2 < 1) {
-    ndbl = 0;
-    apnd = 0;
-  } else {
-    nm1d2 = Yin->size[1];
-    ndbl = (int)std::floor(((double)nm1d2 - 1.0) + 0.5);
-    apnd = ndbl + 1;
-    nm1d2 = Yin->size[1];
-    cdiff = (ndbl - nm1d2) + 1;
-    nm1d2 = Yin->size[1];
-    if (1 >= nm1d2) {
-      nm1d2 = 1;
+    i14 = idx->size[0];
+    idx->size[0] = b_idx->size[0];
+    emxEnsureCapacity((emxArray__common *)idx, i14, (int)sizeof(double));
+    loop_ub = b_idx->size[0];
+    for (i14 = 0; i14 < loop_ub; i14++) {
+      idx->data[i14] = b_idx->data[i14];
     }
 
-    if (std::abs((double)cdiff) < 4.4408920985006262E-16 * (double)nm1d2) {
-      ndbl++;
-      apnd = Yin->size[1];
-    } else if (cdiff > 0) {
-      apnd = ndbl;
-    } else {
-      ndbl++;
-    }
-  }
-
-  emxInit_real_T(&b_y, 2);
-  cdiff = b_y->size[0] * b_y->size[1];
-  b_y->size[0] = 1;
-  b_y->size[1] = ndbl;
-  emxEnsureCapacity((emxArray__common *)b_y, cdiff, (int)sizeof(double));
-  if (ndbl > 0) {
-    b_y->data[0] = 1.0;
-    if (ndbl > 1) {
-      b_y->data[ndbl - 1] = apnd;
-      nm1d2 = (ndbl - 1) / 2;
-      for (cdiff = 1; cdiff < nm1d2; cdiff++) {
-        b_y->data[cdiff] = 1.0 + (double)cdiff;
-        b_y->data[(ndbl - cdiff) - 1] = apnd - cdiff;
-      }
-
-      if (nm1d2 << 1 == ndbl - 1) {
-        b_y->data[nm1d2] = (1.0 + (double)apnd) / 2.0;
-      } else {
-        b_y->data[nm1d2] = 1.0 + (double)nm1d2;
-        b_y->data[nm1d2 + 1] = apnd - nm1d2;
-      }
-    }
-  }
-
-  cdiff = x->size[0];
-  x->size[0] = b_y->size[1];
-  emxEnsureCapacity((emxArray__common *)x, cdiff, (int)sizeof(double));
-  nm1d2 = b_y->size[1];
-  for (cdiff = 0; cdiff < nm1d2; cdiff++) {
-    x->data[cdiff] = b_y->data[b_y->size[0] * cdiff];
-  }
-
-  emxFree_real_T(&b_y);
-  nm1d2 = Yin->size[1];
-  *NpOut = nm1d2;
-}
-
-//
-// Arguments    : const double a[28480]
-//                double y[28480]
-// Return Type  : void
-//
-static void power(const double a[28480], double y[28480])
-{
-  static double x[28480];
-  int k;
-  int b_k;
-  memcpy(&x[0], &a[0], 28480U * sizeof(double));
-
-#pragma omp parallel for \
- num_threads(omp_get_max_threads()) \
- private(b_k)
-
-  for (k = 1; k < 28481; k++) {
-    b_k = k;
-    y[b_k - 1] = x[b_k - 1] * x[b_k - 1];
-  }
-}
-
-//
-// Arguments    : const emxArray_real_T *x
-//                const double costab[1025]
-//                const double sintab[1025]
-//                creal_T y[2048]
-// Return Type  : void
-//
-static void r2br_r2dit_trig(const emxArray_real_T *x, const double costab[1025],
-  const double sintab[1025], creal_T y[2048])
-{
-  int iDelta2;
-  int ix;
-  int i;
-  int ju;
-  int iy;
-  boolean_T tst;
-  double temp_re;
-  double temp_im;
-  int istart;
-  int j;
-  double twid_re;
-  double twid_im;
-  int ihi;
-  if (x->size[0] <= 2048) {
-    iDelta2 = x->size[0];
-  } else {
-    iDelta2 = 2048;
-  }
-
-  if (2048 > x->size[0]) {
-    for (i = 0; i < 2048; i++) {
-      y[i].re = 0.0;
-      y[i].im = 0.0;
-    }
-  }
-
-  ix = 0;
-  ju = 0;
-  iy = 0;
-  for (i = 1; i < iDelta2; i++) {
-    y[iy].re = x->data[ix];
-    y[iy].im = 0.0;
-    iy = 2048;
-    tst = true;
-    while (tst) {
-      iy >>= 1;
-      ju ^= iy;
-      tst = ((ju & iy) == 0);
-    }
-
-    iy = ju;
-    ix++;
-  }
-
-  y[iy].re = x->data[ix];
-  y[iy].im = 0.0;
-  for (i = 0; i <= 2047; i += 2) {
-    temp_re = y[i + 1].re;
-    temp_im = y[i + 1].im;
-    y[i + 1].re = y[i].re - y[i + 1].re;
-    y[i + 1].im = y[i].im - y[i + 1].im;
-    y[i].re += temp_re;
-    y[i].im += temp_im;
-  }
-
-  iy = 2;
-  iDelta2 = 4;
-  ix = 512;
-  ju = 2045;
-  while (ix > 0) {
-    for (i = 0; i < ju; i += iDelta2) {
-      temp_re = y[i + iy].re;
-      temp_im = y[i + iy].im;
-      y[i + iy].re = y[i].re - temp_re;
-      y[i + iy].im = y[i].im - temp_im;
-      y[i].re += temp_re;
-      y[i].im += temp_im;
-    }
-
-    istart = 1;
-    for (j = ix; j < 1024; j += ix) {
-      twid_re = costab[j];
-      twid_im = sintab[j];
-      i = istart;
-      ihi = istart + ju;
-      while (i < ihi) {
-        temp_re = twid_re * y[i + iy].re - twid_im * y[i + iy].im;
-        temp_im = twid_re * y[i + iy].im + twid_im * y[i + iy].re;
-        y[i + iy].re = y[i].re - temp_re;
-        y[i + iy].im = y[i].im - temp_im;
-        y[i].re += temp_re;
-        y[i].im += temp_im;
-        i += iDelta2;
-      }
-
-      istart++;
-    }
-
-    ix /= 2;
-    iy = iDelta2;
-    iDelta2 <<= 1;
-    ju -= iy;
+    emxFree_real_T(&b_idx);
   }
 }
 
 //
 // Arguments    : const emxArray_creal_T *x
+//                int xoffInit
 //                int unsigned_nRows
 //                const emxArray_real_T *costab
 //                const emxArray_real_T *sintab
 //                emxArray_creal_T *y
 // Return Type  : void
 //
-static void r2br_r2dit_trig_impl(const emxArray_creal_T *x, int unsigned_nRows,
-  const emxArray_real_T *costab, const emxArray_real_T *sintab, emxArray_creal_T
-  *y)
+static void r2br_r2dit_trig_impl(const emxArray_creal_T *x, int xoffInit, int
+  unsigned_nRows, const emxArray_real_T *costab, const emxArray_real_T *sintab,
+  emxArray_creal_T *y)
 {
   int j;
   int nRowsD2;
@@ -13821,7 +14263,7 @@ static void r2br_r2dit_trig_impl(const emxArray_creal_T *x, int unsigned_nRows,
     }
   }
 
-  ix = 0;
+  ix = xoffInit;
   ju = 0;
   iy = 0;
   for (i = 1; i < j; i++) {
@@ -13892,106 +14334,92 @@ static void r2br_r2dit_trig_impl(const emxArray_creal_T *x, int unsigned_nRows,
 }
 
 //
-// Arguments    : const double Y[250]
-//                double iPk_data[]
-//                int iPk_size[1]
+// Arguments    : const emxArray_real_T *Y
+//                emxArray_real_T *iPk
+//                double Ph
 // Return Type  : void
 //
-static void removePeaksBelowMinPeakHeight(const double Y[250], double iPk_data[],
-  int iPk_size[1])
+static void removePeaksBelowMinPeakHeight(const emxArray_real_T *Y,
+  emxArray_real_T *iPk, double Ph)
 {
   int end;
   int trueCount;
   int i;
   int partialTrueCount;
-  if (!(iPk_size[0] == 0)) {
-    end = iPk_size[0] - 1;
+  if (!(iPk->size[0] == 0)) {
+    end = iPk->size[0] - 1;
     trueCount = 0;
     for (i = 0; i <= end; i++) {
-      if (Y[(int)iPk_data[i] - 1] > 6.5E-5) {
+      if (Y->data[(int)iPk->data[i] - 1] > Ph) {
         trueCount++;
       }
     }
 
     partialTrueCount = 0;
     for (i = 0; i <= end; i++) {
-      if (Y[(int)iPk_data[i] - 1] > 6.5E-5) {
-        iPk_data[partialTrueCount] = iPk_data[i];
+      if (Y->data[(int)iPk->data[i] - 1] > Ph) {
+        iPk->data[partialTrueCount] = iPk->data[i];
         partialTrueCount++;
       }
     }
 
-    iPk_size[0] = trueCount;
+    end = iPk->size[0];
+    iPk->size[0] = trueCount;
+    emxEnsureCapacity((emxArray__common *)iPk, end, (int)sizeof(double));
   }
 }
 
 //
-// Arguments    : const double Y[250]
-//                double iPk_data[]
-//                int iPk_size[1]
+// Arguments    : const emxArray_real_T *Y
+//                emxArray_real_T *iPk
+//                double Th
 // Return Type  : void
 //
-static void removePeaksBelowThreshold(const double Y[250], double iPk_data[],
-  int iPk_size[1])
+static void removePeaksBelowThreshold(const emxArray_real_T *Y, emxArray_real_T *
+  iPk, double Th)
 {
-  emxArray_real_T *maxval;
-  unsigned char csz_idx_0;
+  int c;
+  emxArray_real_T *base;
   int k;
   int trueCount;
-  int i;
+  double extremum;
   int partialTrueCount;
-  emxInit_real_T1(&maxval, 1);
-  csz_idx_0 = (unsigned char)iPk_size[0];
-  k = maxval->size[0];
-  maxval->size[0] = (unsigned char)iPk_size[0];
-  emxEnsureCapacity((emxArray__common *)maxval, k, (int)sizeof(double));
-  for (k = 0; k + 1 <= csz_idx_0; k++) {
-    if ((Y[(int)(iPk_data[k] - 1.0) - 1] >= Y[(int)(iPk_data[k] + 1.0) - 1]) ||
-        rtIsNaN(Y[(int)(iPk_data[k] + 1.0) - 1])) {
-      maxval->data[k] = Y[(int)(iPk_data[k] - 1.0) - 1];
+  c = iPk->size[0];
+  emxInit_real_T1(&base, 1);
+  k = base->size[0];
+  base->size[0] = c;
+  emxEnsureCapacity((emxArray__common *)base, k, (int)sizeof(double));
+  for (k = 0; k + 1 <= c; k++) {
+    if ((Y->data[(int)(iPk->data[k] - 1.0) - 1] >= Y->data[(int)(iPk->data[k] +
+          1.0) - 1]) || rtIsNaN(Y->data[(int)(iPk->data[k] + 1.0) - 1])) {
+      extremum = Y->data[(int)(iPk->data[k] - 1.0) - 1];
     } else {
-      maxval->data[k] = Y[(int)(iPk_data[k] + 1.0) - 1];
+      extremum = Y->data[(int)(iPk->data[k] + 1.0) - 1];
     }
+
+    base->data[k] = extremum;
   }
 
-  k = iPk_size[0] - 1;
+  k = iPk->size[0] - 1;
   trueCount = 0;
-  for (i = 0; i <= k; i++) {
-    if (Y[(int)iPk_data[i] - 1] - maxval->data[i] >= 0.0) {
+  for (c = 0; c <= k; c++) {
+    if (Y->data[(int)iPk->data[c] - 1] - base->data[c] >= Th) {
       trueCount++;
     }
   }
 
   partialTrueCount = 0;
-  for (i = 0; i <= k; i++) {
-    if (Y[(int)iPk_data[i] - 1] - maxval->data[i] >= 0.0) {
-      iPk_data[partialTrueCount] = iPk_data[i];
+  for (c = 0; c <= k; c++) {
+    if (Y->data[(int)iPk->data[c] - 1] - base->data[c] >= Th) {
+      iPk->data[partialTrueCount] = iPk->data[c];
       partialTrueCount++;
     }
   }
 
-  emxFree_real_T(&maxval);
-  iPk_size[0] = trueCount;
-}
-
-//
-// Arguments    : const emxArray_real_T *a
-//                emxArray_real_T *b
-// Return Type  : void
-//
-static void repmat(const emxArray_real_T *a, emxArray_real_T *b)
-{
-  int outsize_idx_0;
-  int i15;
-  outsize_idx_0 = a->size[0];
-  i15 = b->size[0];
-  b->size[0] = outsize_idx_0;
-  emxEnsureCapacity((emxArray__common *)b, i15, (int)sizeof(double));
-  if ((!(a->size[0] == 0)) && (!(outsize_idx_0 == 0))) {
-    for (outsize_idx_0 = 0; outsize_idx_0 + 1 <= a->size[0]; outsize_idx_0++) {
-      b->data[outsize_idx_0] = a->data[outsize_idx_0];
-    }
-  }
+  emxFree_real_T(&base);
+  k = iPk->size[0];
+  iPk->size[0] = trueCount;
+  emxEnsureCapacity((emxArray__common *)iPk, k, (int)sizeof(double));
 }
 
 //
@@ -14022,6 +14450,96 @@ static double rt_hypotd_snf(double u0, double u1)
 }
 
 //
+// Arguments    : double u
+// Return Type  : double
+//
+static double rt_roundd_snf(double u)
+{
+  double y;
+  if (std::abs(u) < 4.503599627370496E+15) {
+    if (u >= 0.5) {
+      y = std::floor(u + 0.5);
+    } else if (u > -0.5) {
+      y = u * 0.0;
+    } else {
+      y = std::ceil(u - 0.5);
+    }
+  } else {
+    y = u;
+  }
+
+  return y;
+}
+
+//
+// scaleAbs :: scales to the maximum of the absolute value of the signal ...
+//  (For a ratio of 1).
+// Arguments    : emxArray_real_T *X
+//                emxArray_real_T *Y
+// Return Type  : void
+//
+static void scaleAbs(emxArray_real_T *X, emxArray_real_T *Y)
+{
+  int ixstart;
+  int n;
+  emxArray_real_T *y;
+  unsigned int unnamed_idx_0;
+  double mtmp;
+  int ix;
+  boolean_T exitg1;
+  ixstart = X->size[0];
+  n = X->size[0];
+  X->size[0] = ixstart;
+  emxEnsureCapacity((emxArray__common *)X, n, (int)sizeof(double));
+  emxInit_real_T1(&y, 1);
+  unnamed_idx_0 = (unsigned int)X->size[0];
+  n = y->size[0];
+  y->size[0] = (int)unnamed_idx_0;
+  emxEnsureCapacity((emxArray__common *)y, n, (int)sizeof(double));
+  for (ixstart = 0; ixstart + 1 <= X->size[0]; ixstart++) {
+    y->data[ixstart] = std::abs(X->data[ixstart]);
+  }
+
+  ixstart = 1;
+  n = y->size[0];
+  mtmp = y->data[0];
+  if (y->size[0] > 1) {
+    if (rtIsNaN(y->data[0])) {
+      ix = 2;
+      exitg1 = false;
+      while ((!exitg1) && (ix <= n)) {
+        ixstart = ix;
+        if (!rtIsNaN(y->data[ix - 1])) {
+          mtmp = y->data[ix - 1];
+          exitg1 = true;
+        } else {
+          ix++;
+        }
+      }
+    }
+
+    if (ixstart < y->size[0]) {
+      while (ixstart + 1 <= n) {
+        if (y->data[ixstart] > mtmp) {
+          mtmp = y->data[ixstart];
+        }
+
+        ixstart++;
+      }
+    }
+  }
+
+  emxFree_real_T(&y);
+  n = Y->size[0];
+  Y->size[0] = X->size[0];
+  emxEnsureCapacity((emxArray__common *)Y, n, (int)sizeof(double));
+  ixstart = X->size[0];
+  for (n = 0; n < ixstart; n++) {
+    Y->data[n] = X->data[n] / mtmp;
+  }
+}
+
+//
 // Arguments    : int *k
 //                const emxArray_real_T *x
 // Return Type  : double
@@ -14030,26 +14548,12 @@ static double skip_to_last_equal_value(int *k, const emxArray_real_T *x)
 {
   double xk;
   boolean_T exitg1;
-  double absxk;
-  int exponent;
   boolean_T p;
   xk = x->data[*k - 1];
   exitg1 = false;
   while ((!exitg1) && (*k < x->size[0])) {
-    absxk = std::abs(xk / 2.0);
-    if ((!rtIsInf(absxk)) && (!rtIsNaN(absxk))) {
-      if (absxk <= 2.2250738585072014E-308) {
-        absxk = 4.94065645841247E-324;
-      } else {
-        frexp(absxk, &exponent);
-        absxk = std::ldexp(1.0, exponent - 53);
-      }
-    } else {
-      absxk = rtNaN;
-    }
-
-    if ((std::abs(xk - x->data[*k]) < absxk) || (rtIsInf(x->data[*k]) && rtIsInf
-         (xk) && ((x->data[*k] > 0.0) == (xk > 0.0)))) {
+    if ((std::abs(xk - x->data[*k]) < eps(xk / 2.0)) || (rtIsInf(x->data[*k]) &&
+         rtIsInf(xk) && ((x->data[*k] > 0.0) == (xk > 0.0)))) {
       p = true;
     } else {
       p = false;
@@ -14254,94 +14758,321 @@ static void sort(double x[712], int idx[712])
 }
 
 //
-// Arguments    : const double x[712]
-//                int idx[712]
+// Arguments    : emxArray_real_T *x
+//                emxArray_int32_T *idx
 // Return Type  : void
 //
-static void sortIdx(const double x[712], int idx[712])
+static void sortIdx(emxArray_real_T *x, emxArray_int32_T *idx)
 {
-  int iwork[712];
+  emxArray_real_T *b_x;
+  unsigned int unnamed_idx_0;
+  int ib;
+  int m;
+  int n;
+  double x4[4];
+  int idx4[4];
+  emxArray_int32_T *iwork;
+  emxArray_real_T *xwork;
+  int nNaNs;
   int k;
-  int i;
-  boolean_T p;
-  int i2;
-  int j;
-  int pEnd;
-  int b_p;
-  int q;
-  int qEnd;
-  int kEnd;
-  for (k = 0; k <= 711; k += 2) {
-    if ((x[k] <= x[k + 1]) || rtIsNaN(x[k + 1])) {
-      p = true;
-    } else {
-      p = false;
-    }
+  int wOffset;
+  signed char perm[4];
+  int nNonNaN;
+  int p;
+  int i4;
+  int nBlocks;
+  int b_iwork[256];
+  double b_xwork[256];
+  int b;
+  int bLen;
+  int bLen2;
+  int nPairs;
+  int exitg1;
+  emxInit_real_T1(&b_x, 1);
+  unnamed_idx_0 = (unsigned int)x->size[0];
+  ib = b_x->size[0];
+  b_x->size[0] = x->size[0];
+  emxEnsureCapacity((emxArray__common *)b_x, ib, (int)sizeof(double));
+  m = x->size[0];
+  for (ib = 0; ib < m; ib++) {
+    b_x->data[ib] = x->data[ib];
+  }
 
-    if (p) {
-      idx[k] = k + 1;
-      idx[k + 1] = k + 2;
+  ib = idx->size[0];
+  idx->size[0] = (int)unnamed_idx_0;
+  emxEnsureCapacity((emxArray__common *)idx, ib, (int)sizeof(int));
+  m = (int)unnamed_idx_0;
+  for (ib = 0; ib < m; ib++) {
+    idx->data[ib] = 0;
+  }
+
+  n = x->size[0];
+  for (m = 0; m < 4; m++) {
+    x4[m] = 0.0;
+    idx4[m] = 0;
+  }
+
+  emxInit_int32_T(&iwork, 1);
+  ib = iwork->size[0];
+  iwork->size[0] = (int)unnamed_idx_0;
+  emxEnsureCapacity((emxArray__common *)iwork, ib, (int)sizeof(int));
+  m = iwork->size[0];
+  ib = iwork->size[0];
+  iwork->size[0] = m;
+  emxEnsureCapacity((emxArray__common *)iwork, ib, (int)sizeof(int));
+  for (ib = 0; ib < m; ib++) {
+    iwork->data[ib] = 0;
+  }
+
+  emxInit_real_T1(&xwork, 1);
+  unnamed_idx_0 = (unsigned int)x->size[0];
+  ib = xwork->size[0];
+  xwork->size[0] = (int)unnamed_idx_0;
+  emxEnsureCapacity((emxArray__common *)xwork, ib, (int)sizeof(double));
+  m = xwork->size[0];
+  ib = xwork->size[0];
+  xwork->size[0] = m;
+  emxEnsureCapacity((emxArray__common *)xwork, ib, (int)sizeof(double));
+  for (ib = 0; ib < m; ib++) {
+    xwork->data[ib] = 0.0;
+  }
+
+  nNaNs = 0;
+  ib = 0;
+  for (k = 0; k + 1 <= n; k++) {
+    if (rtIsNaN(b_x->data[k])) {
+      idx->data[(n - nNaNs) - 1] = k + 1;
+      xwork->data[(n - nNaNs) - 1] = b_x->data[k];
+      nNaNs++;
     } else {
-      idx[k] = k + 2;
-      idx[k + 1] = k + 1;
+      ib++;
+      idx4[ib - 1] = k + 1;
+      x4[ib - 1] = b_x->data[k];
+      if (ib == 4) {
+        ib = k - nNaNs;
+        if (x4[0] >= x4[1]) {
+          m = 1;
+          wOffset = 2;
+        } else {
+          m = 2;
+          wOffset = 1;
+        }
+
+        if (x4[2] >= x4[3]) {
+          p = 3;
+          i4 = 4;
+        } else {
+          p = 4;
+          i4 = 3;
+        }
+
+        if (x4[m - 1] >= x4[p - 1]) {
+          if (x4[wOffset - 1] >= x4[p - 1]) {
+            perm[0] = (signed char)m;
+            perm[1] = (signed char)wOffset;
+            perm[2] = (signed char)p;
+            perm[3] = (signed char)i4;
+          } else if (x4[wOffset - 1] >= x4[i4 - 1]) {
+            perm[0] = (signed char)m;
+            perm[1] = (signed char)p;
+            perm[2] = (signed char)wOffset;
+            perm[3] = (signed char)i4;
+          } else {
+            perm[0] = (signed char)m;
+            perm[1] = (signed char)p;
+            perm[2] = (signed char)i4;
+            perm[3] = (signed char)wOffset;
+          }
+        } else if (x4[m - 1] >= x4[i4 - 1]) {
+          if (x4[wOffset - 1] >= x4[i4 - 1]) {
+            perm[0] = (signed char)p;
+            perm[1] = (signed char)m;
+            perm[2] = (signed char)wOffset;
+            perm[3] = (signed char)i4;
+          } else {
+            perm[0] = (signed char)p;
+            perm[1] = (signed char)m;
+            perm[2] = (signed char)i4;
+            perm[3] = (signed char)wOffset;
+          }
+        } else {
+          perm[0] = (signed char)p;
+          perm[1] = (signed char)i4;
+          perm[2] = (signed char)m;
+          perm[3] = (signed char)wOffset;
+        }
+
+        idx->data[ib - 3] = idx4[perm[0] - 1];
+        idx->data[ib - 2] = idx4[perm[1] - 1];
+        idx->data[ib - 1] = idx4[perm[2] - 1];
+        idx->data[ib] = idx4[perm[3] - 1];
+        b_x->data[ib - 3] = x4[perm[0] - 1];
+        b_x->data[ib - 2] = x4[perm[1] - 1];
+        b_x->data[ib - 1] = x4[perm[2] - 1];
+        b_x->data[ib] = x4[perm[3] - 1];
+        ib = 0;
+      }
     }
   }
 
-  i = 2;
-  while (i < 712) {
-    i2 = i << 1;
-    j = 1;
-    for (pEnd = 1 + i; pEnd < 713; pEnd = qEnd + i) {
-      b_p = j;
-      q = pEnd - 1;
-      qEnd = j + i2;
-      if (qEnd > 713) {
-        qEnd = 713;
-      }
-
-      k = 0;
-      kEnd = qEnd - j;
-      while (k + 1 <= kEnd) {
-        if ((x[idx[b_p - 1] - 1] <= x[idx[q] - 1]) || rtIsNaN(x[idx[q] - 1])) {
-          p = true;
-        } else {
-          p = false;
-        }
-
-        if (p) {
-          iwork[k] = idx[b_p - 1];
-          b_p++;
-          if (b_p == pEnd) {
-            while (q + 1 < qEnd) {
-              k++;
-              iwork[k] = idx[q];
-              q++;
-            }
-          }
-        } else {
-          iwork[k] = idx[q];
-          q++;
-          if (q + 1 == qEnd) {
-            while (b_p < pEnd) {
-              k++;
-              iwork[k] = idx[b_p - 1];
-              b_p++;
-            }
-          }
-        }
-
-        k++;
-      }
-
-      for (k = 0; k + 1 <= kEnd; k++) {
-        idx[(j + k) - 1] = iwork[k];
-      }
-
-      j = qEnd;
+  wOffset = (x->size[0] - nNaNs) - 1;
+  if (ib > 0) {
+    for (m = 0; m < 4; m++) {
+      perm[m] = 0;
     }
 
-    i = i2;
+    if (ib == 1) {
+      perm[0] = 1;
+    } else if (ib == 2) {
+      if (x4[0] >= x4[1]) {
+        perm[0] = 1;
+        perm[1] = 2;
+      } else {
+        perm[0] = 2;
+        perm[1] = 1;
+      }
+    } else if (x4[0] >= x4[1]) {
+      if (x4[1] >= x4[2]) {
+        perm[0] = 1;
+        perm[1] = 2;
+        perm[2] = 3;
+      } else if (x4[0] >= x4[2]) {
+        perm[0] = 1;
+        perm[1] = 3;
+        perm[2] = 2;
+      } else {
+        perm[0] = 3;
+        perm[1] = 1;
+        perm[2] = 2;
+      }
+    } else if (x4[0] >= x4[2]) {
+      perm[0] = 2;
+      perm[1] = 1;
+      perm[2] = 3;
+    } else if (x4[1] >= x4[2]) {
+      perm[0] = 2;
+      perm[1] = 3;
+      perm[2] = 1;
+    } else {
+      perm[0] = 3;
+      perm[1] = 2;
+      perm[2] = 1;
+    }
+
+    for (k = 1; k <= ib; k++) {
+      idx->data[(wOffset - ib) + k] = idx4[perm[k - 1] - 1];
+      b_x->data[(wOffset - ib) + k] = x4[perm[k - 1] - 1];
+    }
   }
+
+  m = nNaNs >> 1;
+  for (k = 1; k <= m; k++) {
+    ib = idx->data[wOffset + k];
+    idx->data[wOffset + k] = idx->data[n - k];
+    idx->data[n - k] = ib;
+    b_x->data[wOffset + k] = xwork->data[n - k];
+    b_x->data[n - k] = xwork->data[wOffset + k];
+  }
+
+  if ((nNaNs & 1) != 0) {
+    b_x->data[(wOffset + m) + 1] = xwork->data[(wOffset + m) + 1];
+  }
+
+  nNonNaN = x->size[0] - nNaNs;
+  m = 2;
+  if (nNonNaN > 1) {
+    if (x->size[0] >= 256) {
+      nBlocks = nNonNaN >> 8;
+      if (nBlocks > 0) {
+        for (i4 = 1; i4 <= nBlocks; i4++) {
+          n = (i4 - 1) << 8;
+          for (b = 0; b < 6; b++) {
+            bLen = 1 << (b + 2);
+            bLen2 = bLen << 1;
+            nPairs = 256 >> (b + 3);
+            for (k = 1; k <= nPairs; k++) {
+              m = n + (k - 1) * bLen2;
+              for (ib = 0; ib + 1 <= bLen2; ib++) {
+                b_iwork[ib] = idx->data[m + ib];
+                b_xwork[ib] = b_x->data[m + ib];
+              }
+
+              p = 0;
+              wOffset = bLen;
+              ib = m - 1;
+              do {
+                exitg1 = 0;
+                ib++;
+                if (b_xwork[p] >= b_xwork[wOffset]) {
+                  idx->data[ib] = b_iwork[p];
+                  b_x->data[ib] = b_xwork[p];
+                  if (p + 1 < bLen) {
+                    p++;
+                  } else {
+                    exitg1 = 1;
+                  }
+                } else {
+                  idx->data[ib] = b_iwork[wOffset];
+                  b_x->data[ib] = b_xwork[wOffset];
+                  if (wOffset + 1 < bLen2) {
+                    wOffset++;
+                  } else {
+                    ib = (ib - p) + 1;
+                    while (p + 1 <= bLen) {
+                      idx->data[ib + p] = b_iwork[p];
+                      b_x->data[ib + p] = b_xwork[p];
+                      p++;
+                    }
+
+                    exitg1 = 1;
+                  }
+                }
+              } while (exitg1 == 0);
+            }
+          }
+        }
+
+        m = nBlocks << 8;
+        ib = nNonNaN - m;
+        if (ib > 0) {
+          b_merge_block(idx, b_x, m, ib, 2, iwork, xwork);
+        }
+
+        m = 8;
+      }
+    }
+
+    b_merge_block(idx, b_x, 0, nNonNaN, m, iwork, xwork);
+  }
+
+  if ((nNaNs > 0) && (nNonNaN > 0)) {
+    for (k = 0; k + 1 <= nNaNs; k++) {
+      xwork->data[k] = b_x->data[nNonNaN + k];
+      iwork->data[k] = idx->data[nNonNaN + k];
+    }
+
+    for (k = nNonNaN - 1; k + 1 > 0; k--) {
+      b_x->data[nNaNs + k] = b_x->data[k];
+      idx->data[nNaNs + k] = idx->data[k];
+    }
+
+    for (k = 0; k + 1 <= nNaNs; k++) {
+      b_x->data[k] = xwork->data[k];
+      idx->data[k] = iwork->data[k];
+    }
+  }
+
+  emxFree_real_T(&xwork);
+  emxFree_int32_T(&iwork);
+  ib = x->size[0];
+  x->size[0] = b_x->size[0];
+  emxEnsureCapacity((emxArray__common *)x, ib, (int)sizeof(double));
+  m = b_x->size[0];
+  for (ib = 0; ib < m; ib++) {
+    x->data[ib] = b_x->data[ib];
+  }
+
+  emxFree_real_T(&b_x);
 }
 
 //
@@ -14365,10 +15096,11 @@ static void stft(const emxArray_real_T *x, double fs, emxArray_creal_T *s,
                  double f[1025], emxArray_real_T *t)
 {
   int nm1d2;
-  double b;
-  int k;
+  double twid_re;
+  int b_x;
+  int cdiff;
   double indx;
-  unsigned int col;
+  int col;
   int exitg1;
   double xw[256];
   static const double win[256] = { 0.080000000000000016, 0.080138543399746076,
@@ -14458,12 +15190,701 @@ static void stft(const emxArray_real_T *x, double fs, emxArray_creal_T *s,
     0.0805540901456207, 0.080138543399746076 };
 
   creal_T X[2048];
-  int n;
-  double anew;
-  double ndbl;
-  double apnd;
-  double cdiff;
-  int kd;
+  int ndbl;
+  int i;
+  int apnd;
+  boolean_T tst;
+  double temp_re;
+  double temp_im;
+  int k;
+  int j;
+  static const double dv20[1025] = { 1.0, 0.99999529380957619,
+    0.99998117528260111, 0.9999576445519639, 0.9999247018391445,
+    0.99988234745421256, 0.9998305817958234, 0.99976940535121528,
+    0.99969881869620425, 0.99961882249517864, 0.99952941750109314,
+    0.99943060455546173, 0.99932238458834954, 0.99920475861836389,
+    0.99907772775264536, 0.99894129318685687, 0.99879545620517241,
+    0.99864021818026527, 0.99847558057329477, 0.99830154493389289,
+    0.99811811290014918, 0.997925286198596, 0.99772306664419164,
+    0.99751145614030345, 0.99729045667869021, 0.997060070339483,
+    0.99682029929116567, 0.99657114579055484, 0.996312612182778,
+    0.996044700901252, 0.99576741446765982, 0.99548075549192694,
+    0.99518472667219693, 0.99487933079480562, 0.99456457073425542,
+    0.9942404494531879, 0.99390697000235606, 0.9935641355205953,
+    0.9932119492347945, 0.9928504144598651, 0.99247953459871, 0.9920993131421918,
+    0.99170975366909953, 0.99131085984611544, 0.99090263542778,
+    0.99048508425645709, 0.99005821026229712, 0.98962201746320089,
+    0.989176509964781, 0.98872169196032378, 0.98825756773074946,
+    0.98778414164457218, 0.98730141815785843, 0.98680940181418553,
+    0.98630809724459867, 0.98579750916756748, 0.98527764238894122,
+    0.98474850180190421, 0.984210092386929, 0.98366241921173025,
+    0.98310548743121629, 0.98253930228744124, 0.98196386910955524,
+    0.98137919331375456, 0.98078528040323043, 0.98018213596811743,
+    0.97956976568544052, 0.9789481753190622, 0.97831737071962765,
+    0.97767735782450993, 0.97702814265775439, 0.97636973133002114,
+    0.97570213003852857, 0.97502534506699412, 0.97433938278557586,
+    0.973644249650812, 0.97293995220556018, 0.97222649707893627,
+    0.97150389098625178, 0.97077214072895035, 0.970031253194544,
+    0.96928123535654853, 0.96852209427441727, 0.96775383709347551,
+    0.96697647104485207, 0.9661900034454125, 0.9653944416976894,
+    0.96458979328981276, 0.96377606579543984, 0.96295326687368388,
+    0.96212140426904158, 0.96128048581132064, 0.96043051941556579,
+    0.95957151308198452, 0.9587034748958716, 0.95782641302753291,
+    0.95694033573220882, 0.95604525134999641, 0.95514116830577078,
+    0.95422809510910567, 0.95330604035419386, 0.95237501271976588,
+    0.95143502096900834, 0.9504860739494817, 0.94952818059303667,
+    0.94856134991573027, 0.94758559101774109, 0.94660091308328353,
+    0.94560732538052128, 0.94460483726148026, 0.94359345816196039,
+    0.94257319760144687, 0.94154406518302081, 0.9405060705932683,
+    0.93945922360218992, 0.93840353406310806, 0.937339011912575,
+    0.93626566717027826, 0.93518350993894761, 0.93409255040425887,
+    0.932992798834739, 0.93188426558166815, 0.93076696107898371,
+    0.92964089584318121, 0.92850608047321559, 0.92736252565040111,
+    0.92621024213831138, 0.92504924078267758, 0.92387953251128674,
+    0.92270112833387863, 0.9215140393420419, 0.92031827670911059,
+    0.91911385169005777, 0.9179007756213905, 0.9166790599210427,
+    0.91544871608826783, 0.91420975570353069, 0.91296219042839821,
+    0.91170603200542988, 0.91044129225806725, 0.90916798309052238,
+    0.90788611648766626, 0.90659570451491533, 0.90529675931811882,
+    0.90398929312344334, 0.90267331823725883, 0.901348847046022,
+    0.90001589201616017, 0.89867446569395382, 0.89732458070541832,
+    0.89596624975618522, 0.8945994856313827, 0.89322430119551532,
+    0.89184070939234272, 0.89044872324475788, 0.88904835585466457,
+    0.88763962040285393, 0.88622253014888064, 0.88479709843093779,
+    0.88336333866573158, 0.881921264348355, 0.88047088905216075,
+    0.87901222642863353, 0.87754529020726135, 0.8760700941954066,
+    0.87458665227817611, 0.87309497841829009, 0.87159508665595109,
+    0.87008699110871146, 0.8685707059713409, 0.86704624551569265,
+    0.86551362409056909, 0.8639728561215867, 0.8624239561110405,
+    0.86086693863776731, 0.85930181835700847, 0.85772861000027212,
+    0.85614732837519447, 0.85455798836540053, 0.85296060493036363,
+    0.8513551931052652, 0.84974176800085255, 0.84812034480329723,
+    0.84649093877405213, 0.84485356524970712, 0.84320823964184544,
+    0.84155497743689844, 0.83989379419599952, 0.83822470555483808,
+    0.836547727223512, 0.83486287498638, 0.83317016470191319,
+    0.83146961230254524, 0.829761233794523, 0.8280450452577558,
+    0.82632106284566353, 0.82458930278502529, 0.82284978137582643,
+    0.82110251499110465, 0.819347520076797, 0.81758481315158371,
+    0.81581441080673378, 0.81403632970594841, 0.81225058658520388,
+    0.81045719825259477, 0.808656181588175, 0.80684755354379933,
+    0.80503133114296366, 0.80320753148064494, 0.80137617172314024,
+    0.799537269107905, 0.79769084094339116, 0.79583690460888357,
+    0.79397547755433717, 0.79210657730021239, 0.79023022143731,
+    0.78834642762660634, 0.78645521359908577, 0.78455659715557524,
+    0.78265059616657573, 0.78073722857209449, 0.778816512381476,
+    0.77688846567323244, 0.77495310659487393, 0.773010453362737,
+    0.77106052426181382, 0.7691033376455797, 0.7671389119358204,
+    0.765167265622459, 0.76318841726338127, 0.76120238548426178,
+    0.759209188978388, 0.75720884650648457, 0.75520137689653655,
+    0.75318679904361252, 0.75116513190968637, 0.74913639452345937,
+    0.74710060598018013, 0.745057785441466, 0.74300795213512172,
+    0.74095112535495922, 0.73888732446061511, 0.73681656887736979,
+    0.7347388780959635, 0.73265427167241282, 0.73056276922782759,
+    0.7284643904482252, 0.726359155084346, 0.724247082951467,
+    0.72212819392921535, 0.72000250796138165, 0.71787004505573171,
+    0.71573082528381859, 0.71358486878079352, 0.71143219574521643,
+    0.70927282643886569, 0.70710678118654757, 0.70493408037590488,
+    0.7027547444572253, 0.70056879394324834, 0.69837624940897292,
+    0.696177131491463, 0.69397146088965389, 0.69175925836415775,
+    0.68954054473706683, 0.687315340891759, 0.68508366777270036,
+    0.68284554638524808, 0.680600997795453, 0.67835004312986147,
+    0.67609270357531592, 0.673829000378756, 0.67155895484701833,
+    0.669282588346636, 0.66699992230363747, 0.66471097820334479,
+    0.66241577759017178, 0.66011434206742048, 0.65780669329707864,
+    0.65549285299961535, 0.65317284295377676, 0.650846684996381,
+    0.64851440102211244, 0.64617601298331628, 0.64383154288979139,
+    0.641481012808583, 0.63912444486377573, 0.6367618612362842,
+    0.63439328416364549, 0.63201873593980906, 0.629638238914927,
+    0.62725181549514408, 0.62485948814238634, 0.62246127937415,
+    0.6200572117632891, 0.61764730793780387, 0.61523159058062682,
+    0.61281008242940971, 0.61038280627630948, 0.60794978496777363,
+    0.60551104140432555, 0.60306659854034816, 0.600616479383869,
+    0.59816070699634238, 0.59569930449243336, 0.5932322950397998,
+    0.59075970185887416, 0.58828154822264522, 0.58579785745643886,
+    0.58330865293769829, 0.58081395809576453, 0.57831379641165559,
+    0.57580819141784534, 0.5732971666980422, 0.57078074588696726,
+    0.56825895267013149, 0.56573181078361312, 0.56319934401383409,
+    0.560661576197336, 0.5581185312205561, 0.55557023301960218,
+    0.55301670558002747, 0.55045797293660481, 0.54789405917310019,
+    0.54532498842204646, 0.54275078486451589, 0.54017147272989285,
+    0.53758707629564539, 0.53499761988709715, 0.5324031278771979,
+    0.52980362468629461, 0.52719913478190128, 0.524589682678469,
+    0.52197529293715439, 0.51935599016558964, 0.51673179901764987,
+    0.51410274419322166, 0.5114688504379703, 0.508830142543107,
+    0.50618664534515523, 0.50353838372571758, 0.50088538261124071,
+    0.49822766697278181, 0.49556526182577254, 0.49289819222978404,
+    0.49022648328829116, 0.487550160148436, 0.48486924800079106,
+    0.48218377207912272, 0.47949375766015295, 0.47679923006332209,
+    0.47410021465054997, 0.47139673682599764, 0.46868882203582796,
+    0.46597649576796618, 0.46325978355186015, 0.46053871095824,
+    0.45781330359887717, 0.45508358712634384, 0.45234958723377089,
+    0.44961132965460654, 0.44686884016237416, 0.4441221445704292,
+    0.44137126873171667, 0.43861623853852766, 0.43585707992225547,
+    0.43309381885315196, 0.43032648134008261, 0.42755509343028208,
+    0.42477968120910881, 0.42200027079979968, 0.41921688836322391,
+    0.41642956009763715, 0.4136383122384345, 0.41084317105790391,
+    0.40804416286497869, 0.40524131400498986, 0.40243465085941843,
+    0.39962419984564679, 0.39680998741671031, 0.3939920400610481,
+    0.39117038430225387, 0.38834504669882625, 0.38551605384391885,
+    0.38268343236508978, 0.37984720892405116, 0.37700741021641826,
+    0.37416406297145793, 0.37131719395183749, 0.36846682995337232,
+    0.36561299780477385, 0.36275572436739723, 0.35989503653498811,
+    0.35703096123343, 0.35416352542049034, 0.35129275608556709,
+    0.34841868024943456, 0.34554132496398909, 0.34266071731199438,
+    0.33977688440682685, 0.33688985339222005, 0.33399965144200938,
+    0.33110630575987643, 0.3282098435790925, 0.32531029216226293,
+    0.32240767880106985, 0.31950203081601569, 0.31659337555616585,
+    0.31368174039889152, 0.31076715274961147, 0.30784964004153487,
+    0.30492922973540237, 0.30200594931922808, 0.29907982630804048,
+    0.29615088824362379, 0.29321916269425863, 0.29028467725446233,
+    0.28734745954472951, 0.28440753721127188, 0.28146493792575794,
+    0.27851968938505306, 0.27557181931095814, 0.272621355449949,
+    0.26966832557291509, 0.26671275747489837, 0.26375467897483135,
+    0.26079411791527551, 0.257831102162159, 0.25486565960451457,
+    0.25189781815421697, 0.24892760574572015, 0.24595505033579459,
+    0.24298017990326387, 0.2400030224487415, 0.2370236059943672,
+    0.23404195858354343, 0.23105810828067111, 0.22807208317088573,
+    0.22508391135979283, 0.22209362097320351, 0.2191012401568698,
+    0.21610679707621952, 0.21311031991609136, 0.21011183688046961,
+    0.20711137619221856, 0.20410896609281687, 0.2011046348420919,
+    0.19809841071795356, 0.19509032201612825, 0.19208039704989244,
+    0.18906866414980619, 0.18605515166344663, 0.18303988795514095,
+    0.18002290140569951, 0.17700422041214875, 0.17398387338746382,
+    0.17096188876030122, 0.16793829497473117, 0.16491312048996992,
+    0.16188639378011183, 0.15885814333386145, 0.15582839765426523,
+    0.15279718525844344, 0.14976453467732151, 0.14673047445536175,
+    0.14369503315029447, 0.14065823933284921, 0.13762012158648604,
+    0.13458070850712617, 0.13154002870288312, 0.12849811079379317,
+    0.12545498341154623, 0.1224106751992162, 0.11936521481099135,
+    0.11631863091190475, 0.11327095217756435, 0.11022220729388306,
+    0.10717242495680884, 0.10412163387205459, 0.10106986275482782,
+    0.0980171403295606, 0.094963495329638992, 0.091908956497132724,
+    0.0888535525825246, 0.0857973123444399, 0.082740264549375692,
+    0.079682437971430126, 0.076623861392031492, 0.073564563599667426,
+    0.070504573389613856, 0.067443919563664051, 0.064382630929857465,
+    0.061320736302208578, 0.058258264500435752, 0.055195244349689941,
+    0.052131704680283324, 0.049067674327418015, 0.046003182130914623,
+    0.04293825693494082, 0.039872927587739811, 0.036807222941358832,
+    0.03374117185137758, 0.030674803176636626, 0.02760814577896574,
+    0.024541228522912288, 0.021474080275469508, 0.01840672990580482,
+    0.0153392062849881, 0.012271538285719925, 0.00920375478205982,
+    0.0061358846491544753, 0.0030679567629659761, 0.0, -0.0030679567629659761,
+    -0.0061358846491544753, -0.00920375478205982, -0.012271538285719925,
+    -0.0153392062849881, -0.01840672990580482, -0.021474080275469508,
+    -0.024541228522912288, -0.02760814577896574, -0.030674803176636626,
+    -0.03374117185137758, -0.036807222941358832, -0.039872927587739811,
+    -0.04293825693494082, -0.046003182130914623, -0.049067674327418015,
+    -0.052131704680283324, -0.055195244349689941, -0.058258264500435752,
+    -0.061320736302208578, -0.064382630929857465, -0.067443919563664051,
+    -0.070504573389613856, -0.073564563599667426, -0.076623861392031492,
+    -0.079682437971430126, -0.082740264549375692, -0.0857973123444399,
+    -0.0888535525825246, -0.091908956497132724, -0.094963495329638992,
+    -0.0980171403295606, -0.10106986275482782, -0.10412163387205459,
+    -0.10717242495680884, -0.11022220729388306, -0.11327095217756435,
+    -0.11631863091190475, -0.11936521481099135, -0.1224106751992162,
+    -0.12545498341154623, -0.12849811079379317, -0.13154002870288312,
+    -0.13458070850712617, -0.13762012158648604, -0.14065823933284921,
+    -0.14369503315029447, -0.14673047445536175, -0.14976453467732151,
+    -0.15279718525844344, -0.15582839765426523, -0.15885814333386145,
+    -0.16188639378011183, -0.16491312048996992, -0.16793829497473117,
+    -0.17096188876030122, -0.17398387338746382, -0.17700422041214875,
+    -0.18002290140569951, -0.18303988795514095, -0.18605515166344663,
+    -0.18906866414980619, -0.19208039704989244, -0.19509032201612825,
+    -0.19809841071795356, -0.2011046348420919, -0.20410896609281687,
+    -0.20711137619221856, -0.21011183688046961, -0.21311031991609136,
+    -0.21610679707621952, -0.2191012401568698, -0.22209362097320351,
+    -0.22508391135979283, -0.22807208317088573, -0.23105810828067111,
+    -0.23404195858354343, -0.2370236059943672, -0.2400030224487415,
+    -0.24298017990326387, -0.24595505033579459, -0.24892760574572015,
+    -0.25189781815421697, -0.25486565960451457, -0.257831102162159,
+    -0.26079411791527551, -0.26375467897483135, -0.26671275747489837,
+    -0.26966832557291509, -0.272621355449949, -0.27557181931095814,
+    -0.27851968938505306, -0.28146493792575794, -0.28440753721127188,
+    -0.28734745954472951, -0.29028467725446233, -0.29321916269425863,
+    -0.29615088824362379, -0.29907982630804048, -0.30200594931922808,
+    -0.30492922973540237, -0.30784964004153487, -0.31076715274961147,
+    -0.31368174039889152, -0.31659337555616585, -0.31950203081601569,
+    -0.32240767880106985, -0.32531029216226293, -0.3282098435790925,
+    -0.33110630575987643, -0.33399965144200938, -0.33688985339222005,
+    -0.33977688440682685, -0.34266071731199438, -0.34554132496398909,
+    -0.34841868024943456, -0.35129275608556709, -0.35416352542049034,
+    -0.35703096123343, -0.35989503653498811, -0.36275572436739723,
+    -0.36561299780477385, -0.36846682995337232, -0.37131719395183749,
+    -0.37416406297145793, -0.37700741021641826, -0.37984720892405116,
+    -0.38268343236508978, -0.38551605384391885, -0.38834504669882625,
+    -0.39117038430225387, -0.3939920400610481, -0.39680998741671031,
+    -0.39962419984564679, -0.40243465085941843, -0.40524131400498986,
+    -0.40804416286497869, -0.41084317105790391, -0.4136383122384345,
+    -0.41642956009763715, -0.41921688836322391, -0.42200027079979968,
+    -0.42477968120910881, -0.42755509343028208, -0.43032648134008261,
+    -0.43309381885315196, -0.43585707992225547, -0.43861623853852766,
+    -0.44137126873171667, -0.4441221445704292, -0.44686884016237416,
+    -0.44961132965460654, -0.45234958723377089, -0.45508358712634384,
+    -0.45781330359887717, -0.46053871095824, -0.46325978355186015,
+    -0.46597649576796618, -0.46868882203582796, -0.47139673682599764,
+    -0.47410021465054997, -0.47679923006332209, -0.47949375766015295,
+    -0.48218377207912272, -0.48486924800079106, -0.487550160148436,
+    -0.49022648328829116, -0.49289819222978404, -0.49556526182577254,
+    -0.49822766697278181, -0.50088538261124071, -0.50353838372571758,
+    -0.50618664534515523, -0.508830142543107, -0.5114688504379703,
+    -0.51410274419322166, -0.51673179901764987, -0.51935599016558964,
+    -0.52197529293715439, -0.524589682678469, -0.52719913478190128,
+    -0.52980362468629461, -0.5324031278771979, -0.53499761988709715,
+    -0.53758707629564539, -0.54017147272989285, -0.54275078486451589,
+    -0.54532498842204646, -0.54789405917310019, -0.55045797293660481,
+    -0.55301670558002747, -0.55557023301960218, -0.5581185312205561,
+    -0.560661576197336, -0.56319934401383409, -0.56573181078361312,
+    -0.56825895267013149, -0.57078074588696726, -0.5732971666980422,
+    -0.57580819141784534, -0.57831379641165559, -0.58081395809576453,
+    -0.58330865293769829, -0.58579785745643886, -0.58828154822264522,
+    -0.59075970185887416, -0.5932322950397998, -0.59569930449243336,
+    -0.59816070699634238, -0.600616479383869, -0.60306659854034816,
+    -0.60551104140432555, -0.60794978496777363, -0.61038280627630948,
+    -0.61281008242940971, -0.61523159058062682, -0.61764730793780387,
+    -0.6200572117632891, -0.62246127937415, -0.62485948814238634,
+    -0.62725181549514408, -0.629638238914927, -0.63201873593980906,
+    -0.63439328416364549, -0.6367618612362842, -0.63912444486377573,
+    -0.641481012808583, -0.64383154288979139, -0.64617601298331628,
+    -0.64851440102211244, -0.650846684996381, -0.65317284295377676,
+    -0.65549285299961535, -0.65780669329707864, -0.66011434206742048,
+    -0.66241577759017178, -0.66471097820334479, -0.66699992230363747,
+    -0.669282588346636, -0.67155895484701833, -0.673829000378756,
+    -0.67609270357531592, -0.67835004312986147, -0.680600997795453,
+    -0.68284554638524808, -0.68508366777270036, -0.687315340891759,
+    -0.68954054473706683, -0.69175925836415775, -0.69397146088965389,
+    -0.696177131491463, -0.69837624940897292, -0.70056879394324834,
+    -0.7027547444572253, -0.70493408037590488, -0.70710678118654757,
+    -0.70927282643886569, -0.71143219574521643, -0.71358486878079352,
+    -0.71573082528381859, -0.71787004505573171, -0.72000250796138165,
+    -0.72212819392921535, -0.724247082951467, -0.726359155084346,
+    -0.7284643904482252, -0.73056276922782759, -0.73265427167241282,
+    -0.7347388780959635, -0.73681656887736979, -0.73888732446061511,
+    -0.74095112535495922, -0.74300795213512172, -0.745057785441466,
+    -0.74710060598018013, -0.74913639452345937, -0.75116513190968637,
+    -0.75318679904361252, -0.75520137689653655, -0.75720884650648457,
+    -0.759209188978388, -0.76120238548426178, -0.76318841726338127,
+    -0.765167265622459, -0.7671389119358204, -0.7691033376455797,
+    -0.77106052426181382, -0.773010453362737, -0.77495310659487393,
+    -0.77688846567323244, -0.778816512381476, -0.78073722857209449,
+    -0.78265059616657573, -0.78455659715557524, -0.78645521359908577,
+    -0.78834642762660634, -0.79023022143731, -0.79210657730021239,
+    -0.79397547755433717, -0.79583690460888357, -0.79769084094339116,
+    -0.799537269107905, -0.80137617172314024, -0.80320753148064494,
+    -0.80503133114296366, -0.80684755354379933, -0.808656181588175,
+    -0.81045719825259477, -0.81225058658520388, -0.81403632970594841,
+    -0.81581441080673378, -0.81758481315158371, -0.819347520076797,
+    -0.82110251499110465, -0.82284978137582643, -0.82458930278502529,
+    -0.82632106284566353, -0.8280450452577558, -0.829761233794523,
+    -0.83146961230254524, -0.83317016470191319, -0.83486287498638,
+    -0.836547727223512, -0.83822470555483808, -0.83989379419599952,
+    -0.84155497743689844, -0.84320823964184544, -0.84485356524970712,
+    -0.84649093877405213, -0.84812034480329723, -0.84974176800085255,
+    -0.8513551931052652, -0.85296060493036363, -0.85455798836540053,
+    -0.85614732837519447, -0.85772861000027212, -0.85930181835700847,
+    -0.86086693863776731, -0.8624239561110405, -0.8639728561215867,
+    -0.86551362409056909, -0.86704624551569265, -0.8685707059713409,
+    -0.87008699110871146, -0.87159508665595109, -0.87309497841829009,
+    -0.87458665227817611, -0.8760700941954066, -0.87754529020726135,
+    -0.87901222642863353, -0.88047088905216075, -0.881921264348355,
+    -0.88336333866573158, -0.88479709843093779, -0.88622253014888064,
+    -0.88763962040285393, -0.88904835585466457, -0.89044872324475788,
+    -0.89184070939234272, -0.89322430119551532, -0.8945994856313827,
+    -0.89596624975618522, -0.89732458070541832, -0.89867446569395382,
+    -0.90001589201616017, -0.901348847046022, -0.90267331823725883,
+    -0.90398929312344334, -0.90529675931811882, -0.90659570451491533,
+    -0.90788611648766626, -0.90916798309052238, -0.91044129225806725,
+    -0.91170603200542988, -0.91296219042839821, -0.91420975570353069,
+    -0.91544871608826783, -0.9166790599210427, -0.9179007756213905,
+    -0.91911385169005777, -0.92031827670911059, -0.9215140393420419,
+    -0.92270112833387863, -0.92387953251128674, -0.92504924078267758,
+    -0.92621024213831138, -0.92736252565040111, -0.92850608047321559,
+    -0.92964089584318121, -0.93076696107898371, -0.93188426558166815,
+    -0.932992798834739, -0.93409255040425887, -0.93518350993894761,
+    -0.93626566717027826, -0.937339011912575, -0.93840353406310806,
+    -0.93945922360218992, -0.9405060705932683, -0.94154406518302081,
+    -0.94257319760144687, -0.94359345816196039, -0.94460483726148026,
+    -0.94560732538052128, -0.94660091308328353, -0.94758559101774109,
+    -0.94856134991573027, -0.94952818059303667, -0.9504860739494817,
+    -0.95143502096900834, -0.95237501271976588, -0.95330604035419386,
+    -0.95422809510910567, -0.95514116830577078, -0.95604525134999641,
+    -0.95694033573220882, -0.95782641302753291, -0.9587034748958716,
+    -0.95957151308198452, -0.96043051941556579, -0.96128048581132064,
+    -0.96212140426904158, -0.96295326687368388, -0.96377606579543984,
+    -0.96458979328981276, -0.9653944416976894, -0.9661900034454125,
+    -0.96697647104485207, -0.96775383709347551, -0.96852209427441727,
+    -0.96928123535654853, -0.970031253194544, -0.97077214072895035,
+    -0.97150389098625178, -0.97222649707893627, -0.97293995220556018,
+    -0.973644249650812, -0.97433938278557586, -0.97502534506699412,
+    -0.97570213003852857, -0.97636973133002114, -0.97702814265775439,
+    -0.97767735782450993, -0.97831737071962765, -0.9789481753190622,
+    -0.97956976568544052, -0.98018213596811743, -0.98078528040323043,
+    -0.98137919331375456, -0.98196386910955524, -0.98253930228744124,
+    -0.98310548743121629, -0.98366241921173025, -0.984210092386929,
+    -0.98474850180190421, -0.98527764238894122, -0.98579750916756748,
+    -0.98630809724459867, -0.98680940181418553, -0.98730141815785843,
+    -0.98778414164457218, -0.98825756773074946, -0.98872169196032378,
+    -0.989176509964781, -0.98962201746320089, -0.99005821026229712,
+    -0.99048508425645709, -0.99090263542778, -0.99131085984611544,
+    -0.99170975366909953, -0.9920993131421918, -0.99247953459871,
+    -0.9928504144598651, -0.9932119492347945, -0.9935641355205953,
+    -0.99390697000235606, -0.9942404494531879, -0.99456457073425542,
+    -0.99487933079480562, -0.99518472667219693, -0.99548075549192694,
+    -0.99576741446765982, -0.996044700901252, -0.996312612182778,
+    -0.99657114579055484, -0.99682029929116567, -0.997060070339483,
+    -0.99729045667869021, -0.99751145614030345, -0.99772306664419164,
+    -0.997925286198596, -0.99811811290014918, -0.99830154493389289,
+    -0.99847558057329477, -0.99864021818026527, -0.99879545620517241,
+    -0.99894129318685687, -0.99907772775264536, -0.99920475861836389,
+    -0.99932238458834954, -0.99943060455546173, -0.99952941750109314,
+    -0.99961882249517864, -0.99969881869620425, -0.99976940535121528,
+    -0.9998305817958234, -0.99988234745421256, -0.9999247018391445,
+    -0.9999576445519639, -0.99998117528260111, -0.99999529380957619, -1.0 };
+
+  double twid_im;
+  static const double dv21[1025] = { 0.0, -0.0030679567629659761,
+    -0.0061358846491544753, -0.00920375478205982, -0.012271538285719925,
+    -0.0153392062849881, -0.01840672990580482, -0.021474080275469508,
+    -0.024541228522912288, -0.02760814577896574, -0.030674803176636626,
+    -0.03374117185137758, -0.036807222941358832, -0.039872927587739811,
+    -0.04293825693494082, -0.046003182130914623, -0.049067674327418015,
+    -0.052131704680283324, -0.055195244349689941, -0.058258264500435752,
+    -0.061320736302208578, -0.064382630929857465, -0.067443919563664051,
+    -0.070504573389613856, -0.073564563599667426, -0.076623861392031492,
+    -0.079682437971430126, -0.082740264549375692, -0.0857973123444399,
+    -0.0888535525825246, -0.091908956497132724, -0.094963495329638992,
+    -0.0980171403295606, -0.10106986275482782, -0.10412163387205459,
+    -0.10717242495680884, -0.11022220729388306, -0.11327095217756435,
+    -0.11631863091190475, -0.11936521481099135, -0.1224106751992162,
+    -0.12545498341154623, -0.12849811079379317, -0.13154002870288312,
+    -0.13458070850712617, -0.13762012158648604, -0.14065823933284921,
+    -0.14369503315029447, -0.14673047445536175, -0.14976453467732151,
+    -0.15279718525844344, -0.15582839765426523, -0.15885814333386145,
+    -0.16188639378011183, -0.16491312048996992, -0.16793829497473117,
+    -0.17096188876030122, -0.17398387338746382, -0.17700422041214875,
+    -0.18002290140569951, -0.18303988795514095, -0.18605515166344663,
+    -0.18906866414980619, -0.19208039704989244, -0.19509032201612825,
+    -0.19809841071795356, -0.2011046348420919, -0.20410896609281687,
+    -0.20711137619221856, -0.21011183688046961, -0.21311031991609136,
+    -0.21610679707621952, -0.2191012401568698, -0.22209362097320351,
+    -0.22508391135979283, -0.22807208317088573, -0.23105810828067111,
+    -0.23404195858354343, -0.2370236059943672, -0.2400030224487415,
+    -0.24298017990326387, -0.24595505033579459, -0.24892760574572015,
+    -0.25189781815421697, -0.25486565960451457, -0.257831102162159,
+    -0.26079411791527551, -0.26375467897483135, -0.26671275747489837,
+    -0.26966832557291509, -0.272621355449949, -0.27557181931095814,
+    -0.27851968938505306, -0.28146493792575794, -0.28440753721127188,
+    -0.28734745954472951, -0.29028467725446233, -0.29321916269425863,
+    -0.29615088824362379, -0.29907982630804048, -0.30200594931922808,
+    -0.30492922973540237, -0.30784964004153487, -0.31076715274961147,
+    -0.31368174039889152, -0.31659337555616585, -0.31950203081601569,
+    -0.32240767880106985, -0.32531029216226293, -0.3282098435790925,
+    -0.33110630575987643, -0.33399965144200938, -0.33688985339222005,
+    -0.33977688440682685, -0.34266071731199438, -0.34554132496398909,
+    -0.34841868024943456, -0.35129275608556709, -0.35416352542049034,
+    -0.35703096123343, -0.35989503653498811, -0.36275572436739723,
+    -0.36561299780477385, -0.36846682995337232, -0.37131719395183749,
+    -0.37416406297145793, -0.37700741021641826, -0.37984720892405116,
+    -0.38268343236508978, -0.38551605384391885, -0.38834504669882625,
+    -0.39117038430225387, -0.3939920400610481, -0.39680998741671031,
+    -0.39962419984564679, -0.40243465085941843, -0.40524131400498986,
+    -0.40804416286497869, -0.41084317105790391, -0.4136383122384345,
+    -0.41642956009763715, -0.41921688836322391, -0.42200027079979968,
+    -0.42477968120910881, -0.42755509343028208, -0.43032648134008261,
+    -0.43309381885315196, -0.43585707992225547, -0.43861623853852766,
+    -0.44137126873171667, -0.4441221445704292, -0.44686884016237416,
+    -0.44961132965460654, -0.45234958723377089, -0.45508358712634384,
+    -0.45781330359887717, -0.46053871095824, -0.46325978355186015,
+    -0.46597649576796618, -0.46868882203582796, -0.47139673682599764,
+    -0.47410021465054997, -0.47679923006332209, -0.47949375766015295,
+    -0.48218377207912272, -0.48486924800079106, -0.487550160148436,
+    -0.49022648328829116, -0.49289819222978404, -0.49556526182577254,
+    -0.49822766697278181, -0.50088538261124071, -0.50353838372571758,
+    -0.50618664534515523, -0.508830142543107, -0.5114688504379703,
+    -0.51410274419322166, -0.51673179901764987, -0.51935599016558964,
+    -0.52197529293715439, -0.524589682678469, -0.52719913478190128,
+    -0.52980362468629461, -0.5324031278771979, -0.53499761988709715,
+    -0.53758707629564539, -0.54017147272989285, -0.54275078486451589,
+    -0.54532498842204646, -0.54789405917310019, -0.55045797293660481,
+    -0.55301670558002747, -0.55557023301960218, -0.5581185312205561,
+    -0.560661576197336, -0.56319934401383409, -0.56573181078361312,
+    -0.56825895267013149, -0.57078074588696726, -0.5732971666980422,
+    -0.57580819141784534, -0.57831379641165559, -0.58081395809576453,
+    -0.58330865293769829, -0.58579785745643886, -0.58828154822264522,
+    -0.59075970185887416, -0.5932322950397998, -0.59569930449243336,
+    -0.59816070699634238, -0.600616479383869, -0.60306659854034816,
+    -0.60551104140432555, -0.60794978496777363, -0.61038280627630948,
+    -0.61281008242940971, -0.61523159058062682, -0.61764730793780387,
+    -0.6200572117632891, -0.62246127937415, -0.62485948814238634,
+    -0.62725181549514408, -0.629638238914927, -0.63201873593980906,
+    -0.63439328416364549, -0.6367618612362842, -0.63912444486377573,
+    -0.641481012808583, -0.64383154288979139, -0.64617601298331628,
+    -0.64851440102211244, -0.650846684996381, -0.65317284295377676,
+    -0.65549285299961535, -0.65780669329707864, -0.66011434206742048,
+    -0.66241577759017178, -0.66471097820334479, -0.66699992230363747,
+    -0.669282588346636, -0.67155895484701833, -0.673829000378756,
+    -0.67609270357531592, -0.67835004312986147, -0.680600997795453,
+    -0.68284554638524808, -0.68508366777270036, -0.687315340891759,
+    -0.68954054473706683, -0.69175925836415775, -0.69397146088965389,
+    -0.696177131491463, -0.69837624940897292, -0.70056879394324834,
+    -0.7027547444572253, -0.70493408037590488, -0.70710678118654757,
+    -0.70927282643886569, -0.71143219574521643, -0.71358486878079352,
+    -0.71573082528381859, -0.71787004505573171, -0.72000250796138165,
+    -0.72212819392921535, -0.724247082951467, -0.726359155084346,
+    -0.7284643904482252, -0.73056276922782759, -0.73265427167241282,
+    -0.7347388780959635, -0.73681656887736979, -0.73888732446061511,
+    -0.74095112535495922, -0.74300795213512172, -0.745057785441466,
+    -0.74710060598018013, -0.74913639452345937, -0.75116513190968637,
+    -0.75318679904361252, -0.75520137689653655, -0.75720884650648457,
+    -0.759209188978388, -0.76120238548426178, -0.76318841726338127,
+    -0.765167265622459, -0.7671389119358204, -0.7691033376455797,
+    -0.77106052426181382, -0.773010453362737, -0.77495310659487393,
+    -0.77688846567323244, -0.778816512381476, -0.78073722857209449,
+    -0.78265059616657573, -0.78455659715557524, -0.78645521359908577,
+    -0.78834642762660634, -0.79023022143731, -0.79210657730021239,
+    -0.79397547755433717, -0.79583690460888357, -0.79769084094339116,
+    -0.799537269107905, -0.80137617172314024, -0.80320753148064494,
+    -0.80503133114296366, -0.80684755354379933, -0.808656181588175,
+    -0.81045719825259477, -0.81225058658520388, -0.81403632970594841,
+    -0.81581441080673378, -0.81758481315158371, -0.819347520076797,
+    -0.82110251499110465, -0.82284978137582643, -0.82458930278502529,
+    -0.82632106284566353, -0.8280450452577558, -0.829761233794523,
+    -0.83146961230254524, -0.83317016470191319, -0.83486287498638,
+    -0.836547727223512, -0.83822470555483808, -0.83989379419599952,
+    -0.84155497743689844, -0.84320823964184544, -0.84485356524970712,
+    -0.84649093877405213, -0.84812034480329723, -0.84974176800085255,
+    -0.8513551931052652, -0.85296060493036363, -0.85455798836540053,
+    -0.85614732837519447, -0.85772861000027212, -0.85930181835700847,
+    -0.86086693863776731, -0.8624239561110405, -0.8639728561215867,
+    -0.86551362409056909, -0.86704624551569265, -0.8685707059713409,
+    -0.87008699110871146, -0.87159508665595109, -0.87309497841829009,
+    -0.87458665227817611, -0.8760700941954066, -0.87754529020726135,
+    -0.87901222642863353, -0.88047088905216075, -0.881921264348355,
+    -0.88336333866573158, -0.88479709843093779, -0.88622253014888064,
+    -0.88763962040285393, -0.88904835585466457, -0.89044872324475788,
+    -0.89184070939234272, -0.89322430119551532, -0.8945994856313827,
+    -0.89596624975618522, -0.89732458070541832, -0.89867446569395382,
+    -0.90001589201616017, -0.901348847046022, -0.90267331823725883,
+    -0.90398929312344334, -0.90529675931811882, -0.90659570451491533,
+    -0.90788611648766626, -0.90916798309052238, -0.91044129225806725,
+    -0.91170603200542988, -0.91296219042839821, -0.91420975570353069,
+    -0.91544871608826783, -0.9166790599210427, -0.9179007756213905,
+    -0.91911385169005777, -0.92031827670911059, -0.9215140393420419,
+    -0.92270112833387863, -0.92387953251128674, -0.92504924078267758,
+    -0.92621024213831138, -0.92736252565040111, -0.92850608047321559,
+    -0.92964089584318121, -0.93076696107898371, -0.93188426558166815,
+    -0.932992798834739, -0.93409255040425887, -0.93518350993894761,
+    -0.93626566717027826, -0.937339011912575, -0.93840353406310806,
+    -0.93945922360218992, -0.9405060705932683, -0.94154406518302081,
+    -0.94257319760144687, -0.94359345816196039, -0.94460483726148026,
+    -0.94560732538052128, -0.94660091308328353, -0.94758559101774109,
+    -0.94856134991573027, -0.94952818059303667, -0.9504860739494817,
+    -0.95143502096900834, -0.95237501271976588, -0.95330604035419386,
+    -0.95422809510910567, -0.95514116830577078, -0.95604525134999641,
+    -0.95694033573220882, -0.95782641302753291, -0.9587034748958716,
+    -0.95957151308198452, -0.96043051941556579, -0.96128048581132064,
+    -0.96212140426904158, -0.96295326687368388, -0.96377606579543984,
+    -0.96458979328981276, -0.9653944416976894, -0.9661900034454125,
+    -0.96697647104485207, -0.96775383709347551, -0.96852209427441727,
+    -0.96928123535654853, -0.970031253194544, -0.97077214072895035,
+    -0.97150389098625178, -0.97222649707893627, -0.97293995220556018,
+    -0.973644249650812, -0.97433938278557586, -0.97502534506699412,
+    -0.97570213003852857, -0.97636973133002114, -0.97702814265775439,
+    -0.97767735782450993, -0.97831737071962765, -0.9789481753190622,
+    -0.97956976568544052, -0.98018213596811743, -0.98078528040323043,
+    -0.98137919331375456, -0.98196386910955524, -0.98253930228744124,
+    -0.98310548743121629, -0.98366241921173025, -0.984210092386929,
+    -0.98474850180190421, -0.98527764238894122, -0.98579750916756748,
+    -0.98630809724459867, -0.98680940181418553, -0.98730141815785843,
+    -0.98778414164457218, -0.98825756773074946, -0.98872169196032378,
+    -0.989176509964781, -0.98962201746320089, -0.99005821026229712,
+    -0.99048508425645709, -0.99090263542778, -0.99131085984611544,
+    -0.99170975366909953, -0.9920993131421918, -0.99247953459871,
+    -0.9928504144598651, -0.9932119492347945, -0.9935641355205953,
+    -0.99390697000235606, -0.9942404494531879, -0.99456457073425542,
+    -0.99487933079480562, -0.99518472667219693, -0.99548075549192694,
+    -0.99576741446765982, -0.996044700901252, -0.996312612182778,
+    -0.99657114579055484, -0.99682029929116567, -0.997060070339483,
+    -0.99729045667869021, -0.99751145614030345, -0.99772306664419164,
+    -0.997925286198596, -0.99811811290014918, -0.99830154493389289,
+    -0.99847558057329477, -0.99864021818026527, -0.99879545620517241,
+    -0.99894129318685687, -0.99907772775264536, -0.99920475861836389,
+    -0.99932238458834954, -0.99943060455546173, -0.99952941750109314,
+    -0.99961882249517864, -0.99969881869620425, -0.99976940535121528,
+    -0.9998305817958234, -0.99988234745421256, -0.9999247018391445,
+    -0.9999576445519639, -0.99998117528260111, -0.99999529380957619, -1.0,
+    -0.99999529380957619, -0.99998117528260111, -0.9999576445519639,
+    -0.9999247018391445, -0.99988234745421256, -0.9998305817958234,
+    -0.99976940535121528, -0.99969881869620425, -0.99961882249517864,
+    -0.99952941750109314, -0.99943060455546173, -0.99932238458834954,
+    -0.99920475861836389, -0.99907772775264536, -0.99894129318685687,
+    -0.99879545620517241, -0.99864021818026527, -0.99847558057329477,
+    -0.99830154493389289, -0.99811811290014918, -0.997925286198596,
+    -0.99772306664419164, -0.99751145614030345, -0.99729045667869021,
+    -0.997060070339483, -0.99682029929116567, -0.99657114579055484,
+    -0.996312612182778, -0.996044700901252, -0.99576741446765982,
+    -0.99548075549192694, -0.99518472667219693, -0.99487933079480562,
+    -0.99456457073425542, -0.9942404494531879, -0.99390697000235606,
+    -0.9935641355205953, -0.9932119492347945, -0.9928504144598651,
+    -0.99247953459871, -0.9920993131421918, -0.99170975366909953,
+    -0.99131085984611544, -0.99090263542778, -0.99048508425645709,
+    -0.99005821026229712, -0.98962201746320089, -0.989176509964781,
+    -0.98872169196032378, -0.98825756773074946, -0.98778414164457218,
+    -0.98730141815785843, -0.98680940181418553, -0.98630809724459867,
+    -0.98579750916756748, -0.98527764238894122, -0.98474850180190421,
+    -0.984210092386929, -0.98366241921173025, -0.98310548743121629,
+    -0.98253930228744124, -0.98196386910955524, -0.98137919331375456,
+    -0.98078528040323043, -0.98018213596811743, -0.97956976568544052,
+    -0.9789481753190622, -0.97831737071962765, -0.97767735782450993,
+    -0.97702814265775439, -0.97636973133002114, -0.97570213003852857,
+    -0.97502534506699412, -0.97433938278557586, -0.973644249650812,
+    -0.97293995220556018, -0.97222649707893627, -0.97150389098625178,
+    -0.97077214072895035, -0.970031253194544, -0.96928123535654853,
+    -0.96852209427441727, -0.96775383709347551, -0.96697647104485207,
+    -0.9661900034454125, -0.9653944416976894, -0.96458979328981276,
+    -0.96377606579543984, -0.96295326687368388, -0.96212140426904158,
+    -0.96128048581132064, -0.96043051941556579, -0.95957151308198452,
+    -0.9587034748958716, -0.95782641302753291, -0.95694033573220882,
+    -0.95604525134999641, -0.95514116830577078, -0.95422809510910567,
+    -0.95330604035419386, -0.95237501271976588, -0.95143502096900834,
+    -0.9504860739494817, -0.94952818059303667, -0.94856134991573027,
+    -0.94758559101774109, -0.94660091308328353, -0.94560732538052128,
+    -0.94460483726148026, -0.94359345816196039, -0.94257319760144687,
+    -0.94154406518302081, -0.9405060705932683, -0.93945922360218992,
+    -0.93840353406310806, -0.937339011912575, -0.93626566717027826,
+    -0.93518350993894761, -0.93409255040425887, -0.932992798834739,
+    -0.93188426558166815, -0.93076696107898371, -0.92964089584318121,
+    -0.92850608047321559, -0.92736252565040111, -0.92621024213831138,
+    -0.92504924078267758, -0.92387953251128674, -0.92270112833387863,
+    -0.9215140393420419, -0.92031827670911059, -0.91911385169005777,
+    -0.9179007756213905, -0.9166790599210427, -0.91544871608826783,
+    -0.91420975570353069, -0.91296219042839821, -0.91170603200542988,
+    -0.91044129225806725, -0.90916798309052238, -0.90788611648766626,
+    -0.90659570451491533, -0.90529675931811882, -0.90398929312344334,
+    -0.90267331823725883, -0.901348847046022, -0.90001589201616017,
+    -0.89867446569395382, -0.89732458070541832, -0.89596624975618522,
+    -0.8945994856313827, -0.89322430119551532, -0.89184070939234272,
+    -0.89044872324475788, -0.88904835585466457, -0.88763962040285393,
+    -0.88622253014888064, -0.88479709843093779, -0.88336333866573158,
+    -0.881921264348355, -0.88047088905216075, -0.87901222642863353,
+    -0.87754529020726135, -0.8760700941954066, -0.87458665227817611,
+    -0.87309497841829009, -0.87159508665595109, -0.87008699110871146,
+    -0.8685707059713409, -0.86704624551569265, -0.86551362409056909,
+    -0.8639728561215867, -0.8624239561110405, -0.86086693863776731,
+    -0.85930181835700847, -0.85772861000027212, -0.85614732837519447,
+    -0.85455798836540053, -0.85296060493036363, -0.8513551931052652,
+    -0.84974176800085255, -0.84812034480329723, -0.84649093877405213,
+    -0.84485356524970712, -0.84320823964184544, -0.84155497743689844,
+    -0.83989379419599952, -0.83822470555483808, -0.836547727223512,
+    -0.83486287498638, -0.83317016470191319, -0.83146961230254524,
+    -0.829761233794523, -0.8280450452577558, -0.82632106284566353,
+    -0.82458930278502529, -0.82284978137582643, -0.82110251499110465,
+    -0.819347520076797, -0.81758481315158371, -0.81581441080673378,
+    -0.81403632970594841, -0.81225058658520388, -0.81045719825259477,
+    -0.808656181588175, -0.80684755354379933, -0.80503133114296366,
+    -0.80320753148064494, -0.80137617172314024, -0.799537269107905,
+    -0.79769084094339116, -0.79583690460888357, -0.79397547755433717,
+    -0.79210657730021239, -0.79023022143731, -0.78834642762660634,
+    -0.78645521359908577, -0.78455659715557524, -0.78265059616657573,
+    -0.78073722857209449, -0.778816512381476, -0.77688846567323244,
+    -0.77495310659487393, -0.773010453362737, -0.77106052426181382,
+    -0.7691033376455797, -0.7671389119358204, -0.765167265622459,
+    -0.76318841726338127, -0.76120238548426178, -0.759209188978388,
+    -0.75720884650648457, -0.75520137689653655, -0.75318679904361252,
+    -0.75116513190968637, -0.74913639452345937, -0.74710060598018013,
+    -0.745057785441466, -0.74300795213512172, -0.74095112535495922,
+    -0.73888732446061511, -0.73681656887736979, -0.7347388780959635,
+    -0.73265427167241282, -0.73056276922782759, -0.7284643904482252,
+    -0.726359155084346, -0.724247082951467, -0.72212819392921535,
+    -0.72000250796138165, -0.71787004505573171, -0.71573082528381859,
+    -0.71358486878079352, -0.71143219574521643, -0.70927282643886569,
+    -0.70710678118654757, -0.70493408037590488, -0.7027547444572253,
+    -0.70056879394324834, -0.69837624940897292, -0.696177131491463,
+    -0.69397146088965389, -0.69175925836415775, -0.68954054473706683,
+    -0.687315340891759, -0.68508366777270036, -0.68284554638524808,
+    -0.680600997795453, -0.67835004312986147, -0.67609270357531592,
+    -0.673829000378756, -0.67155895484701833, -0.669282588346636,
+    -0.66699992230363747, -0.66471097820334479, -0.66241577759017178,
+    -0.66011434206742048, -0.65780669329707864, -0.65549285299961535,
+    -0.65317284295377676, -0.650846684996381, -0.64851440102211244,
+    -0.64617601298331628, -0.64383154288979139, -0.641481012808583,
+    -0.63912444486377573, -0.6367618612362842, -0.63439328416364549,
+    -0.63201873593980906, -0.629638238914927, -0.62725181549514408,
+    -0.62485948814238634, -0.62246127937415, -0.6200572117632891,
+    -0.61764730793780387, -0.61523159058062682, -0.61281008242940971,
+    -0.61038280627630948, -0.60794978496777363, -0.60551104140432555,
+    -0.60306659854034816, -0.600616479383869, -0.59816070699634238,
+    -0.59569930449243336, -0.5932322950397998, -0.59075970185887416,
+    -0.58828154822264522, -0.58579785745643886, -0.58330865293769829,
+    -0.58081395809576453, -0.57831379641165559, -0.57580819141784534,
+    -0.5732971666980422, -0.57078074588696726, -0.56825895267013149,
+    -0.56573181078361312, -0.56319934401383409, -0.560661576197336,
+    -0.5581185312205561, -0.55557023301960218, -0.55301670558002747,
+    -0.55045797293660481, -0.54789405917310019, -0.54532498842204646,
+    -0.54275078486451589, -0.54017147272989285, -0.53758707629564539,
+    -0.53499761988709715, -0.5324031278771979, -0.52980362468629461,
+    -0.52719913478190128, -0.524589682678469, -0.52197529293715439,
+    -0.51935599016558964, -0.51673179901764987, -0.51410274419322166,
+    -0.5114688504379703, -0.508830142543107, -0.50618664534515523,
+    -0.50353838372571758, -0.50088538261124071, -0.49822766697278181,
+    -0.49556526182577254, -0.49289819222978404, -0.49022648328829116,
+    -0.487550160148436, -0.48486924800079106, -0.48218377207912272,
+    -0.47949375766015295, -0.47679923006332209, -0.47410021465054997,
+    -0.47139673682599764, -0.46868882203582796, -0.46597649576796618,
+    -0.46325978355186015, -0.46053871095824, -0.45781330359887717,
+    -0.45508358712634384, -0.45234958723377089, -0.44961132965460654,
+    -0.44686884016237416, -0.4441221445704292, -0.44137126873171667,
+    -0.43861623853852766, -0.43585707992225547, -0.43309381885315196,
+    -0.43032648134008261, -0.42755509343028208, -0.42477968120910881,
+    -0.42200027079979968, -0.41921688836322391, -0.41642956009763715,
+    -0.4136383122384345, -0.41084317105790391, -0.40804416286497869,
+    -0.40524131400498986, -0.40243465085941843, -0.39962419984564679,
+    -0.39680998741671031, -0.3939920400610481, -0.39117038430225387,
+    -0.38834504669882625, -0.38551605384391885, -0.38268343236508978,
+    -0.37984720892405116, -0.37700741021641826, -0.37416406297145793,
+    -0.37131719395183749, -0.36846682995337232, -0.36561299780477385,
+    -0.36275572436739723, -0.35989503653498811, -0.35703096123343,
+    -0.35416352542049034, -0.35129275608556709, -0.34841868024943456,
+    -0.34554132496398909, -0.34266071731199438, -0.33977688440682685,
+    -0.33688985339222005, -0.33399965144200938, -0.33110630575987643,
+    -0.3282098435790925, -0.32531029216226293, -0.32240767880106985,
+    -0.31950203081601569, -0.31659337555616585, -0.31368174039889152,
+    -0.31076715274961147, -0.30784964004153487, -0.30492922973540237,
+    -0.30200594931922808, -0.29907982630804048, -0.29615088824362379,
+    -0.29321916269425863, -0.29028467725446233, -0.28734745954472951,
+    -0.28440753721127188, -0.28146493792575794, -0.27851968938505306,
+    -0.27557181931095814, -0.272621355449949, -0.26966832557291509,
+    -0.26671275747489837, -0.26375467897483135, -0.26079411791527551,
+    -0.257831102162159, -0.25486565960451457, -0.25189781815421697,
+    -0.24892760574572015, -0.24595505033579459, -0.24298017990326387,
+    -0.2400030224487415, -0.2370236059943672, -0.23404195858354343,
+    -0.23105810828067111, -0.22807208317088573, -0.22508391135979283,
+    -0.22209362097320351, -0.2191012401568698, -0.21610679707621952,
+    -0.21311031991609136, -0.21011183688046961, -0.20711137619221856,
+    -0.20410896609281687, -0.2011046348420919, -0.19809841071795356,
+    -0.19509032201612825, -0.19208039704989244, -0.18906866414980619,
+    -0.18605515166344663, -0.18303988795514095, -0.18002290140569951,
+    -0.17700422041214875, -0.17398387338746382, -0.17096188876030122,
+    -0.16793829497473117, -0.16491312048996992, -0.16188639378011183,
+    -0.15885814333386145, -0.15582839765426523, -0.15279718525844344,
+    -0.14976453467732151, -0.14673047445536175, -0.14369503315029447,
+    -0.14065823933284921, -0.13762012158648604, -0.13458070850712617,
+    -0.13154002870288312, -0.12849811079379317, -0.12545498341154623,
+    -0.1224106751992162, -0.11936521481099135, -0.11631863091190475,
+    -0.11327095217756435, -0.11022220729388306, -0.10717242495680884,
+    -0.10412163387205459, -0.10106986275482782, -0.0980171403295606,
+    -0.094963495329638992, -0.091908956497132724, -0.0888535525825246,
+    -0.0857973123444399, -0.082740264549375692, -0.079682437971430126,
+    -0.076623861392031492, -0.073564563599667426, -0.070504573389613856,
+    -0.067443919563664051, -0.064382630929857465, -0.061320736302208578,
+    -0.058258264500435752, -0.055195244349689941, -0.052131704680283324,
+    -0.049067674327418015, -0.046003182130914623, -0.04293825693494082,
+    -0.039872927587739811, -0.036807222941358832, -0.03374117185137758,
+    -0.030674803176636626, -0.02760814577896574, -0.024541228522912288,
+    -0.021474080275469508, -0.01840672990580482, -0.0153392062849881,
+    -0.012271538285719925, -0.00920375478205982, -0.0061358846491544753,
+    -0.0030679567629659761, -0.0 };
+
+  int ihi;
 
   // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   //               Short-Time Fourier Transform            %
@@ -14483,18 +15904,22 @@ static void stft(const emxArray_real_T *x, double fs, emxArray_creal_T *s,
   //  form the stft matrix
   //  calculate the total number of rows
   nm1d2 = x->size[1];
-  b = ((double)nm1d2 - 256.0) / 64.0;
-  b_fix(&b);
+  twid_re = ((double)nm1d2 - 256.0) / 64.0;
+  if (twid_re < 0.0) {
+    b_x = (int)std::ceil(twid_re);
+  } else {
+    b_x = (int)std::floor(twid_re);
+  }
 
   //  calculate the total number of columns
-  k = s->size[0] * s->size[1];
+  nm1d2 = s->size[0] * s->size[1];
   s->size[0] = 1025;
-  s->size[1] = (int)(1.0 + b);
-  emxEnsureCapacity((emxArray__common *)s, k, (int)sizeof(creal_T));
-  nm1d2 = 1025 * (int)(1.0 + b);
-  for (k = 0; k < nm1d2; k++) {
-    s->data[k].re = 0.0;
-    s->data[k].im = 0.0;
+  s->size[1] = 1 + b_x;
+  emxEnsureCapacity((emxArray__common *)s, nm1d2, (int)sizeof(creal_T));
+  cdiff = 1025 * (1 + b_x);
+  for (nm1d2 = 0; nm1d2 < cdiff; nm1d2++) {
+    s->data[nm1d2].re = 0.0;
+    s->data[nm1d2].im = 0.0;
   }
 
   //  form the stft matrix
@@ -14505,7 +15930,7 @@ static void stft(const emxArray_real_T *x, double fs, emxArray_creal_T *s,
   //  end
   //  initialize the indexes
   indx = 0.0;
-  col = 1U;
+  col = 0;
 
   //  perform STFT
   do {
@@ -14513,17 +15938,88 @@ static void stft(const emxArray_real_T *x, double fs, emxArray_creal_T *s,
     nm1d2 = x->size[1];
     if (indx + 256.0 <= nm1d2) {
       //  windowing
-      for (k = 0; k < 256; k++) {
-        xw[k] = x->data[(int)(indx + (1.0 + (double)k)) - 1] * win[k];
+      for (nm1d2 = 0; nm1d2 < 256; nm1d2++) {
+        xw[nm1d2] = x->data[(int)(indx + (1.0 + (double)nm1d2)) - 1] * win[nm1d2];
       }
 
       //  FFT
-      c_fft(xw, X);
+      for (i = 0; i < 2048; i++) {
+        X[i].re = 0.0;
+        X[i].im = 0.0;
+      }
+
+      nm1d2 = 0;
+      ndbl = 0;
+      cdiff = 0;
+      for (i = 0; i < 255; i++) {
+        X[cdiff].re = xw[nm1d2];
+        X[cdiff].im = 0.0;
+        cdiff = 2048;
+        tst = true;
+        while (tst) {
+          cdiff >>= 1;
+          ndbl ^= cdiff;
+          tst = ((ndbl & cdiff) == 0);
+        }
+
+        cdiff = ndbl;
+        nm1d2++;
+      }
+
+      X[cdiff].re = xw[nm1d2];
+      X[cdiff].im = 0.0;
+      for (i = 0; i <= 2047; i += 2) {
+        temp_re = X[i + 1].re;
+        temp_im = X[i + 1].im;
+        X[i + 1].re = X[i].re - X[i + 1].re;
+        X[i + 1].im = X[i].im - X[i + 1].im;
+        X[i].re += temp_re;
+        X[i].im += temp_im;
+      }
+
+      cdiff = 2;
+      nm1d2 = 4;
+      k = 512;
+      ndbl = 2045;
+      while (k > 0) {
+        for (i = 0; i < ndbl; i += nm1d2) {
+          temp_re = X[i + cdiff].re;
+          temp_im = X[i + cdiff].im;
+          X[i + cdiff].re = X[i].re - temp_re;
+          X[i + cdiff].im = X[i].im - temp_im;
+          X[i].re += temp_re;
+          X[i].im += temp_im;
+        }
+
+        apnd = 1;
+        for (j = k; j < 1024; j += k) {
+          twid_re = dv20[j];
+          twid_im = dv21[j];
+          i = apnd;
+          ihi = apnd + ndbl;
+          while (i < ihi) {
+            temp_re = twid_re * X[i + cdiff].re - twid_im * X[i + cdiff].im;
+            temp_im = twid_re * X[i + cdiff].im + twid_im * X[i + cdiff].re;
+            X[i + cdiff].re = X[i].re - temp_re;
+            X[i + cdiff].im = X[i].im - temp_im;
+            X[i].re += temp_re;
+            X[i].im += temp_im;
+            i += nm1d2;
+          }
+
+          apnd++;
+        }
+
+        k /= 2;
+        cdiff = nm1d2;
+        nm1d2 <<= 1;
+        ndbl -= cdiff;
+      }
 
       //  update the stft matrix
       //      s(:, col) = X(1:rown); %%%% OLD
-      for (k = 0; k < 1025; k++) {
-        s->data[k + s->size[0] * ((int)col - 1)] = X[k];
+      for (nm1d2 = 0; nm1d2 < 1025; nm1d2++) {
+        s->data[nm1d2 + s->size[0] * col] = X[nm1d2];
       }
 
       //  update the indexes
@@ -14535,195 +16031,213 @@ static void stft(const emxArray_real_T *x, double fs, emxArray_creal_T *s,
   } while (exitg1 == 0);
 
   //  calculate the time and frequency vectors
-  b = 128.0 + ((1.0 + b) - 1.0) * 64.0;
-  if (b < 128.0) {
-    n = 0;
-    anew = 128.0;
-    apnd = b;
-  } else if (rtIsInf(b)) {
-    n = 1;
-    anew = rtNaN;
-    apnd = b;
+  nm1d2 = 128 + (b_x << 6);
+  if (nm1d2 < 128) {
+    ndbl = 0;
+    apnd = nm1d2;
   } else {
-    anew = 128.0;
-    ndbl = std::floor((b - 128.0) / 64.0 + 0.5);
-    apnd = 128.0 + ndbl * 64.0;
-    cdiff = apnd - b;
-    if (std::abs(cdiff) < 4.4408920985006262E-16 * b) {
+    ndbl = (int)std::floor(((double)nm1d2 - 128.0) / 64.0 + 0.5);
+    apnd = 128 + (ndbl << 6);
+    cdiff = apnd - nm1d2;
+    if (std::abs((double)cdiff) < 4.4408920985006262E-16 * (double)nm1d2) {
       ndbl++;
-      apnd = b;
-    } else if (cdiff > 0.0) {
-      apnd = 128.0 + (ndbl - 1.0) * 64.0;
+      apnd = nm1d2;
+    } else if (cdiff > 0) {
+      apnd = 128 + ((ndbl - 1) << 6);
     } else {
       ndbl++;
     }
-
-    n = (int)ndbl;
   }
 
-  k = t->size[0] * t->size[1];
+  nm1d2 = t->size[0] * t->size[1];
   t->size[0] = 1;
-  t->size[1] = n;
-  emxEnsureCapacity((emxArray__common *)t, k, (int)sizeof(double));
-  if (n > 0) {
-    t->data[0] = anew;
-    if (n > 1) {
-      t->data[n - 1] = apnd;
-      nm1d2 = (n - 1) / 2;
+  t->size[1] = ndbl;
+  emxEnsureCapacity((emxArray__common *)t, nm1d2, (int)sizeof(double));
+  if (ndbl > 0) {
+    t->data[0] = 128.0;
+    if (ndbl > 1) {
+      t->data[ndbl - 1] = apnd;
+      nm1d2 = (ndbl - 1) / 2;
       for (k = 1; k < nm1d2; k++) {
-        kd = k << 6;
-        t->data[k] = anew + (double)kd;
-        t->data[(n - k) - 1] = apnd - (double)kd;
+        cdiff = k << 6;
+        t->data[k] = 128.0 + (double)cdiff;
+        t->data[(ndbl - k) - 1] = apnd - cdiff;
       }
 
-      if (nm1d2 << 1 == n - 1) {
-        t->data[nm1d2] = (anew + apnd) / 2.0;
+      if (nm1d2 << 1 == ndbl - 1) {
+        t->data[nm1d2] = (128.0 + (double)apnd) / 2.0;
       } else {
-        kd = nm1d2 << 6;
-        t->data[nm1d2] = anew + (double)kd;
-        t->data[nm1d2 + 1] = apnd - (double)kd;
+        cdiff = nm1d2 << 6;
+        t->data[nm1d2] = 128.0 + (double)cdiff;
+        t->data[nm1d2 + 1] = apnd - cdiff;
       }
     }
   }
 
-  k = t->size[0] * t->size[1];
+  nm1d2 = t->size[0] * t->size[1];
   t->size[0] = 1;
-  emxEnsureCapacity((emxArray__common *)t, k, (int)sizeof(double));
+  emxEnsureCapacity((emxArray__common *)t, nm1d2, (int)sizeof(double));
   nm1d2 = t->size[0];
-  k = t->size[1];
-  nm1d2 *= k;
-  for (k = 0; k < nm1d2; k++) {
-    t->data[k] /= fs;
+  cdiff = t->size[1];
+  cdiff *= nm1d2;
+  for (nm1d2 = 0; nm1d2 < cdiff; nm1d2++) {
+    t->data[nm1d2] /= fs;
   }
 
-  for (k = 0; k < 1025; k++) {
-    f[k] = (double)k * fs / 2048.0;
+  for (nm1d2 = 0; nm1d2 < 1025; nm1d2++) {
+    f[nm1d2] = (double)nm1d2 * fs / 2048.0;
   }
 }
 
 //
-// Arguments    : const boolean_T x[250]
-// Return Type  : double
+// Arguments    : const emxArray_real_T *x
+//                emxArray_real_T *y
+// Return Type  : void
 //
-static double sum(const boolean_T x[250])
+static void sum(const emxArray_real_T *x, emxArray_real_T *y)
 {
-  double y;
+  unsigned int sz[2];
+  int vstride;
+  int j;
+  double s;
   int k;
-  y = x[0];
-  for (k = 0; k < 249; k++) {
-    y += (double)x[k + 1];
+  for (vstride = 0; vstride < 2; vstride++) {
+    sz[vstride] = (unsigned int)x->size[vstride];
   }
 
-  return y;
-}
+  vstride = y->size[0];
+  y->size[0] = (int)sz[0];
+  emxEnsureCapacity((emxArray__common *)y, vstride, (int)sizeof(double));
+  if ((x->size[0] == 0) || (x->size[1] == 0)) {
+    j = y->size[0];
+    vstride = y->size[0];
+    y->size[0] = j;
+    emxEnsureCapacity((emxArray__common *)y, vstride, (int)sizeof(double));
+    for (vstride = 0; vstride < j; vstride++) {
+      y->data[vstride] = 0.0;
+    }
+  } else {
+    vstride = x->size[0];
+    for (j = 0; j + 1 <= vstride; j++) {
+      s = x->data[j];
+      for (k = 2; k <= x->size[1]; k++) {
+        s += x->data[j + (k - 1) * vstride];
+      }
 
-//
-// Arguments    : const double x[250]
-// Return Type  : double
-//
-static double trapz(const double x[250])
-{
-  double z;
-  int iy;
-  double ylast;
-  int k;
-  z = 0.0;
-  iy = 0;
-  ylast = x[0];
-  for (k = 0; k < 249; k++) {
-    iy++;
-    z += (ylast + x[iy]) / 2.0;
-    ylast = x[iy];
+      y->data[j] = s;
+    }
   }
-
-  return z;
 }
 
 //
 // treeClassifier - For SSVEP Classification.
 // Arguments    : const double F[30]
-//                double Y[5]
+//                const emxArray_real_T *F2
+//                double Y[7]
 // Return Type  : void
 //
-static void treeClassifier(const double F[30], double Y[5])
+static void treeClassifier(const double F[30], const emxArray_real_T *F2, double
+  Y[7])
 {
-  int khi;
-  double dv15[4];
+  int i;
+  emxArray_real_T *A2;
+  int pEnd;
+  double dv22[4];
   double b_F[4];
-  int i23;
-  static const signed char iv0[4] = { 26, 27, 28, 29 };
+  static const signed char iv1[4] = { 26, 27, 28, 29 };
 
-  static const signed char iv1[4] = { 10, 12, 15, 16 };
+  static const signed char iv2[4] = { 10, 12, 15, 16 };
 
-  int iwork[4];
   boolean_T p;
+  int iwork[4];
   int idx[4];
   int k;
-  static const signed char iv2[4] = { 0, 1, 2, 3 };
+  static const signed char iv3[4] = { 0, 1, 2, 3 };
 
-  int unqwLFFT_size[2];
-  int i2;
+  emxArray_real_T *unqwLFFT;
+  int khi;
   int j;
-  int pEnd;
-  double unqwLFFT_data[4];
-  static const signed char iv3[2] = { 1, 4 };
+  static const signed char iv4[2] = { 1, 4 };
 
-  int nb;
+  int b_p;
   int b_k;
-  int qEnd;
+  int nb;
   int kEnd;
   double x;
   int exitg4;
-  double absxk;
-  int exponent;
-  static const signed char iv4[4] = { 4, 5, 6, 7 };
+  int i9;
+  static const signed char iv5[4] = { 4, 5, 6, 7 };
 
-  int unqwPSD_size[2];
-  double unqwPSD_data[4];
+  emxArray_real_T *unqwPSD;
   int exitg3;
-  int b_exponent;
-  boolean_T b_p;
-  int exitg2;
+  int i10;
+  double stft_sel_loc[4];
+  double fft_sel_loc[16];
+  double psd_sel_loc[16];
+  double fft_sel_pks[16];
+  double psd_sel_pks[16];
+  boolean_T b_fft_sel_loc[16];
+  double sumB1[4];
+  double sumB2[4];
+  boolean_T B1_1[4];
+  boolean_T b_B1_1[4];
+  boolean_T B2_1[4];
+  emxArray_int32_T *ndx;
+  boolean_T c_B1_1;
+  boolean_T b_B2_1;
+  boolean_T exitg2;
   boolean_T exitg1;
-  for (khi = 0; khi < 5; khi++) {
-    Y[khi] = 0.0;
+
+  // if L = 72
+  // % F1 %# OF FEATURES IS CONSTANT:
+  for (i = 0; i < 7; i++) {
+    Y[i] = 0.0;
   }
 
+  emxInit_real_T(&A2, 2);
+
   // short classifier
-  // re-establish vars:
+  //  unpack variables:
+  //  averageFFTL = F(17); %May not be very useful.
+  //  averagePSDL = F(18);
+  //  Locations of major peaks
+  pEnd = A2->size[0] * A2->size[1];
+  A2->size[0] = 1;
+  A2->size[1] = 1;
+  emxEnsureCapacity((emxArray__common *)A2, pEnd, (int)sizeof(double));
+  A2->data[0] = 0.0;
   if (F[26] + F[27] == 2.0) {
     // FFTs match
-    for (khi = 0; khi < 4; khi++) {
-      dv15[0] = 1.0 + (double)khi;
-      dv15[1] = 1.0 + (double)khi;
-      dv15[2] = 1.0 + (double)khi;
-      dv15[3] = 1.0 + (double)khi;
-      if (isequal(*(double (*)[4])&F[0], dv15)) {
-        Y[1] = iv1[khi];
+    for (i = 0; i < 4; i++) {
+      dv22[0] = 1.0 + (double)i;
+      dv22[1] = 1.0 + (double)i;
+      dv22[2] = 1.0 + (double)i;
+      dv22[3] = 1.0 + (double)i;
+      if (isequal(*(double (*)[4])&F[0], dv22)) {
+        Y[1] = iv2[i];
       }
     }
   }
 
   if (F[28] + F[29] == 2.0) {
-    for (khi = 0; khi < 4; khi++) {
-      b_F[0] = 1.0 + (double)khi;
-      b_F[1] = 1.0 + (double)khi;
-      b_F[2] = 1.0 + (double)khi;
-      b_F[3] = 1.0 + (double)khi;
+    for (i = 0; i < 4; i++) {
+      b_F[0] = 1.0 + (double)i;
+      b_F[1] = 1.0 + (double)i;
+      b_F[2] = 1.0 + (double)i;
+      b_F[3] = 1.0 + (double)i;
       if (isequal(*(double (*)[4])&F[4], b_F)) {
-        Y[2] = iv1[khi];
+        Y[2] = iv2[i];
       }
     }
   } else {
     Y[2] = 0.0;
   }
 
-  for (i23 = 0; i23 < 4; i23++) {
-    b_F[i23] = F[iv0[i23]];
+  for (pEnd = 0; pEnd < 4; pEnd++) {
+    b_F[pEnd] = F[iv1[pEnd]];
   }
 
-  if (d_sum(b_F) == 4.0) {
-    Y[0] = -1.0;
+  if (b_sum(b_F) == 4.0) {
     if ((Y[1] == Y[2]) && (Y[1] != 0.0)) {
       p = true;
     } else {
@@ -14737,7 +16251,7 @@ static void treeClassifier(const double F[30], double Y[5])
 
   //      FFTMatch
   for (k = 0; k <= 3; k += 2) {
-    if ((F[iv2[k]] <= F[iv2[k + 1]]) || rtIsNaN(F[k + 1])) {
+    if ((F[iv3[k]] <= F[iv3[k + 1]]) || rtIsNaN(F[k + 1])) {
       p = true;
     } else {
       p = false;
@@ -14752,18 +16266,18 @@ static void treeClassifier(const double F[30], double Y[5])
     }
   }
 
-  khi = 2;
-  while (khi < 4) {
-    i2 = khi << 1;
+  i = 2;
+  while (i < 4) {
+    khi = i << 1;
     j = 1;
-    for (pEnd = 1 + khi; pEnd < 5; pEnd = qEnd + khi) {
-      nb = j;
+    for (pEnd = 1 + i; pEnd < 5; pEnd = nb + i) {
+      b_p = j;
       b_k = pEnd - 1;
-      qEnd = j + i2;
+      nb = j + khi;
       k = 0;
-      kEnd = qEnd - j;
+      kEnd = nb - j;
       while (k + 1 <= kEnd) {
-        if ((F[iv2[idx[nb - 1] - 1]] <= F[iv2[idx[b_k] - 1]]) || rtIsNaN
+        if ((F[iv3[idx[b_p - 1] - 1]] <= F[iv3[idx[b_k] - 1]]) || rtIsNaN
             (F[idx[b_k] - 1])) {
           p = true;
         } else {
@@ -14771,10 +16285,10 @@ static void treeClassifier(const double F[30], double Y[5])
         }
 
         if (p) {
-          iwork[k] = idx[nb - 1];
-          nb++;
-          if (nb == pEnd) {
-            while (b_k + 1 < qEnd) {
+          iwork[k] = idx[b_p - 1];
+          b_p++;
+          if (b_p == pEnd) {
+            while (b_k + 1 < nb) {
               k++;
               iwork[k] = idx[b_k];
               b_k++;
@@ -14783,11 +16297,11 @@ static void treeClassifier(const double F[30], double Y[5])
         } else {
           iwork[k] = idx[b_k];
           b_k++;
-          if (b_k + 1 == qEnd) {
-            while (nb < pEnd) {
+          if (b_k + 1 == nb) {
+            while (b_p < pEnd) {
               k++;
-              iwork[k] = idx[nb - 1];
-              nb++;
+              iwork[k] = idx[b_p - 1];
+              b_p++;
             }
           }
         }
@@ -14799,39 +16313,42 @@ static void treeClassifier(const double F[30], double Y[5])
         idx[(j + k) - 1] = iwork[k];
       }
 
-      j = qEnd;
+      j = nb;
     }
 
-    khi = i2;
+    i = khi;
   }
 
-  for (i23 = 0; i23 < 2; i23++) {
-    unqwLFFT_size[i23] = iv3[i23];
+  emxInit_real_T(&unqwLFFT, 2);
+  for (pEnd = 0; pEnd < 2; pEnd++) {
+    khi = unqwLFFT->size[0] * unqwLFFT->size[1];
+    unqwLFFT->size[pEnd] = iv4[pEnd];
+    emxEnsureCapacity((emxArray__common *)unqwLFFT, khi, (int)sizeof(double));
   }
 
   for (k = 0; k < 4; k++) {
-    unqwLFFT_data[k] = F[idx[k] - 1];
+    unqwLFFT->data[k] = F[idx[k] - 1];
   }
 
   k = 0;
-  while ((k + 1 <= 4) && rtIsInf(unqwLFFT_data[k]) && (unqwLFFT_data[k] < 0.0))
+  while ((k + 1 <= 4) && rtIsInf(unqwLFFT->data[k]) && (unqwLFFT->data[k] < 0.0))
   {
     k++;
   }
 
   b_k = k;
   k = 4;
-  while ((k >= 1) && rtIsNaN(unqwLFFT_data[k - 1])) {
+  while ((k >= 1) && rtIsNaN(unqwLFFT->data[k - 1])) {
     k--;
   }
 
-  pEnd = 4 - k;
-  while ((k >= 1) && rtIsInf(unqwLFFT_data[k - 1]) && (unqwLFFT_data[k - 1] >
+  b_p = 4 - k;
+  while ((k >= 1) && rtIsInf(unqwLFFT->data[k - 1]) && (unqwLFFT->data[k - 1] >
           0.0)) {
     k--;
   }
 
-  i2 = 4 - (k + pEnd);
+  pEnd = 4 - (k + b_p);
   nb = -1;
   if (b_k > 0) {
     nb = 0;
@@ -14839,28 +16356,16 @@ static void treeClassifier(const double F[30], double Y[5])
 
   khi = (b_k + k) - b_k;
   while (b_k + 1 <= khi) {
-    x = unqwLFFT_data[b_k];
+    x = unqwLFFT->data[b_k];
     do {
       exitg4 = 0;
       b_k++;
       if (b_k + 1 > khi) {
         exitg4 = 1;
       } else {
-        absxk = std::abs(x / 2.0);
-        if ((!rtIsInf(absxk)) && (!rtIsNaN(absxk))) {
-          if (absxk <= 2.2250738585072014E-308) {
-            absxk = 4.94065645841247E-324;
-          } else {
-            frexp(absxk, &exponent);
-            absxk = std::ldexp(1.0, exponent - 53);
-          }
-        } else {
-          absxk = rtNaN;
-        }
-
-        if ((std::abs(x - unqwLFFT_data[b_k]) < absxk) || (rtIsInf
-             (unqwLFFT_data[b_k]) && rtIsInf(x) && ((unqwLFFT_data[b_k] > 0.0) ==
-              (x > 0.0)))) {
+        if ((std::abs(x - unqwLFFT->data[b_k]) < eps(x / 2.0)) || (rtIsInf
+             (unqwLFFT->data[b_k]) && rtIsInf(x) && ((unqwLFFT->data[b_k] > 0.0)
+              == (x > 0.0)))) {
           p = true;
         } else {
           p = false;
@@ -14873,29 +16378,31 @@ static void treeClassifier(const double F[30], double Y[5])
     } while (exitg4 == 0);
 
     nb++;
-    unqwLFFT_data[nb] = x;
+    unqwLFFT->data[nb] = x;
   }
 
-  if (i2 > 0) {
+  if (pEnd > 0) {
     nb++;
-    unqwLFFT_data[nb] = unqwLFFT_data[khi];
+    unqwLFFT->data[nb] = unqwLFFT->data[khi];
   }
 
-  b_k = khi + i2;
-  for (j = 1; j <= pEnd; j++) {
+  b_k = khi + pEnd;
+  for (j = 1; j <= b_p; j++) {
     nb++;
-    unqwLFFT_data[nb] = unqwLFFT_data[(b_k + j) - 1];
+    unqwLFFT->data[nb] = unqwLFFT->data[(b_k + j) - 1];
   }
 
+  pEnd = unqwLFFT->size[0] * unqwLFFT->size[1];
   if (1 > nb + 1) {
-    i23 = 0;
+    i9 = -1;
   } else {
-    i23 = nb + 1;
+    i9 = nb;
   }
 
-  unqwLFFT_size[1] = i23;
+  unqwLFFT->size[1] = i9 + 1;
+  emxEnsureCapacity((emxArray__common *)unqwLFFT, pEnd, (int)sizeof(double));
   for (k = 0; k <= 3; k += 2) {
-    if ((F[iv4[k]] <= F[iv4[k + 1]]) || rtIsNaN(F[k + 5])) {
+    if ((F[iv5[k]] <= F[iv5[k + 1]]) || rtIsNaN(F[k + 5])) {
       p = true;
     } else {
       p = false;
@@ -14910,18 +16417,18 @@ static void treeClassifier(const double F[30], double Y[5])
     }
   }
 
-  khi = 2;
-  while (khi < 4) {
-    i2 = khi << 1;
+  i = 2;
+  while (i < 4) {
+    khi = i << 1;
     j = 1;
-    for (pEnd = 1 + khi; pEnd < 5; pEnd = qEnd + khi) {
-      nb = j;
+    for (pEnd = 1 + i; pEnd < 5; pEnd = nb + i) {
+      b_p = j;
       b_k = pEnd - 1;
-      qEnd = j + i2;
+      nb = j + khi;
       k = 0;
-      kEnd = qEnd - j;
+      kEnd = nb - j;
       while (k + 1 <= kEnd) {
-        if ((F[iv4[idx[nb - 1] - 1]] <= F[iv4[idx[b_k] - 1]]) || rtIsNaN
+        if ((F[iv5[idx[b_p - 1] - 1]] <= F[iv5[idx[b_k] - 1]]) || rtIsNaN
             (F[idx[b_k] + 3])) {
           p = true;
         } else {
@@ -14929,10 +16436,10 @@ static void treeClassifier(const double F[30], double Y[5])
         }
 
         if (p) {
-          iwork[k] = idx[nb - 1];
-          nb++;
-          if (nb == pEnd) {
-            while (b_k + 1 < qEnd) {
+          iwork[k] = idx[b_p - 1];
+          b_p++;
+          if (b_p == pEnd) {
+            while (b_k + 1 < nb) {
               k++;
               iwork[k] = idx[b_k];
               b_k++;
@@ -14941,11 +16448,11 @@ static void treeClassifier(const double F[30], double Y[5])
         } else {
           iwork[k] = idx[b_k];
           b_k++;
-          if (b_k + 1 == qEnd) {
-            while (nb < pEnd) {
+          if (b_k + 1 == nb) {
+            while (b_p < pEnd) {
               k++;
-              iwork[k] = idx[nb - 1];
-              nb++;
+              iwork[k] = idx[b_p - 1];
+              b_p++;
             }
           }
         }
@@ -14957,38 +16464,42 @@ static void treeClassifier(const double F[30], double Y[5])
         idx[(j + k) - 1] = iwork[k];
       }
 
-      j = qEnd;
+      j = nb;
     }
 
-    khi = i2;
+    i = khi;
   }
 
-  for (khi = 0; khi < 2; khi++) {
-    unqwPSD_size[khi] = iv3[khi];
+  emxInit_real_T(&unqwPSD, 2);
+  for (pEnd = 0; pEnd < 2; pEnd++) {
+    khi = unqwPSD->size[0] * unqwPSD->size[1];
+    unqwPSD->size[pEnd] = iv4[pEnd];
+    emxEnsureCapacity((emxArray__common *)unqwPSD, khi, (int)sizeof(double));
   }
 
   for (k = 0; k < 4; k++) {
-    unqwPSD_data[k] = F[idx[k] + 3];
+    unqwPSD->data[k] = F[idx[k] + 3];
   }
 
   k = 0;
-  while ((k + 1 <= 4) && rtIsInf(unqwPSD_data[k]) && (unqwPSD_data[k] < 0.0)) {
+  while ((k + 1 <= 4) && rtIsInf(unqwPSD->data[k]) && (unqwPSD->data[k] < 0.0))
+  {
     k++;
   }
 
   b_k = k;
   k = 4;
-  while ((k >= 1) && rtIsNaN(unqwPSD_data[k - 1])) {
+  while ((k >= 1) && rtIsNaN(unqwPSD->data[k - 1])) {
     k--;
   }
 
-  pEnd = 4 - k;
-  while ((k >= 1) && rtIsInf(unqwPSD_data[k - 1]) && (unqwPSD_data[k - 1] > 0.0))
-  {
+  b_p = 4 - k;
+  while ((k >= 1) && rtIsInf(unqwPSD->data[k - 1]) && (unqwPSD->data[k - 1] >
+          0.0)) {
     k--;
   }
 
-  i2 = 4 - (k + pEnd);
+  pEnd = 4 - (k + b_p);
   nb = -1;
   if (b_k > 0) {
     nb = 0;
@@ -14996,27 +16507,15 @@ static void treeClassifier(const double F[30], double Y[5])
 
   khi = (b_k + k) - b_k;
   while (b_k + 1 <= khi) {
-    x = unqwPSD_data[b_k];
+    x = unqwPSD->data[b_k];
     do {
       exitg3 = 0;
       b_k++;
       if (b_k + 1 > khi) {
         exitg3 = 1;
       } else {
-        absxk = std::abs(x / 2.0);
-        if ((!rtIsInf(absxk)) && (!rtIsNaN(absxk))) {
-          if (absxk <= 2.2250738585072014E-308) {
-            absxk = 4.94065645841247E-324;
-          } else {
-            frexp(absxk, &b_exponent);
-            absxk = std::ldexp(1.0, b_exponent - 53);
-          }
-        } else {
-          absxk = rtNaN;
-        }
-
-        if ((std::abs(x - unqwPSD_data[b_k]) < absxk) || (rtIsInf
-             (unqwPSD_data[b_k]) && rtIsInf(x) && ((unqwPSD_data[b_k] > 0.0) ==
+        if ((std::abs(x - unqwPSD->data[b_k]) < eps(x / 2.0)) || (rtIsInf
+             (unqwPSD->data[b_k]) && rtIsInf(x) && ((unqwPSD->data[b_k] > 0.0) ==
               (x > 0.0)))) {
           p = true;
         } else {
@@ -15030,67 +16529,341 @@ static void treeClassifier(const double F[30], double Y[5])
     } while (exitg3 == 0);
 
     nb++;
-    unqwPSD_data[nb] = x;
+    unqwPSD->data[nb] = x;
   }
 
-  if (i2 > 0) {
+  if (pEnd > 0) {
     nb++;
-    unqwPSD_data[nb] = unqwPSD_data[khi];
+    unqwPSD->data[nb] = unqwPSD->data[khi];
   }
 
-  b_k = khi + i2;
-  for (j = 1; j <= pEnd; j++) {
+  b_k = khi + pEnd;
+  for (j = 1; j <= b_p; j++) {
     nb++;
-    unqwPSD_data[nb] = unqwPSD_data[(b_k + j) - 1];
+    unqwPSD->data[nb] = unqwPSD->data[(b_k + j) - 1];
   }
 
+  pEnd = unqwPSD->size[0] * unqwPSD->size[1];
   if (1 > nb + 1) {
-    khi = -1;
+    i10 = -1;
   } else {
-    khi = nb;
+    i10 = nb;
   }
 
-  unqwPSD_size[1] = khi + 1;
-  p = false;
-  b_p = false;
-  k = 0;
-  do {
-    exitg2 = 0;
-    if (k < 2) {
-      if (unqwLFFT_size[k] != unqwPSD_size[k]) {
-        exitg2 = 1;
-      } else {
-        k++;
-      }
-    } else {
-      b_p = true;
-      exitg2 = 1;
-    }
-  } while (exitg2 == 0);
-
-  if (b_p && (!(i23 == 0)) && (!(khi + 1 == 0))) {
-    k = 0;
-    exitg1 = false;
-    while ((!exitg1) && (k <= khi)) {
-      if (!(unqwLFFT_data[k] == unqwPSD_data[k])) {
-        b_p = false;
-        exitg1 = true;
-      } else {
-        k++;
-      }
-    }
-  }
-
-  if (!b_p) {
-  } else {
-    p = true;
-  }
-
-  if (p && (Y[3] != 0.0)) {
+  unqwPSD->size[1] = i10 + 1;
+  emxEnsureCapacity((emxArray__common *)unqwPSD, pEnd, (int)sizeof(double));
+  if (b_isequal(unqwLFFT, unqwPSD) && (Y[3] != 0.0)) {
     Y[4] = 1.0;
   }
 
+  emxFree_real_T(&unqwPSD);
+
+  // % F2
+  // Unpack shared data:
+  for (pEnd = 0; pEnd < 4; pEnd++) {
+    stft_sel_loc[pEnd] = 0.0;
+  }
+
+  // COMPARE PEAKS
+  if (F2->size[1] == 64) {
+    for (i = 0; i < 4; i++) {
+      // LOC BLOCKS:
+      khi = i << 4;
+      for (pEnd = 0; pEnd < 4; pEnd++) {
+        fft_sel_loc[i + (pEnd << 2)] = F2->data[pEnd + khi];
+      }
+
+      khi = i << 4;
+      for (pEnd = 0; pEnd < 4; pEnd++) {
+        psd_sel_loc[i + (pEnd << 2)] = F2->data[(pEnd + khi) + 4];
+      }
+
+      khi = i << 4;
+      for (pEnd = 0; pEnd < 4; pEnd++) {
+        fft_sel_pks[i + (pEnd << 2)] = F2->data[(pEnd + khi) + 8];
+      }
+
+      khi = i << 4;
+      for (pEnd = 0; pEnd < 4; pEnd++) {
+        psd_sel_pks[i + (pEnd << 2)] = F2->data[(pEnd + khi) + 12];
+      }
+    }
+  } else {
+    // numFeatures = 72
+    for (i = 0; i < 4; i++) {
+      // LOC BLOCKS:
+      khi = i * 18;
+      for (pEnd = 0; pEnd < 4; pEnd++) {
+        fft_sel_loc[i + (pEnd << 2)] = F2->data[pEnd + khi];
+      }
+
+      khi = i * 18;
+      for (pEnd = 0; pEnd < 4; pEnd++) {
+        psd_sel_loc[i + (pEnd << 2)] = F2->data[(pEnd + khi) + 4];
+      }
+
+      khi = i * 18;
+      for (pEnd = 0; pEnd < 4; pEnd++) {
+        fft_sel_pks[i + (pEnd << 2)] = F2->data[(pEnd + khi) + 8];
+      }
+
+      khi = i * 18;
+      for (pEnd = 0; pEnd < 4; pEnd++) {
+        psd_sel_pks[i + (pEnd << 2)] = F2->data[(pEnd + khi) + 12];
+      }
+
+      stft_sel_loc[i] = F2->data[i * 18 + 16];
+    }
+  }
+
+  // % Analysis F2
+  for (pEnd = 0; pEnd < 16; pEnd++) {
+    b_fft_sel_loc[pEnd] = (fft_sel_loc[pEnd] != 0.0);
+  }
+
+  c_sum(b_fft_sel_loc, sumB1);
+  for (pEnd = 0; pEnd < 16; pEnd++) {
+    b_fft_sel_loc[pEnd] = (psd_sel_loc[pEnd] != 0.0);
+  }
+
+  c_sum(b_fft_sel_loc, sumB2);
+
+  // B1_1 & B2_1; %IF ROWS IN FFT AND PSD ARE COMPLETE
+  for (i = 0; i < 4; i++) {
+    c_B1_1 = (sumB1[i] == 4.0);
+    b_B2_1 = (sumB2[i] == 4.0);
+    B1_1[i] = (c_B1_1 && b_B2_1);
+    b_B1_1[i] = c_B1_1;
+    B2_1[i] = b_B2_1;
+  }
+
+  emxInit_int32_T(&ndx, 1);
+  if (d_sum(B1_1) > 1.0) {
+    // COMPARE PEAKS (SUM)
+    //      PkValuesToCompare = sum(fft_sel_pks(B_Short,:),2);
+    e_sum(fft_sel_pks, sumB1);
+    e_sum(psd_sel_pks, sumB2);
+    khi = 1;
+    x = sumB1[0];
+    b_k = 0;
+    if (rtIsNaN(sumB1[0])) {
+      pEnd = 2;
+      exitg2 = false;
+      while ((!exitg2) && (pEnd < 5)) {
+        khi = pEnd;
+        if (!rtIsNaN(sumB1[pEnd - 1])) {
+          x = sumB1[pEnd - 1];
+          b_k = pEnd - 1;
+          exitg2 = true;
+        } else {
+          pEnd++;
+        }
+      }
+    }
+
+    if (khi < 4) {
+      while (khi + 1 < 5) {
+        if (sumB1[khi] > x) {
+          x = sumB1[khi];
+          b_k = khi;
+        }
+
+        khi++;
+      }
+    }
+
+    khi = 1;
+    x = sumB2[0];
+    b_p = 1;
+    if (rtIsNaN(sumB2[0])) {
+      pEnd = 2;
+      exitg1 = false;
+      while ((!exitg1) && (pEnd < 5)) {
+        khi = pEnd;
+        if (!rtIsNaN(sumB2[pEnd - 1])) {
+          x = sumB2[pEnd - 1];
+          b_p = pEnd;
+          exitg1 = true;
+        } else {
+          pEnd++;
+        }
+      }
+    }
+
+    if (khi < 4) {
+      while (khi + 1 < 5) {
+        if (sumB2[khi] > x) {
+          x = sumB2[khi];
+          b_p = khi + 1;
+        }
+
+        khi++;
+      }
+    }
+
+    if (b_k + 1 == b_p) {
+      pEnd = unqwLFFT->size[0] * unqwLFFT->size[1];
+      unqwLFFT->size[0] = 1;
+      unqwLFFT->size[1] = 1;
+      emxEnsureCapacity((emxArray__common *)unqwLFFT, pEnd, (int)sizeof(double));
+      unqwLFFT->data[0] = iv2[b_k];
+    } else {
+      pEnd = unqwLFFT->size[0] * unqwLFFT->size[1];
+      unqwLFFT->size[0] = 1;
+      unqwLFFT->size[1] = 1;
+      emxEnsureCapacity((emxArray__common *)unqwLFFT, pEnd, (int)sizeof(double));
+      unqwLFFT->data[0] = 0.0;
+    }
+  } else {
+    for (i = 0; i < 4; i++) {
+      B1_1[i] = (b_B1_1[i] && B2_1[i]);
+    }
+
+    x = B1_1[0];
+    for (k = 0; k < 3; k++) {
+      x += (double)B1_1[k + 1];
+    }
+
+    if (x == 1.0) {
+      khi = 0;
+      for (i = 0; i < 4; i++) {
+        if (b_B1_1[i] && B2_1[i]) {
+          khi++;
+        }
+      }
+
+      pEnd = ndx->size[0];
+      ndx->size[0] = khi;
+      emxEnsureCapacity((emxArray__common *)ndx, pEnd, (int)sizeof(int));
+      khi = 0;
+      for (i = 0; i < 4; i++) {
+        if (b_B1_1[i] && B2_1[i]) {
+          ndx->data[khi] = i + 1;
+          khi++;
+        }
+      }
+
+      pEnd = unqwLFFT->size[0] * unqwLFFT->size[1];
+      unqwLFFT->size[0] = 1;
+      unqwLFFT->size[1] = ndx->size[0];
+      emxEnsureCapacity((emxArray__common *)unqwLFFT, pEnd, (int)sizeof(double));
+      khi = ndx->size[0];
+      for (pEnd = 0; pEnd < khi; pEnd++) {
+        unqwLFFT->data[unqwLFFT->size[0] * pEnd] = iv2[ndx->data[pEnd] - 1];
+      }
+    } else {
+      pEnd = unqwLFFT->size[0] * unqwLFFT->size[1];
+      unqwLFFT->size[0] = 1;
+      unqwLFFT->size[1] = 1;
+      emxEnsureCapacity((emxArray__common *)unqwLFFT, pEnd, (int)sizeof(double));
+      unqwLFFT->data[0] = 0.0;
+    }
+  }
+
+  if (unqwLFFT->size[1] == 0) {
+    x = 0.0;
+  } else {
+    x = unqwLFFT->data[0];
+    for (k = 2; k <= unqwLFFT->size[1]; k++) {
+      x += unqwLFFT->data[k - 1];
+    }
+  }
+
+  if (x == 1.0) {
+    pEnd = unqwLFFT->size[0] * unqwLFFT->size[1];
+    unqwLFFT->size[0] = 1;
+    emxEnsureCapacity((emxArray__common *)unqwLFFT, pEnd, (int)sizeof(double));
+    khi = unqwLFFT->size[1];
+    for (pEnd = 0; pEnd < khi; pEnd++) {
+      unqwLFFT->data[unqwLFFT->size[0] * pEnd] = iv2[(int)unqwLFFT->
+        data[unqwLFFT->size[0] * pEnd] - 1];
+    }
+  }
+
+  if (!(unqwLFFT->size[1] == 0)) {
+    if ((unqwLFFT->data[0] == Y[1]) && (Y[3] == 1.0)) {
+      Y[0] = 1.0;
+    }
+  } else {
+    Y[0] = 0.0;
+  }
+
+  if (F2->size[1] == 72) {
+    for (i = 0; i < 4; i++) {
+      c_B1_1 = (b_B1_1[i] && B2_1[i]);
+      b_B2_1 = (stft_sel_loc[i] != 0.0);
+      B1_1[i] = (c_B1_1 && b_B2_1);
+      b_B1_1[i] = c_B1_1;
+      B2_1[i] = b_B2_1;
+    }
+
+    x = B1_1[0];
+    for (k = 0; k < 3; k++) {
+      x += (double)B1_1[k + 1];
+    }
+
+    if (x == 1.0) {
+      khi = 0;
+      for (i = 0; i < 4; i++) {
+        if (b_B1_1[i] && B2_1[i]) {
+          khi++;
+        }
+      }
+
+      pEnd = ndx->size[0];
+      ndx->size[0] = khi;
+      emxEnsureCapacity((emxArray__common *)ndx, pEnd, (int)sizeof(int));
+      khi = 0;
+      for (i = 0; i < 4; i++) {
+        if (b_B1_1[i] && B2_1[i]) {
+          ndx->data[khi] = i + 1;
+          khi++;
+        }
+      }
+
+      pEnd = A2->size[0] * A2->size[1];
+      A2->size[0] = 1;
+      A2->size[1] = ndx->size[0];
+      emxEnsureCapacity((emxArray__common *)A2, pEnd, (int)sizeof(double));
+      khi = ndx->size[0];
+      for (pEnd = 0; pEnd < khi; pEnd++) {
+        A2->data[A2->size[0] * pEnd] = iv2[ndx->data[pEnd] - 1];
+      }
+    }
+
+    if (unqwLFFT->size[1] == 0) {
+      pEnd = unqwLFFT->size[0] * unqwLFFT->size[1];
+      unqwLFFT->size[0] = 1;
+      unqwLFFT->size[1] = 1;
+      emxEnsureCapacity((emxArray__common *)unqwLFFT, pEnd, (int)sizeof(double));
+      unqwLFFT->data[0] = 0.0;
+    }
+
+    if (A2->size[1] == 0) {
+      pEnd = A2->size[0] * A2->size[1];
+      A2->size[0] = 1;
+      A2->size[1] = 1;
+      emxEnsureCapacity((emxArray__common *)A2, pEnd, (int)sizeof(double));
+      A2->data[0] = 0.0;
+    }
+
+    //      if (A1 == A2) && (Y(4)==1) && (A1 == Y(2))
+    if (((int)unqwLFFT->data[0] == (int)A2->data[0]) && ((int)unqwLFFT->data[0]
+         != 0)) {
+      Y[0] = 1.0;
+    } else {
+      Y[0] = 0.0;
+    }
+  }
+
+  emxFree_int32_T(&ndx);
+  Y[5] = unqwLFFT->data[0];
+  Y[6] = A2->data[0];
+
+  //  Y = [Y];
   // TreeClassifier Function
+  emxFree_real_T(&unqwLFFT);
+  emxFree_real_T(&A2);
 }
 
 //
@@ -15108,27 +16881,27 @@ static void welch_psd(const emxArray_real_T *signals, double fs, emxArray_real_T
                       *window, emxArray_real_T *CSM, emxArray_real_T
                       *frequencies)
 {
-  int apnd;
-  int i14;
+  int k;
+  int i5;
   int varargin_1;
   double y;
-  double bnew;
-  int ndbl;
   double cdiff;
-  emxArray_real_T *b_y;
-  int k;
+  int ndbl;
+  int apnd;
+  int loop_ub;
   emxArray_real_T *data_taper;
-  emxArray_real_T *S;
   double back_shift;
-  double z;
   double number_of_blocks;
+  emxArray_real_T *S;
   int a;
   emxArray_real_T *Data_Block;
   emxArray_real_T *P;
   emxArray_creal_T *b_Data_Block;
-  emxArray_real_T *r4;
   emxArray_creal_T *c_Data_Block;
-  emxArray_int32_T *r5;
+  unsigned int unnamed_idx_0;
+  int b_k;
+  int c_k;
+  emxArray_int32_T *r11;
   emxArray_real_T *b_S;
 
   // % Function for spectra estimation by Welch's method
@@ -15164,86 +16937,100 @@ static void welch_psd(const emxArray_real_T *signals, double fs, emxArray_real_T
   //  [1] Trobs,M.; Heinzel,G. "Improved spectrum estimation from digitized
   //  time series on a logarithmic frequency axis"
   //  doi:10.1016/j.measurement.2005.10.010
-  apnd = window->size[0];
-  i14 = window->size[0];
-  window->size[0] = apnd;
-  emxEnsureCapacity((emxArray__common *)window, i14, (int)sizeof(double));
+  k = window->size[0];
+  i5 = window->size[0];
+  window->size[0] = k;
+  emxEnsureCapacity((emxArray__common *)window, i5, (int)sizeof(double));
   varargin_1 = window->size[0];
   y = (double)window->size[0] / 2.0;
-  bnew = (double)window->size[0] / 2.0 - 1.0;
+  cdiff = (double)window->size[0] / 2.0 - 1.0;
   if (y - 1.0 < 0.0) {
-    ndbl = 0;
-    bnew = y - 1.0;
+    apnd = 0;
+    cdiff = y - 1.0;
   } else {
-    ndbl = (int)std::floor(bnew + 0.5);
+    ndbl = (int)std::floor(cdiff + 0.5);
     apnd = ndbl;
     cdiff = (double)ndbl - (y - 1.0);
-    if (std::abs(cdiff) < 4.4408920985006262E-16 * std::abs(bnew)) {
+    if (std::abs(cdiff) < 4.4408920985006262E-16 * std::abs(y - 1.0)) {
       ndbl++;
-      bnew = y - 1.0;
+      cdiff = y - 1.0;
     } else if (cdiff > 0.0) {
-      bnew = (double)ndbl - 1.0;
+      cdiff = (double)ndbl - 1.0;
     } else {
       ndbl++;
-      bnew = apnd;
+      cdiff = apnd;
+    }
+
+    if (ndbl >= 0) {
+      apnd = ndbl;
+    } else {
+      apnd = 0;
     }
   }
 
-  emxInit_real_T(&b_y, 2);
-  i14 = b_y->size[0] * b_y->size[1];
-  b_y->size[0] = 1;
-  b_y->size[1] = ndbl;
-  emxEnsureCapacity((emxArray__common *)b_y, i14, (int)sizeof(double));
-  if (ndbl > 0) {
-    b_y->data[0] = 0.0;
-    if (ndbl > 1) {
-      b_y->data[ndbl - 1] = bnew;
-      apnd = (ndbl - 1) / 2;
-      for (k = 1; k < apnd; k++) {
-        b_y->data[k] = k;
-        b_y->data[(ndbl - k) - 1] = bnew - (double)k;
-      }
-
-      if (apnd << 1 == ndbl - 1) {
-        b_y->data[apnd] = bnew / 2.0;
-      } else {
-        b_y->data[apnd] = apnd;
-        b_y->data[apnd + 1] = bnew - (double)apnd;
-      }
-    }
-  }
-
-  i14 = frequencies->size[0] * frequencies->size[1];
+  i5 = frequencies->size[0] * frequencies->size[1];
   frequencies->size[0] = 1;
-  frequencies->size[1] = b_y->size[1];
-  emxEnsureCapacity((emxArray__common *)frequencies, i14, (int)sizeof(double));
-  apnd = window->size[0];
-  k = b_y->size[0] * b_y->size[1];
-  for (i14 = 0; i14 < k; i14++) {
-    frequencies->data[i14] = b_y->data[i14] * fs / (double)apnd;
+  frequencies->size[1] = apnd;
+  emxEnsureCapacity((emxArray__common *)frequencies, i5, (int)sizeof(double));
+  if (apnd > 0) {
+    frequencies->data[0] = 0.0;
+    if (apnd > 1) {
+      frequencies->data[apnd - 1] = cdiff;
+      ndbl = (apnd - 1) / 2;
+      for (k = 1; k < ndbl; k++) {
+        frequencies->data[k] = k;
+        frequencies->data[(apnd - k) - 1] = cdiff - (double)k;
+      }
+
+      if (ndbl << 1 == apnd - 1) {
+        frequencies->data[ndbl] = cdiff / 2.0;
+      } else {
+        frequencies->data[ndbl] = ndbl;
+        frequencies->data[ndbl + 1] = cdiff - (double)ndbl;
+      }
+    }
   }
 
-  emxFree_real_T(&b_y);
+  i5 = frequencies->size[0] * frequencies->size[1];
+  frequencies->size[0] = 1;
+  emxEnsureCapacity((emxArray__common *)frequencies, i5, (int)sizeof(double));
+  ndbl = frequencies->size[0];
+  apnd = frequencies->size[1];
+  k = window->size[0];
+  loop_ub = ndbl * apnd;
+  for (i5 = 0; i5 < loop_ub; i5++) {
+    frequencies->data[i5] = frequencies->data[i5] * fs / (double)k;
+  }
+
   emxInit_real_T1(&data_taper, 1);
-  emxInit_real_T1(&S, 1);
 
   // must be even, best if 2^n
   back_shift = (double)window->size[0] / 2.0;
 
   // ORIGINAL;
-  apnd = signals->size[1];
-  z = 2.0 * (double)apnd / (double)window->size[0];
-  number_of_blocks = std::floor(z) - 1.0;
-  repmat(window, data_taper);
+  ndbl = signals->size[1];
+  number_of_blocks = std::floor(2.0 * (double)ndbl / (double)window->size[0]) -
+    1.0;
+  ndbl = window->size[0];
+  i5 = data_taper->size[0];
+  data_taper->size[0] = ndbl;
+  emxEnsureCapacity((emxArray__common *)data_taper, i5, (int)sizeof(double));
+  if ((!(window->size[0] == 0)) && (!(ndbl == 0))) {
+    for (k = 0; k + 1 <= window->size[0]; k++) {
+      data_taper->data[k] = window->data[k];
+    }
+  }
+
+  emxInit_real_T1(&S, 1);
 
   //  Data segmentation into blocks of size block_samples:
   y = (double)window->size[0] / 2.0;
-  i14 = S->size[0];
+  i5 = S->size[0];
   S->size[0] = (int)y;
-  emxEnsureCapacity((emxArray__common *)S, i14, (int)sizeof(double));
-  k = (int)y;
-  for (i14 = 0; i14 < k; i14++) {
-    S->data[i14] = 0.0;
+  emxEnsureCapacity((emxArray__common *)S, i5, (int)sizeof(double));
+  loop_ub = (int)y;
+  for (i5 = 0; i5 < loop_ub; i5++) {
+    S->data[i5] = 0.0;
   }
 
   // ORIGINAL
@@ -15251,82 +17038,90 @@ static void welch_psd(const emxArray_real_T *signals, double fs, emxArray_real_T
   a = 0;
   emxInit_real_T1(&Data_Block, 1);
   emxInit_real_T1(&P, 1);
-  emxInit_creal_T1(&b_Data_Block, 1);
-  emxInit_real_T1(&r4, 1);
-  emxInit_creal_T1(&c_Data_Block, 1);
+  emxInit_creal_T(&b_Data_Block, 1);
+  emxInit_creal_T(&c_Data_Block, 1);
   while (a <= (int)number_of_blocks - 1) {
     //  Retrieve current data block
-    bnew = ((1.0 + (double)a) - 1.0) * back_shift + 1.0;
-    cdiff = (double)varargin_1 + ((1.0 + (double)a) - 1.0) * back_shift;
-    if (bnew > cdiff) {
-      i14 = 0;
+    cdiff = ((1.0 + (double)a) - 1.0) * back_shift + 1.0;
+    y = (double)varargin_1 + ((1.0 + (double)a) - 1.0) * back_shift;
+    if (cdiff > y) {
+      i5 = 0;
       ndbl = 0;
     } else {
-      i14 = (int)bnew - 1;
-      ndbl = (int)cdiff;
+      i5 = (int)cdiff - 1;
+      ndbl = (int)y;
     }
 
     apnd = Data_Block->size[0];
-    Data_Block->size[0] = ndbl - i14;
+    Data_Block->size[0] = ndbl - i5;
     emxEnsureCapacity((emxArray__common *)Data_Block, apnd, (int)sizeof(double));
-    k = ndbl - i14;
-    for (ndbl = 0; ndbl < k; ndbl++) {
-      Data_Block->data[ndbl] = signals->data[i14 + ndbl];
+    loop_ub = ndbl - i5;
+    for (apnd = 0; apnd < loop_ub; apnd++) {
+      Data_Block->data[apnd] = signals->data[i5 + apnd];
     }
 
-    b_repmat(mean(Data_Block), (double)varargin_1, r4);
-    i14 = Data_Block->size[0];
-    emxEnsureCapacity((emxArray__common *)Data_Block, i14, (int)sizeof(double));
-    k = Data_Block->size[0];
-    for (i14 = 0; i14 < k; i14++) {
-      Data_Block->data[i14] -= r4->data[i14];
+    if (ndbl - i5 == 0) {
+      y = 0.0;
+    } else {
+      y = signals->data[i5];
+      for (k = 0; k + 2 <= Data_Block->size[0]; k++) {
+        y += signals->data[(i5 + k) + 1];
+      }
     }
 
-    i14 = Data_Block->size[0];
-    emxEnsureCapacity((emxArray__common *)Data_Block, i14, (int)sizeof(double));
-    k = Data_Block->size[0];
-    for (i14 = 0; i14 < k; i14++) {
-      Data_Block->data[i14] *= data_taper->data[i14];
+    y /= (double)Data_Block->size[0];
+    i5 = Data_Block->size[0];
+    emxEnsureCapacity((emxArray__common *)Data_Block, i5, (int)sizeof(double));
+    loop_ub = Data_Block->size[0];
+    for (i5 = 0; i5 < loop_ub; i5++) {
+      Data_Block->data[i5] -= y;
+    }
+
+    i5 = Data_Block->size[0];
+    emxEnsureCapacity((emxArray__common *)Data_Block, i5, (int)sizeof(double));
+    loop_ub = Data_Block->size[0];
+    for (i5 = 0; i5 < loop_ub; i5++) {
+      Data_Block->data[i5] *= data_taper->data[i5];
     }
 
     // Taper it
-    b_fft(Data_Block, b_Data_Block);
+    fft(Data_Block, b_Data_Block);
 
     // FFT it,
     //  bilateral DFT
     //  viii
-    bnew = (double)varargin_1 / 2.0;
-    if (1.0 > bnew) {
-      k = 0;
+    cdiff = (double)varargin_1 / 2.0;
+    if (1.0 > cdiff) {
+      loop_ub = 0;
     } else {
-      k = (int)bnew;
+      loop_ub = (int)cdiff;
     }
 
-    i14 = c_Data_Block->size[0];
-    c_Data_Block->size[0] = k;
-    emxEnsureCapacity((emxArray__common *)c_Data_Block, i14, (int)sizeof(creal_T));
-    for (i14 = 0; i14 < k; i14++) {
-      c_Data_Block->data[i14] = b_Data_Block->data[i14];
+    i5 = c_Data_Block->size[0];
+    c_Data_Block->size[0] = loop_ub;
+    emxEnsureCapacity((emxArray__common *)c_Data_Block, i5, (int)sizeof(creal_T));
+    for (i5 = 0; i5 < loop_ub; i5++) {
+      c_Data_Block->data[i5] = b_Data_Block->data[i5];
     }
 
-    i14 = b_Data_Block->size[0];
+    i5 = b_Data_Block->size[0];
     b_Data_Block->size[0] = c_Data_Block->size[0];
-    emxEnsureCapacity((emxArray__common *)b_Data_Block, i14, (int)sizeof(creal_T));
-    k = c_Data_Block->size[0];
-    for (i14 = 0; i14 < k; i14++) {
-      b_Data_Block->data[i14] = c_Data_Block->data[i14];
+    emxEnsureCapacity((emxArray__common *)b_Data_Block, i5, (int)sizeof(creal_T));
+    loop_ub = c_Data_Block->size[0];
+    for (i5 = 0; i5 < loop_ub; i5++) {
+      b_Data_Block->data[i5] = c_Data_Block->data[i5];
     }
 
     // ORIGINAL
     //  Data_Block = Data_Block(1:ceil(block_samples/2),:);
     // All spectral combinations:
     y = (double)varargin_1 / 2.0;
-    i14 = P->size[0];
+    i5 = P->size[0];
     P->size[0] = (int)y;
-    emxEnsureCapacity((emxArray__common *)P, i14, (int)sizeof(double));
-    k = (int)y;
-    for (i14 = 0; i14 < k; i14++) {
-      P->data[i14] = 0.0;
+    emxEnsureCapacity((emxArray__common *)P, i5, (int)sizeof(double));
+    loop_ub = (int)y;
+    for (i5 = 0; i5 < loop_ub; i5++) {
+      P->data[i5] = 0.0;
     }
 
     // ORIGINAL
@@ -15335,22 +17130,21 @@ static void welch_psd(const emxArray_real_T *signals, double fs, emxArray_real_T
     //  IS FOR WIND TUNNEL EESC-USP BEAMFORMING CODE
     //  P(:,c) = Data_Block(:,aa).*conj(Data_Block(:,b)); % THIS IS THE ORIGINAL 
     //  LINE
-    k = b_Data_Block->size[0] - 1;
-    for (i14 = 0; i14 <= k; i14++) {
-      bnew = b_Data_Block->data[i14].re;
-      cdiff = -b_Data_Block->data[i14].im;
-      bnew = b_Data_Block->data[i14].re * bnew - b_Data_Block->data[i14].im *
-        cdiff;
-      P->data[i14] = bnew;
+    loop_ub = b_Data_Block->size[0] - 1;
+    for (i5 = 0; i5 <= loop_ub; i5++) {
+      cdiff = b_Data_Block->data[i5].re;
+      y = -b_Data_Block->data[i5].im;
+      cdiff = b_Data_Block->data[i5].re * cdiff - b_Data_Block->data[i5].im * y;
+      P->data[i5] = cdiff;
     }
 
     //  IS FOR FAN RIG BEAMFORMING CODE
     //  Sum the spectrums up ...
-    i14 = S->size[0];
-    emxEnsureCapacity((emxArray__common *)S, i14, (int)sizeof(double));
-    k = S->size[0];
-    for (i14 = 0; i14 < k; i14++) {
-      S->data[i14] += P->data[i14];
+    i5 = S->size[0];
+    emxEnsureCapacity((emxArray__common *)S, i5, (int)sizeof(double));
+    loop_ub = S->size[0];
+    for (i5 = 0; i5 < loop_ub; i5++) {
+      S->data[i5] += P->data[i5];
     }
 
     a++;
@@ -15358,69 +17152,220 @@ static void welch_psd(const emxArray_real_T *signals, double fs, emxArray_real_T
 
   emxFree_creal_T(&c_Data_Block);
   emxFree_creal_T(&b_Data_Block);
-  emxFree_real_T(&P);
-  emxFree_real_T(&Data_Block);
-  b_power(window, r4);
-  bnew = c_sum(r4) * fs * (std::floor(z) - 1.0);
-  i14 = data_taper->size[0];
-  data_taper->size[0] = S->size[0];
-  emxEnsureCapacity((emxArray__common *)data_taper, i14, (int)sizeof(double));
-  k = S->size[0];
-  emxFree_real_T(&r4);
-  for (i14 = 0; i14 < k; i14++) {
-    data_taper->data[i14] = S->data[i14] * 2.0 / bnew;
+  emxFree_real_T(&data_taper);
+  i5 = S->size[0];
+  emxEnsureCapacity((emxArray__common *)S, i5, (int)sizeof(double));
+  loop_ub = S->size[0];
+  for (i5 = 0; i5 < loop_ub; i5++) {
+    S->data[i5] *= 2.0;
   }
 
-  i14 = S->size[0];
-  emxEnsureCapacity((emxArray__common *)S, i14, (int)sizeof(double));
-  k = S->size[0];
-  for (i14 = 0; i14 < k; i14++) {
-    S->data[i14] = S->data[i14] * 2.0 / bnew;
+  i5 = Data_Block->size[0];
+  Data_Block->size[0] = window->size[0];
+  emxEnsureCapacity((emxArray__common *)Data_Block, i5, (int)sizeof(double));
+  loop_ub = window->size[0];
+  for (i5 = 0; i5 < loop_ub; i5++) {
+    Data_Block->data[i5] = window->data[i5];
+  }
+
+  unnamed_idx_0 = (unsigned int)window->size[0];
+  i5 = P->size[0];
+  P->size[0] = (int)unnamed_idx_0;
+  emxEnsureCapacity((emxArray__common *)P, i5, (int)sizeof(double));
+  ndbl = window->size[0];
+
+//#pragma omp parallel for \
+// num_threads(omp_get_max_threads()) \
+// private(c_k)
+
+  for (b_k = 1; b_k <= ndbl; b_k++) {
+    c_k = b_k;
+    P->data[c_k - 1] = Data_Block->data[c_k - 1] * Data_Block->data[c_k - 1];
+  }
+
+  emxFree_real_T(&Data_Block);
+  if (P->size[0] == 0) {
+    y = 0.0;
+  } else {
+    y = P->data[0];
+    for (k = 2; k <= P->size[0]; k++) {
+      y += P->data[k - 1];
+    }
+  }
+
+  emxFree_real_T(&P);
+  cdiff = y * fs * number_of_blocks;
+  i5 = S->size[0];
+  emxEnsureCapacity((emxArray__common *)S, i5, (int)sizeof(double));
+  loop_ub = S->size[0];
+  for (i5 = 0; i5 < loop_ub; i5++) {
+    S->data[i5] /= cdiff;
   }
 
   //  Average them out
-  i14 = CSM->size[0] * CSM->size[1];
+  i5 = CSM->size[0] * CSM->size[1];
   CSM->size[0] = 1;
-  CSM->size[1] = data_taper->size[0];
-  emxEnsureCapacity((emxArray__common *)CSM, i14, (int)sizeof(double));
-  k = data_taper->size[0];
-  emxFree_real_T(&data_taper);
-  for (i14 = 0; i14 < k; i14++) {
-    CSM->data[i14] = 0.0;
+  CSM->size[1] = S->size[0];
+  emxEnsureCapacity((emxArray__common *)CSM, i5, (int)sizeof(double));
+  loop_ub = S->size[0];
+  for (i5 = 0; i5 < loop_ub; i5++) {
+    CSM->data[i5] = 0.0;
   }
 
-  emxInit_int32_T(&r5, 1);
+  emxInit_int32_T(&r11, 1);
 
   //  for a = 1:sensors
-  apnd = S->size[0];
-  i14 = r5->size[0];
-  r5->size[0] = apnd;
-  emxEnsureCapacity((emxArray__common *)r5, i14, (int)sizeof(int));
-  for (i14 = 0; i14 < apnd; i14++) {
-    r5->data[i14] = i14;
+  ndbl = S->size[0];
+  i5 = r11->size[0];
+  r11->size[0] = ndbl;
+  emxEnsureCapacity((emxArray__common *)r11, i5, (int)sizeof(int));
+  for (i5 = 0; i5 < ndbl; i5++) {
+    r11->data[i5] = i5;
   }
 
   emxInit_real_T1(&b_S, 1);
-  k = S->size[0];
-  i14 = b_S->size[0];
-  b_S->size[0] = k;
-  emxEnsureCapacity((emxArray__common *)b_S, i14, (int)sizeof(double));
-  for (i14 = 0; i14 < k; i14++) {
-    b_S->data[i14] = S->data[i14];
+  loop_ub = S->size[0];
+  i5 = b_S->size[0];
+  b_S->size[0] = loop_ub;
+  emxEnsureCapacity((emxArray__common *)b_S, i5, (int)sizeof(double));
+  for (i5 = 0; i5 < loop_ub; i5++) {
+    b_S->data[i5] = S->data[i5];
   }
 
   emxFree_real_T(&S);
-  apnd = r5->size[0];
-  for (i14 = 0; i14 < apnd; i14++) {
-    CSM->data[CSM->size[0] * r5->data[i14]] = b_S->data[i14];
+  ndbl = r11->size[0];
+  for (i5 = 0; i5 < ndbl; i5++) {
+    CSM->data[CSM->size[0] * r11->data[i5]] = b_S->data[i5];
   }
 
   emxFree_real_T(&b_S);
-  emxFree_int32_T(&r5);
+  emxFree_int32_T(&r11);
 
   //  end
   //  clear S
   CSM->data[0] = (CSM->data[0] + CSM->data[0]) - CSM->data[0];
+}
+
+//
+// Arguments    : int numDimensions
+//                int *size
+// Return Type  : emxArray_real_T *
+//
+emxArray_real_T *emxCreateND_real_T(int numDimensions, int *size)
+{
+  emxArray_real_T *emx;
+  int numEl;
+  int i;
+  emxInit_real_T1(&emx, numDimensions);
+  numEl = 1;
+  for (i = 0; i < numDimensions; i++) {
+    numEl *= size[i];
+    emx->size[i] = size[i];
+  }
+
+  emx->data = (double *)calloc((unsigned int)numEl, sizeof(double));
+  emx->numDimensions = numDimensions;
+  emx->allocatedSize = numEl;
+  return emx;
+}
+
+//
+// Arguments    : double *data
+//                int numDimensions
+//                int *size
+// Return Type  : emxArray_real_T *
+//
+emxArray_real_T *emxCreateWrapperND_real_T(double *data, int numDimensions, int *
+  size)
+{
+  emxArray_real_T *emx;
+  int numEl;
+  int i;
+  emxInit_real_T1(&emx, numDimensions);
+  numEl = 1;
+  for (i = 0; i < numDimensions; i++) {
+    numEl *= size[i];
+    emx->size[i] = size[i];
+  }
+
+  emx->data = data;
+  emx->numDimensions = numDimensions;
+  emx->allocatedSize = numEl;
+  emx->canFreeData = false;
+  return emx;
+}
+
+//
+// Arguments    : double *data
+//                int rows
+//                int cols
+// Return Type  : emxArray_real_T *
+//
+emxArray_real_T *emxCreateWrapper_real_T(double *data, int rows, int cols)
+{
+  emxArray_real_T *emx;
+  int size[2];
+  int numEl;
+  int i;
+  size[0] = rows;
+  size[1] = cols;
+  emxInit_real_T1(&emx, 2);
+  numEl = 1;
+  for (i = 0; i < 2; i++) {
+    numEl *= size[i];
+    emx->size[i] = size[i];
+  }
+
+  emx->data = data;
+  emx->numDimensions = 2;
+  emx->allocatedSize = numEl;
+  emx->canFreeData = false;
+  return emx;
+}
+
+//
+// Arguments    : int rows
+//                int cols
+// Return Type  : emxArray_real_T *
+//
+emxArray_real_T *emxCreate_real_T(int rows, int cols)
+{
+  emxArray_real_T *emx;
+  int size[2];
+  int numEl;
+  int i;
+  size[0] = rows;
+  size[1] = cols;
+  emxInit_real_T1(&emx, 2);
+  numEl = 1;
+  for (i = 0; i < 2; i++) {
+    numEl *= size[i];
+    emx->size[i] = size[i];
+  }
+
+  emx->data = (double *)calloc((unsigned int)numEl, sizeof(double));
+  emx->numDimensions = 2;
+  emx->allocatedSize = numEl;
+  return emx;
+}
+
+//
+// Arguments    : emxArray_real_T *emxArray
+// Return Type  : void
+//
+void emxDestroyArray_real_T(emxArray_real_T *emxArray)
+{
+  emxFree_real_T(&emxArray);
+}
+
+//
+// Arguments    : emxArray_real_T **pEmxArray
+//                int numDimensions
+// Return Type  : void
+//
+void emxInitArray_real_T(emxArray_real_T **pEmxArray, int numDimensions)
+{
+  emxInit_real_T1(pEmxArray, numDimensions);
 }
 
 //
@@ -15433,8 +17378,8 @@ static void welch_psd(const emxArray_real_T *signals, double fs, emxArray_real_T
 //  tXEOG = Training Data for EOG
 //  tYEOG = Classes for EOG
 //
-//  tXSSVEP    = SSVEP Training Data (not sure if I will include just yet).
-//  tYSSVEP    = SSVEP Training Classes
+//  EOGOnly is a boolean value that is used only if EOG function is to be
+//  called.
 //
 //  The first part of this classifier determines if an emergency stop is
 //  requested in the form of a double-blink by the subject:
@@ -15447,100 +17392,170 @@ static void welch_psd(const emxArray_real_T *signals, double fs, emxArray_real_T
 //  12    :: 12.50Hz
 //  15    :: 15.15Hz
 //  16    :: 16.66Hz
-// Arguments    : const double ch1_data[]
-//                const int ch1_size[1]
-//                const double ch2_data[]
-//                const int ch2_size[1]
-//                const double ch3_data[]
-//                const int ch3_size[1]
-//                const double ch4_data[]
-//                const int ch4_size[1]
+// Arguments    : const emxArray_real_T *ch1
+//                const emxArray_real_T *ch2
+//                const emxArray_real_T *ch3
+//                const emxArray_real_T *ch4
 //                double Fs
-//                double Y[5]
+//                boolean_T EOGOnly
+//                double Y[7]
 // Return Type  : void
 //
-void fullHybridClassifier2(const double ch1_data[], const int ch1_size[1], const
-  double ch2_data[], const int ch2_size[1], const double ch3_data[], const int
-  ch3_size[1], const double ch4_data[], const int ch4_size[1], double Fs, double
-  Y[5])
+void fullHybridClassifier(const emxArray_real_T *ch1, const emxArray_real_T *ch2,
+  const emxArray_real_T *ch3, const emxArray_real_T *ch4, double Fs, boolean_T
+  EOGOnly, double Y[7])
 {
   int k;
-  double ch1f[250];
-  double ch2f[250];
-  double ch3f[250];
-  double ch4f[250];
-  double tmp_data[10];
-  int tmp_size[2];
-  double b_tmp_data[10];
-  double c_tmp_data[10];
-  double d_tmp_data[10];
-  double dv0[40];
+  emxArray_real_T *F2;
   int i0;
+  double ch4f[250];
+  double dv0[250];
+  double ch1f[250];
+  double dv1[250];
+  double ch2f[250];
+  double dv2[250];
+  double ch3f[250];
+  emxArray_real_T *r0;
+  emxArray_real_T *r1;
+  emxArray_real_T *r2;
+  emxArray_real_T *r3;
+  double dv3[250];
+  double dv4[250];
+  double dv5[40];
   boolean_T DB;
   boolean_T exitg1;
-  double absxk;
-  int exponent;
-  static double b_ch1_data[5000];
-  int b_ch1_size[1];
   emxArray_real_T *sch1f;
-  int b_ch2_size[1];
   emxArray_real_T *sch2f;
-  int b_ch3_size[1];
   emxArray_real_T *sch3f;
+  emxArray_real_T *r4;
+  emxArray_real_T *b_ch3;
+  emxArray_real_T *b_ch2;
+  emxArray_real_T *b_ch1;
   double F[30];
 
   //  Window length??
   //  Y = 0;
-  for (k = 0; k < 5; k++) {
+  for (k = 0; k < 7; k++) {
     Y[k] = 0.0;
   }
 
   // Default Value.
+  //  DB = false;
   // Load Training Data:
   //  numberSSVEPFeaturesLong = ??
+  k = ch1->size[0];
+  emxInit_real_T(&F2, 2);
+  if (k < 500) {
+    i0 = F2->size[0] * F2->size[1];
+    F2->size[0] = 1;
+    F2->size[1] = 64;
+    emxEnsureCapacity((emxArray__common *)F2, i0, (int)sizeof(double));
+    for (i0 = 0; i0 < 64; i0++) {
+      F2->data[i0] = 0.0;
+    }
+  } else {
+    i0 = F2->size[0] * F2->size[1];
+    F2->size[0] = 1;
+    F2->size[1] = 72;
+    emxEnsureCapacity((emxArray__common *)F2, i0, (int)sizeof(double));
+    for (i0 = 0; i0 < 72; i0++) {
+      F2->data[i0] = 0.0;
+    }
+  }
+
   // Temporary:
   //  F = zeros(1,100);
-  if (ch1_size[0] >= 250) {
+  k = ch1->size[0];
+  if (k >= 250) {
     //  Filter using optimized EOG filter:
     //  (take last second, regardless of actual window length):
-    eogcfilt(*(double (*)[250])&ch1_data[ch1_size[0] - 250], ch1f);
-    eogcfilt(*(double (*)[250])&ch2_data[ch2_size[0] - 250], ch2f);
-    eogcfilt(*(double (*)[250])&ch3_data[ch3_size[0] - 250], ch3f);
-    eogcfilt(*(double (*)[250])&ch4_data[ch4_size[0] - 250], ch4f);
+    k = ch1->size[0];
+    for (i0 = 0; i0 < 250; i0++) {
+      ch4f[i0] = ch1->data[(i0 + k) - 250];
+    }
 
+    // EOGCFILT EOG Filter for conversion to C. All inputs must be constant.
+    //  Vectorize:
+    //  Sampling Frequency = 250;
+    // BW for 10Hz upper bound, Order of 3.
+    // BW filt for 2Hz lower bound, Order of 3:
+    filtfilt(ch4f, dv0);
+    b_filtfilt(dv0, ch1f);
+    k = ch2->size[0];
+    for (i0 = 0; i0 < 250; i0++) {
+      ch4f[i0] = ch2->data[(i0 + k) - 250];
+    }
+
+    // EOGCFILT EOG Filter for conversion to C. All inputs must be constant.
+    //  Vectorize:
+    //  Sampling Frequency = 250;
+    // BW for 10Hz upper bound, Order of 3.
+    // BW filt for 2Hz lower bound, Order of 3:
+    filtfilt(ch4f, dv1);
+    b_filtfilt(dv1, ch2f);
+    k = ch3->size[0];
+    for (i0 = 0; i0 < 250; i0++) {
+      ch4f[i0] = ch3->data[(i0 + k) - 250];
+    }
+
+    // EOGCFILT EOG Filter for conversion to C. All inputs must be constant.
+    //  Vectorize:
+    //  Sampling Frequency = 250;
+    // BW for 10Hz upper bound, Order of 3.
+    // BW filt for 2Hz lower bound, Order of 3:
+    filtfilt(ch4f, dv2);
+    b_filtfilt(dv2, ch3f);
+    k = ch4->size[0];
+    for (i0 = 0; i0 < 250; i0++) {
+      ch4f[i0] = ch4->data[(i0 + k) - 250];
+    }
+
+    emxInit_real_T(&r0, 2);
+    emxInit_real_T(&r1, 2);
+    emxInit_real_T(&r2, 2);
+    emxInit_real_T(&r3, 2);
+
+    // EOGCFILT EOG Filter for conversion to C. All inputs must be constant.
+    //  Vectorize:
+    //  Sampling Frequency = 250;
+    // BW for 10Hz upper bound, Order of 3.
+    // BW filt for 2Hz lower bound, Order of 3:
     // Extract EOG features: (1s window)
-    featureExtractionEOG(ch1f, tmp_data, tmp_size);
-    featureExtractionEOG(ch2f, b_tmp_data, tmp_size);
-    featureExtractionEOG(ch3f, c_tmp_data, tmp_size);
-    featureExtractionEOG(ch4f, d_tmp_data, tmp_size);
+    featureExtractionEOG(ch1f, r0);
+    featureExtractionEOG(ch2f, r1);
+    featureExtractionEOG(ch3f, r2);
+    filtfilt(ch4f, dv3);
+    b_filtfilt(dv3, dv4);
+    featureExtractionEOG(dv4, r3);
 
     // Combine features:
     // Boolean DB: represents presence of a double blink.
     for (i0 = 0; i0 < 10; i0++) {
-      dv0[i0] = tmp_data[i0];
-      dv0[i0 + 10] = b_tmp_data[i0];
-      dv0[i0 + 20] = c_tmp_data[i0];
-      dv0[i0 + 30] = d_tmp_data[i0];
+      dv5[i0] = r0->data[i0];
     }
 
-    Y[0] = knn(dv0);
+    emxFree_real_T(&r0);
+    for (i0 = 0; i0 < 10; i0++) {
+      dv5[i0 + 10] = r1->data[i0];
+    }
+
+    emxFree_real_T(&r1);
+    for (i0 = 0; i0 < 10; i0++) {
+      dv5[i0 + 20] = r2->data[i0];
+    }
+
+    emxFree_real_T(&r2);
+    for (i0 = 0; i0 < 10; i0++) {
+      dv5[i0 + 30] = r3->data[i0];
+    }
+
+    emxFree_real_T(&r3);
+    Y[0] = knn(dv5);
     DB = false;
     k = 0;
     exitg1 = false;
-    while ((!exitg1) && (k + 1 < 6)) {
-      absxk = std::abs(Y[k] / 2.0);
-      if ((!rtIsInf(absxk)) && (!rtIsNaN(absxk))) {
-        if (absxk <= 2.2250738585072014E-308) {
-          absxk = 4.94065645841247E-324;
-        } else {
-          frexp(absxk, &exponent);
-          absxk = std::ldexp(1.0, exponent - 53);
-        }
-      } else {
-        absxk = rtNaN;
-      }
-
-      if (std::abs(Y[k] - 1.0) < absxk) {
+    while ((!exitg1) && (k + 1 < 8)) {
+      if (std::abs(Y[k] - 1.0) < eps(Y[k] / 2.0)) {
         DB = true;
         exitg1 = true;
       } else {
@@ -15553,79 +17568,107 @@ void fullHybridClassifier2(const double ch1_data[], const int ch1_size[1], const
     //  PRECONDITIONS: EOG must not have been triggered.
     //  starts with 1/2 second analysis and moves up.
     //  Output can be one of the four SSVEP classes [10 12 15 16]
-    if (!DB) {
+    emxInit_real_T(&sch1f, 2);
+    emxInit_real_T(&sch2f, 2);
+    emxInit_real_T(&sch3f, 2);
+    emxInit_real_T(&r4, 2);
+    emxInit_real_T1(&b_ch3, 1);
+    emxInit_real_T1(&b_ch2, 1);
+    emxInit_real_T1(&b_ch1, 1);
+    if ((!DB) && (!EOGOnly)) {
       // If no double blink has been detected in final second of data.
       //  Use a decision tree.
       // Y = knn(tsX, tX, tY, 1); %Fine KNN
       // limit size:
+      // ln = min([size(ch1,1) size(ch2,1) size(ch3,1)]);
       //  Make sure len is even:
+      // if mod(ln,2)~=0
+      //     ln=ln-1;
+      // end
       // Filter:
-      k = ch1_size[0];
-      b_ch1_size[0] = ch1_size[0];
+      k = ch1->size[0];
+      i0 = b_ch1->size[0];
+      b_ch1->size[0] = k;
+      emxEnsureCapacity((emxArray__common *)b_ch1, i0, (int)sizeof(double));
       for (i0 = 0; i0 < k; i0++) {
-        b_ch1_data[i0] = ch1_data[i0];
+        b_ch1->data[i0] = ch1->data[i0];
       }
 
-      emxInit_real_T(&sch1f, 2);
-      eegcfilt(b_ch1_data, b_ch1_size, sch1f);
-      k = ch2_size[0];
-      b_ch2_size[0] = ch2_size[0];
+      eegcfilt(b_ch1, sch1f);
+      k = ch2->size[0];
+      i0 = b_ch2->size[0];
+      b_ch2->size[0] = k;
+      emxEnsureCapacity((emxArray__common *)b_ch2, i0, (int)sizeof(double));
       for (i0 = 0; i0 < k; i0++) {
-        b_ch1_data[i0] = ch2_data[i0];
+        b_ch2->data[i0] = ch2->data[i0];
       }
 
-      emxInit_real_T(&sch2f, 2);
-      eegcfilt(b_ch1_data, b_ch2_size, sch2f);
-      k = ch3_size[0];
-      b_ch3_size[0] = ch3_size[0];
+      eegcfilt(b_ch2, sch2f);
+      k = ch3->size[0];
+      i0 = b_ch3->size[0];
+      b_ch3->size[0] = k;
+      emxEnsureCapacity((emxArray__common *)b_ch3, i0, (int)sizeof(double));
       for (i0 = 0; i0 < k; i0++) {
-        b_ch1_data[i0] = ch3_data[i0];
+        b_ch3->data[i0] = ch3->data[i0];
       }
 
-      emxInit_real_T(&sch3f, 2);
-      eegcfilt(b_ch1_data, b_ch3_size, sch3f);
-      featureExtractionSSVEP2(sch1f, sch2f, sch3f, Fs, F);
+      eegcfilt(b_ch3, sch3f);
+      featureExtractionSSVEP(sch1f, sch2f, sch3f, Fs, F);
+      fSSVEPnew(sch1f, sch2f, sch3f, Fs, r4);
+      k = r4->size[1];
+      for (i0 = 0; i0 < k; i0++) {
+        F2->data[F2->size[0] * i0] = r4->data[r4->size[0] * i0];
+      }
 
       //  Extract SSVEP Features (Part 1 from individual channels):
       // Different window lengths correspond to different classifiers.
-      emxFree_real_T(&sch3f);
-      emxFree_real_T(&sch2f);
-      emxFree_real_T(&sch1f);
-      if (ch1_size[0] < 500) {
+      k = ch1->size[0];
+      if (k < 500) {
         // numFeats <= 53
-        //              Y = knn(F,tXSSVEP,tYSSVEP,5);
-        treeClassifier(F, Y);
+        treeClassifier(F, F2, Y);
       } else {
-        // numFeats>53
-        //  Window length is 500 or more samples.
-        //              Y = knn(F,tXSSVEP,tYSSVEP,5);
-        treeClassifier(F, Y);
+        k = ch1->size[0];
+        if (k >= 500) {
+          //  Window length is 500 or more samples.
+          //  use separate classifier for this.
+          treeClassifier(F, F2, Y);
+        }
       }
     }
+
+    emxFree_real_T(&b_ch1);
+    emxFree_real_T(&b_ch2);
+    emxFree_real_T(&b_ch3);
+    emxFree_real_T(&r4);
+    emxFree_real_T(&sch3f);
+    emxFree_real_T(&sch2f);
+    emxFree_real_T(&sch1f);
   }
+
+  emxFree_real_T(&F2);
 }
 
 //
 // Arguments    : void
 // Return Type  : void
 //
-void fullHybridClassifier2_initialize()
+void fullHybridClassifier_initialize()
 {
   rt_InitInfAndNaN(8U);
-  omp_init_nest_lock(&emlrtNestLockGlobal);
+//  omp_init_nest_lock(&emlrtNestLockGlobal);
 }
 
 //
 // Arguments    : void
 // Return Type  : void
 //
-void fullHybridClassifier2_terminate()
+void fullHybridClassifier_terminate()
 {
-  omp_destroy_nest_lock(&emlrtNestLockGlobal);
+//  omp_destroy_nest_lock(&emlrtNestLockGlobal);
 }
 
 //
-// File trailer for fullHybridClassifier2.cpp
+// File trailer for fullHybridClassifier.cpp
 //
 // [EOF]
 //

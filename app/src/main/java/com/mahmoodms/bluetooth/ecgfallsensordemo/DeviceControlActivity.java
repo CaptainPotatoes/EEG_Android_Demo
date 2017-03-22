@@ -593,6 +593,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 if (AppConstant.SERVICE_BATTERY_LEVEL.equals(service.getUuid())) {
                     //Read the device battery percentage
                     mBluetoothLe.readCharacteristic(gatt, service.getCharacteristic(AppConstant.CHAR_BATTERY_LEVEL));
+//                    mBluetoothLe.writeCharacteristic(); TODO
                     mBluetoothLe.setCharacteristicNotification(gatt, service.getCharacteristic(AppConstant.CHAR_BATTERY_LEVEL), true);
                 }
                 if (AppConstant.SERVICE_MPU.equals(service.getUuid())) {
@@ -1655,7 +1656,9 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     //ECG FIR FILTER:
     private native int jmainFirFilter(boolean b);
 
-//    private native double[] jFirFilter(double[] ecg); //size = 1000
+    private native int jmainFHC(boolean b);
+
+    private native double[] jfullHybridClassifier(double[] data1, double[] data2, double[] data3, double[] data4, boolean EOGOnly); //size = 1000
 
     //ECG BW Filter:
 
