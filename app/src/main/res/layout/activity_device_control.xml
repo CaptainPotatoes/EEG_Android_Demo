@@ -74,35 +74,34 @@
             androidPlot.graphWidget.domainOriginLabelPaint.textSize="@dimen/domain_tick_label_font_size"
             />
 
-        <com.androidplot.xy.XYPlot
-            style="@style/simple_xy"
-            android:id="@+id/accelLevelsPlot"
-            android:layout_width="fill_parent"
-            android:layout_height="fill_parent"
-            android:layout_margin="0dp"
-            android:layout_weight="3.5"
-            android:layout_marginTop="10px"
-            android:layout_marginLeft="10px"
-            android:layout_marginRight="10px"
-            androidPlot.backgroundPaint.color="#FFFFFF"
-            androidPlot.borderPaint.color="#FFFFFF"
-            androidplot.renderMode="use_background_thread"
-            androidPlot.title="Accelerometer Resultant"
-            androidPlot.titleWidget.labelPaint.textSize="@dimen/title_font_size"
-            androidPlot.domainLabelWidget.labelPaint.textSize="@dimen/domain_label_font_size"
-            androidPlot.rangeLabelWidget.labelPaint.textSize="@dimen/range_label_font_size"
-            androidPlot.graphWidget.backgroundPaint.color="#FFFFFF"
-            androidPlot.graphWidget.gridBackgroundPaint.color="#fafafa"
-            androidPlot.graphWidget.domainGridLinePaint.color="#CCCCCC"
-            androidPlot.graphWidget.domainOriginLinePaint.color="#CCCCCC"
-            androidPlot.graphWidget.domainOriginLabelPaint.color="#CCCCCC"
-            androidPlot.graphWidget.marginTop="15dp"
-            androidPlot.graphWidget.marginLeft="13dp"
-            androidPlot.graphWidget.marginBottom="12dp"
-            androidPlot.graphWidget.marginRight="7dp"
-            androidPlot.graphWidget.rangeOriginLabelPaint.textSize="@dimen/range_tick_label_font_size"
-            androidPlot.graphWidget.domainOriginLabelPaint.textSize="@dimen/domain_tick_label_font_size"
-            />
+        <LinearLayout
+            android:layout_width="150dp"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <Button
+                android:id="@+id/c1button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="C1 0x01" />
+            <Button
+                android:id="@+id/c2button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="C2 0x0F" />
+            <Button
+                android:id="@+id/c3button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="C3 0xF0" />
+
+            <Button
+                android:id="@+id/c4button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="C4 0xF0" />
+
+        </LinearLayout>
 
         <!--<GridLayout
             android:layout_width="81dp"
@@ -170,13 +169,6 @@
 
     <LinearLayout
         android:orientation="horizontal"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content">
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:orientation="horizontal"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content">
 
@@ -194,6 +186,13 @@
             android:text="Filter:"
             android:id="@+id/filterSwitch"
             android:checked="true"/>
+
+        <Button
+            android:id="@+id/c0_off"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="OFF 0x00" />
 
         <TextView
             android:layout_width="wrap_content"

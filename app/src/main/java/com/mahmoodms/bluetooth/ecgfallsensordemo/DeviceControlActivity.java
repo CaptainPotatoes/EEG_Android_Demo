@@ -2,7 +2,6 @@ package com.mahmoodms.bluetooth.ecgfallsensordemo;
 
 import android.app.ActionBar;
 import android.app.Activity;
-import android.app.NotificationManager;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
@@ -26,7 +25,6 @@ import android.os.Environment;
 import android.os.Handler;
 import android.provider.Settings;
 import android.support.v4.app.NavUtils;
-import android.support.v4.app.NotificationCompat;
 import android.telephony.SmsManager;
 import android.util.Log;
 import android.view.Menu;
@@ -41,8 +39,6 @@ import android.widget.Toast;
 
 import com.androidplot.Plot;
 import com.androidplot.util.Redrawer;
-import com.androidplot.xy.BarFormatter;
-import com.androidplot.xy.BarRenderer;
 import com.androidplot.xy.BoundaryMode;
 import com.androidplot.xy.LineAndPointFormatter;
 import com.androidplot.xy.SimpleXYSeries;
@@ -108,14 +104,9 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
      * Initialize Plot:
      */
     private XYPlot eegPlot;
-    private XYPlot accelerometerPlot;
+//    private XYPlot accelerometerPlot;
     private Redrawer redrawer;
-//    private SimpleXYSeries accelerometerDataSeries;
-//    private SimpleXYSeries plotAccDataSeries;
     private SimpleXYSeries eegDataSeries1;
-//    private SimpleXYSeries eegDataSeries2;
-//    private SimpleXYSeries eegDataSeries3;
-//    private SimpleXYSeries eegDataSeries4;
     private static final int HISTORY_SIZE = 1500;
     private static final int HISTORY_SIZE_2 = 1000;
     private static final int HISTORY_SECONDS = 6;
@@ -138,6 +129,12 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private double dataRate;
     private double dataRate2;
     /* Notification stuff */
+    private Button mC1Button;
+    private Button mC0Button;
+    private Button mC2Button;
+    private Button mC3Button;
+    private Button mC4Button;
+    private BluetoothGattService mLedService = null;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -176,7 +173,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         eegDataSeries1 = new SimpleXYSeries("EEG Data Ch 1 (V)");
 //        eegDataSeries2 = new SimpleXYSeries("EEG Data Ch 2 (V)");
         eegPlot = (XYPlot) findViewById(R.id.eegPlot);
-        accelerometerPlot = (XYPlot) findViewById(R.id.accelLevelsPlot);
+//        accelerometerPlot = (XYPlot) findViewById(R.id.accelLevelsPlot);
         //Todo: Graph temporarily uses data index - find alternative to implicit XVals→(seconds)
         if (plotImplicitXVals) {
             eegDataSeries1.useImplicitXVals();
@@ -331,6 +328,66 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         double[] yfit = jfullHybridClassifier(ch1, ch2, ch3, ch4, eogOnly);
         Log.e(TAG, "fHC TEST ARRAY: "+Arrays.toString(yfit));
 //        mDataRate.setText("Data Rate: "+String.valueOf(DATA_RATE_SAMPLES_PER_SECOND)+"Hz");
+        mC0Button = (Button) findViewById(R.id.c0_off);
+        mC1Button = (Button) findViewById(R.id.c1button);
+        mC2Button = (Button) findViewById(R.id.c2button);
+        mC3Button = (Button) findViewById(R.id.c3button);
+        mC4Button = (Button) findViewById(R.id.c4button);
+        mC0Button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(mConnected) {
+                    byte[] bytes = new byte[1];
+                    bytes[0] = (byte) 0x00;
+                    if(mLedService!=null)
+                    mBluetoothLe.writeCharacteristic(mBluetoothGatt, mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
+                }
+            }
+        });
+        mC1Button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(mConnected) {
+                    byte[] bytes = new byte[1];
+                    bytes[0] = (byte) 0x01;
+                    if(mLedService!=null)
+                    mBluetoothLe.writeCharacteristic(mBluetoothGatt, mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
+                }
+            }
+        });
+        mC2Button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(mConnected) {
+                    byte[] bytes = new byte[1];
+                    bytes[0] = (byte) 0x0F;
+                    if(mLedService!=null)
+                    mBluetoothLe.writeCharacteristic(mBluetoothGatt, mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
+                }
+            }
+        });
+        mC3Button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(mConnected) {
+                    byte[] bytes = new byte[1];
+                    bytes[0] = (byte) 0xF0;
+                    if(mLedService!=null)
+                    mBluetoothLe.writeCharacteristic(mBluetoothGatt, mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
+                }
+            }
+        });
+        mC4Button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(mConnected) {
+                    byte[] bytes = new byte[1];
+                    bytes[0] = (byte) 0xFF;
+                    if(mLedService!=null)
+                    mBluetoothLe.writeCharacteristic(mBluetoothGatt, mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
+                }
+            }
+        });
     }
 
     private String androidDeviceBatteryLevel = "-1%";
@@ -399,7 +456,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private int exportFileDataPointCounter = 0;
     private int exportFilePart = 1;
     public void exportFile(boolean init, boolean terminateExport,
-                           String fileName, double ecgData) throws IOException {
+                           String fileName, double eegData1) throws IOException {
         if (init) {
             root = Environment.getExternalStorageDirectory();
             fileTimeStamp = fileName;
@@ -412,7 +469,8 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         if (root.canWrite() && init) {
             File dir = new File(root.getAbsolutePath() + "/DataDirectory");
             boolean mkdirsA = dir.mkdirs();
-            file = new File(dir, fileTimeStamp + "_part"+ String.valueOf(exportFilePart) + ".csv");
+            file = new File(dir, fileTimeStamp + "_part"+ String.valueOf(exportFilePart) + ".csv")
+            ;
             csvWriter = new CSVWriter(new FileWriter(file));
             Log.d("New File Generated", fileTimeStamp + "_part"+ String.valueOf(exportFilePart) + ".csv");
             exportLogFile(false, "NEW FILE GENERATED: "+fileTimeStamp + "_part"+ String.valueOf(exportFilePart) + ".csv\r\n\r\n");
@@ -422,11 +480,11 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         if (!init && !terminateExport) {
             //TODO: CHANGE THIS TO 1048576
             if(exportFileDataPointCounter<1048575/*15000*/) {
-                valueCsvWrite[0] = ecgData + "";
+                valueCsvWrite[0] = eegData1 + "," + eegData1 + "," + eegData1 + "," + eegData1 + "";
                 csvWriter.writeNext(valueCsvWrite);
                 exportFileDataPointCounter++;
             } else {
-                valueCsvWrite[0] = ecgData + "";
+                valueCsvWrite[0] = eegData1 + "";
                 csvWriter.writeNext(valueCsvWrite);
                 csvWriter.flush();
                 csvWriter.close();
@@ -449,6 +507,28 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             startActivity(exportData);
         }
 
+    }
+
+    public void exportFile(boolean init, boolean terminateExport,
+                           String fileName, double eegData1, double eegData2, double eegData3, double eegData4) throws IOException {
+        if (!init && !terminateExport) {
+            //TODO: CHANGE THIS TO 1048576
+            if(exportFileDataPointCounter<1048575/*15000*/) {
+                valueCsvWrite[0] = eegData1 + "," + eegData2 + "," + eegData3 + "," + eegData4 + "";
+                csvWriter.writeNext(valueCsvWrite);
+                exportFileDataPointCounter++;
+            } else {
+                valueCsvWrite[0] = eegData1 + "";
+                csvWriter.writeNext(valueCsvWrite);
+                csvWriter.flush();
+                csvWriter.close();
+                exportFileDataPointCounter=0;
+                exportFilePart++;
+                //generate new file:
+                exportFile(true, false, fileTimeStamp,0);
+            }
+
+        }
     }
 
     @Override
@@ -579,8 +659,14 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                     //Read the device software version
                     mBluetoothLe.readCharacteristic(gatt, service.getCharacteristic(AppConstant.CHAR_SOFTWARE_REV));
                 }
-
-
+                if(AppConstant.SERVICE_WHEELCHAIR_CONTROL.equals(service.getUuid())) {
+                    mLedService = service;
+                    Log.i(TAG,"BLE Service found");
+//                    byte[] array = new byte[1];
+//                    array[0] = (byte) (1 & 0xFF);
+//                    mBluetoothLe.writeCharacteristic(gatt,service.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),array);
+//                    mBluetoothGatt.writeCharacteristic()
+                }
                 if (AppConstant.SERVICE_ION_NA_SIGNAL.equals(service.getUuid())) {
                     mBluetoothLe.setCharacteristicNotification(gatt, service.getCharacteristic(AppConstant.CHAR_ION_NA_SIGNAL), true);
                     batteryNotAvailable();
@@ -646,9 +732,9 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             public void run() {
 
                 if (visible) {
-                    accelerometerPlot.setVisibility(View.VISIBLE);
+//                    accelerometerPlot.setVisibility(View.VISIBLE);
                 } else {
-                    accelerometerPlot.setVisibility(View.GONE);
+//                    accelerometerPlot.setVisibility(View.GONE);
                 }
             }
         });
@@ -726,6 +812,8 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                         int data = unsignedBytesToInt(dataEmgBytes[3*i], dataEmgBytes[3*i+1], dataEmgBytes[3*i+2]);
                         int dataSigned = unsignedToSigned(data, 24);
                         updateEEG(dataSigned);
+                        //TODO, create buffer and write to disk from 1-4
+                        writeToDisk24(dataSigned);
 //                        Log.e(TAG, "IntData: "+String.valueOf(dataSigned));
 //                        writeToDisk(( unsignedToSigned(unsignedBytesToInt(dataEmgBytes[2*i],dataEmgBytes[2*i+1]),16) ));
 //                        shortUpdateECGState( unsignedToSigned(unsignedBytesToInt(dataEmgBytes[2*i],dataEmgBytes[2*i+1]),16) );
@@ -867,6 +955,29 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         //TODO: Exporting unfiltered data to drive.
         try {
             exportFile(false, false, "", dataVoltage);
+        } catch (IOException e) {
+            Log.e("IOException", e.toString());
+        }
+    }
+    private void writeToDisk24(final int value) {
+        //Add to Back:
+        double dividedInt = (double) value / 8388607.0;
+        double dataVoltage = (dividedInt * 2.42);
+        //TODO: Exporting unfiltered data to drive.
+        try {
+            exportFile(false, false, "", dataVoltage);
+        } catch (IOException e) {
+            Log.e("IOException", e.toString());
+        }
+    }
+
+    private void writeToDisk24(final int ch1, final int ch2, final int ch3, final int ch4) {
+        //Add to Back:
+        double dividedInt = (double) ch1 / 8388607.0;
+        double dataVoltage1 = (dividedInt * 2.42);
+        //TODO: Exporting unfiltered data to drive.
+        try {
+            exportFile(false, false, "", dataVoltage1);
         } catch (IOException e) {
             Log.e("IOException", e.toString());
         }

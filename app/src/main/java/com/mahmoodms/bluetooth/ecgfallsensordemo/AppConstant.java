@@ -83,4 +83,11 @@ public final class AppConstant {
     //Characteristic:
     public static final UUID CHAR_ION_NA_SIGNAL = UUID.fromString("00004261-0000-1000-8000-00805f9b34fb");
 
+    /**
+     * For BLE Wheelchair Control
+     */
+    public static final UUID SERVICE_WHEELCHAIR_CONTROL = UUID.fromString("00009923-1212-efde-1523-785feabcd123");
+    public static final UUID CHAR_WHEELCHAIR_BUTTON = UUID.fromString("00009924-1212-efde-1523-785feabcd123");
+    public static final UUID CHAR_WHEELCHAIR_CONTROL = UUID.fromString("00009925-1212-efde-1523-785feabcd123");
+
 }
