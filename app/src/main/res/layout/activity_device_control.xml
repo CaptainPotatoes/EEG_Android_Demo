@@ -181,11 +181,11 @@
             android:textColor="#000000"/>
 
         <Switch
+            android:id="@+id/filterSwitch"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Filter:"
-            android:id="@+id/filterSwitch"
-            android:checked="true"/>
+            android:checked="false"
+            android:text="Filter:" />
 
         <Button
             android:id="@+id/c0_off"

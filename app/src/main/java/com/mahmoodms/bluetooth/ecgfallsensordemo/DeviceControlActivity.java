@@ -67,7 +67,9 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     //LocalVars
     private String mDeviceName;
     private String mDeviceAddress;
+    private String mDeviceAddress2;
     private boolean mConnected;
+    private boolean mConnected2;
     //Class instance variable
     private BluetoothLe mBluetoothLe;
     private BluetoothManager mBluetoothManager = null;
@@ -91,7 +93,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
 
     private ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
 
-    private boolean filterData = true;
+    private boolean filterData = false;
     private int dataCount = 0;
     private int points = 0;
     private Menu menu;
@@ -146,6 +148,9 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         Intent intent = getIntent();
         mDeviceName = intent.getStringExtra(AppConstant.EXTRAS_DEVICE_NAME);
         mDeviceAddress = intent.getStringExtra(AppConstant.EXTRAS_DEVICE_ADDRESS);
+        mDeviceAddress2 = "C7:93:2D:DD:64:D1";
+        Log.d(TAG, "mDeviceAddress(1): "+mDeviceAddress);
+        Log.d(TAG, "mDeviceAddress(2): "+mDeviceAddress2);
         //Set up action bar:
         if (getActionBar() != null) {
             getActionBar().setDisplayHomeAsUpEnabled(true);
@@ -570,9 +575,10 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         mBluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothDevice = mBluetoothManager.getAdapter().getRemoteDevice(mDeviceAddress);
         //TODO: Connect To Another Device.
-        //mBluetoothDevice2 = mBluetoothManager.getAdapter().getRemoteDevice(mDeviceAddress);
+        mBluetoothDevice2 = mBluetoothManager.getAdapter().getRemoteDevice(mDeviceAddress2);
         mBluetoothLe = new BluetoothLe(this, mBluetoothManager, this);
         mBluetoothGatt = mBluetoothLe.connect(mBluetoothDevice, false);
+        mBluetoothGatt = mBluetoothLe.connect(mBluetoothDevice2, false);
     }
 
     private void setNameAddress(String name_action, String address_action) {
@@ -614,12 +620,14 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             case R.id.menu_connect:
                 if (mBluetoothLe != null)
                     mBluetoothLe.connect(mBluetoothDevice, false);
+//                    mBluetoothLe.connect(mBluetoothDevice2, false);
                 connect();
                 return true;
             case R.id.menu_disconnect:
                 if (mBluetoothLe != null) {
                     if (mBluetoothGatt != null) {
-                        mBluetoothGatt.disconnect();
+//                        mBluetoothGatt.disconnect();
+                        mBluetoothLe.disconnect(mBluetoothGatt);
                     }
                 }
                 return true;
@@ -803,7 +811,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
 //            Log.i(TAG, "Len: "+String.valueOf(byteLength));
 //            Log.e(TAG, "DATA1: 0x"+toHexString(dataEmgBytes));
             //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
-//            Log.e("Data = ",String.valueOf(dataEmgBytes.length)+" # of bytes");
+            Log.e("Ch1 = ",String.valueOf(dataEmgBytes.length)+" # of bytes");
             getDataRateBytes(dataEmgBytes.length);
             if(!plotImplicitXVals) {
                 if(DATA_RATE_SAMPLES_PER_SECOND==250) {
@@ -814,9 +822,6 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                         updateEEG(dataSigned);
                         //TODO, create buffer and write to disk from 1-4
                         writeToDisk24(dataSigned);
-//                        Log.e(TAG, "IntData: "+String.valueOf(dataSigned));
-//                        writeToDisk(( unsignedToSigned(unsignedBytesToInt(dataEmgBytes[2*i],dataEmgBytes[2*i+1]),16) ));
-//                        shortUpdateECGState( unsignedToSigned(unsignedBytesToInt(dataEmgBytes[2*i],dataEmgBytes[2*i+1]),16) );
                     }
                 }
             }
@@ -828,7 +833,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
 //            Log.i(TAG, "Len: "+String.valueOf(byteLength));
 //            Log.e(TAG, "DATA2: 0x"+toHexString(dataEmgBytes));
             //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
-            //Log.e("Data = ",String.valueOf(dataEmgBytes.length)+" # of bytes");
+            Log.e("Ch2 = ",String.valueOf(dataEmgBytes.length)+" # of bytes");
             getDataRateBytes(dataEmgBytes.length);
         }
 
@@ -838,7 +843,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
 //            Log.i(TAG, "Len: "+String.valueOf(byteLength));
 //            Log.e(TAG, "DATA3: 0x"+toHexString(dataEmgBytes));
             //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
-            //Log.e("Data = ",String.valueOf(dataEmgBytes.length)+" # of bytes");
+            Log.e("Ch3 = ",String.valueOf(dataEmgBytes.length)+" # of bytes");
             getDataRateBytes(dataEmgBytes.length);
         }
 
@@ -848,7 +853,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
 //            Log.i(TAG, "Len: "+String.valueOf(byteLength));
 //            Log.e(TAG, "DATA4: 0x"+toHexString(dataEmgBytes));
             //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
-            //Log.e("Data = ",String.valueOf(dataEmgBytes.length)+" # of bytes");
+            Log.e("Ch4= ",String.valueOf(dataEmgBytes.length)+" # of bytes");
             getDataRateBytes(dataEmgBytes.length);
         }
 

@@ -17,6 +17,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -34,6 +35,7 @@ import java.util.ArrayList;
 
 
 public class MainActivity extends Activity {
+    private final static String TAG = DeviceControlActivity.class.getSimpleName();
     private boolean mScanning;
     private Handler mHandler;
     private ListView scanningDeviceListView;
@@ -116,7 +118,8 @@ public class MainActivity extends Activity {
                     //TODO - Requires v21 or greater...
                     //@Deprecated:
 //                    mBluetoothAdapter.stopLeScan(mLeScanCallback);
-                    mBluetoothAdapter.getBluetoothLeScanner().stopScan(mScanCallback);
+                    if (mBluetoothAdapter.isEnabled())
+                        mBluetoothAdapter.getBluetoothLeScanner().stopScan(mScanCallback);
                     mScanning = false;
                 }
                 startActivity(intent);
@@ -250,17 +253,22 @@ public class MainActivity extends Activity {
                 public void run() {
                     mScanning = false;
 //                    mBluetoothAdapter.stopLeScan(mLeScanCallback);
-                    mBluetoothAdapter.getBluetoothLeScanner().stopScan(mScanCallback);
+                    if (mBluetoothAdapter.isEnabled())
+                        mBluetoothAdapter.getBluetoothLeScanner().stopScan(mScanCallback);
                     invalidateOptionsMenu();
                 }
             }, SCAN_PERIOD);
             mScanning = true;
 //            mBluetoothAdapter.startLeScan(mLeScanCallback);
-            mBluetoothAdapter.getBluetoothLeScanner().startScan(mScanCallback);
+            Log.i(TAG,"isNull?1"+String.valueOf(mScanCallback==null));
+            Log.i(TAG,"isNull?2"+String.valueOf(mBluetoothAdapter==null));
+            if (mBluetoothAdapter.isEnabled())
+                mBluetoothAdapter.getBluetoothLeScanner().startScan(mScanCallback);
         } else {
             mScanning = false;
 //            mBluetoothAdapter.stopLeScan(mLeScanCallback);
-            mBluetoothAdapter.getBluetoothLeScanner().stopScan(mScanCallback);
+            if (mBluetoothAdapter.isEnabled())
+                mBluetoothAdapter.getBluetoothLeScanner().stopScan(mScanCallback);
         }
         invalidateOptionsMenu();
     }
