@@ -9,6 +9,8 @@
 #include "rt_nonfinite.h"
 #include "fir_combined.h"
 /*Additional Includes*/
+/*
+
 #include <jni.h>
 #include <android/log.h>
 
@@ -16,8 +18,8 @@
 #define  LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 #define ECG_ARRAY_SIZE 1000
-/** JNI STUFF:
- */
+*//** JNI STUFF:
+ *//*
 extern "C" {
 JNIEXPORT jdoubleArray JNICALL
 Java_com_mahmoodms_bluetooth_ecgfallsensordemo_DeviceControlActivity_jFirFilter(
@@ -34,7 +36,7 @@ Java_com_mahmoodms_bluetooth_ecgfallsensordemo_DeviceControlActivity_jFirFilter(
   env->SetDoubleArrayRegion(m_result, 0, ECG_ARRAY_SIZE, result);
   return m_result;
 }
-}
+}*/
 // Function Declarations
 static void filter(const double b[17], const double x[1096], const double zi[16],
                    double y[1096]);

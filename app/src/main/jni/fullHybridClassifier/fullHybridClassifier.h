@@ -37,7 +37,6 @@ extern void fullHybridClassifier(const emxArray_real_T *ch1, const
   double Fs, boolean_T EOGOnly, double Y[7]);
 extern void fullHybridClassifier_initialize();
 extern void fullHybridClassifier_terminate();
-
 #endif
 
 //

@@ -121,7 +121,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     final private boolean initialize = false;
     private String fileTimeStamp = "";
     private long periodShort = 3500; // 3.5ms (changed from 3.7ms on 10/11 @  7:50pm)
-    private int ecgIndex = 0;
+    private int eegIndex = 0;
     private double dataRate;
     private double dataRate2;
     /* Notification stuff */
@@ -169,7 +169,6 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         // Initialize our XYPlot reference:
         eegDataSeries1 = new SimpleXYSeries("EEG Data Ch 1 (V)");
         eegPlot = (XYPlot) findViewById(R.id.eegPlot);
-//        accelerometerPlot = (XYPlot) findViewById(R.id.accelLevelsPlot);
         //Todo: Graph temporarily uses data index - find alternative to implicit XVals→(seconds)
         if (plotImplicitXVals) {
             eegDataSeries1.useImplicitXVals();
@@ -231,7 +230,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 }
             }
         });
-        ecgIndex = 750;
+        eegIndex = 750;
         makeFilterSwitchVisible(false);
         mFilterSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -377,7 +376,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         return new SimpleDateFormat("MM/dd/yyyy - HH:mm:ss").format(new Date())+" EST\r\n";
     }
 
-    //TODO: Write Log File:
+    //Write Log File:
     private boolean fileLogInitialized = false;
     private File logFile;
     public void exportLogFile(boolean init, String dataToWrite) {
@@ -499,6 +498,10 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         makeFilterSwitchVisible(true);
         int fHCMain = jmainFHC(initialize);
         Log.i("fHCMain","INITIALIZED: "+String.valueOf(fHCMain));
+//        int feegcfilt = jmainEegFilt(initialize);
+        double[] array0 = new double[1000];
+        Arrays.fill(array0,0.0);
+        double[] retArray = jeegcfilt(array0);
         String fileTimeStampConcat = "EEGSensorData_" + getTimeStamp();
         Log.d("onResume-timeStamp", fileTimeStampConcat);
         //TODO (IF ECG/EMG PRESENT ONLY!!!) → We're creating a lot of empty files!!!
@@ -710,14 +713,14 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             }
             int byteLength = dataEmgBytes.length;
             //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
-            Log.e("Ch1 = ",String.valueOf(dataEmgBytes.length)+" # of bytes");
-            getDataRateBytes(dataEmgBytes.length);
+            getDataRateBytes(byteLength);
             for (int i = 0; i < byteLength/3; i++) { //0→9
                 dataCnt1000++; //count?
                 int data = unsignedBytesToInt(dataEmgBytes[3*i], dataEmgBytes[3*i+1], dataEmgBytes[3*i+2]);
                 eeg_ch1_data[i] = unsignedToSigned(data, 24);
                 updateEEG(eeg_ch1_data[i]);
             }
+//            Log.e("Ch1 = ",String.valueOf(byteLength)+" # of bytes");
         }
 
         if (AppConstant.CHAR_EEG_CH2_SIGNAL.equals(characteristic.getUuid())) {
@@ -727,13 +730,13 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             byte[] dataEmgBytes = characteristic.getValue();
             int byteLength = dataEmgBytes.length;
             //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
-            Log.e("Ch2 = ",String.valueOf(dataEmgBytes.length)+" # of bytes");
-            getDataRateBytes(dataEmgBytes.length);
+            getDataRateBytes(byteLength);
             for (int i = 0; i < byteLength/3; i++) { //0→9
                 dataCnt1000++; //count?
                 int data = unsignedBytesToInt(dataEmgBytes[3*i], dataEmgBytes[3*i+1], dataEmgBytes[3*i+2]);
                 eeg_ch2_data[i] = unsignedToSigned(data, 24);
             }
+//            Log.e("Ch2 = ",String.valueOf(byteLength)+" # of bytes");
         }
 
         if (AppConstant.CHAR_EEG_CH3_SIGNAL.equals(characteristic.getUuid())) {
@@ -743,13 +746,13 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             byte[] dataEmgBytes = characteristic.getValue();
             int byteLength = dataEmgBytes.length;
             //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
-            Log.e("Ch3 = ",String.valueOf(dataEmgBytes.length)+" # of bytes");
-            getDataRateBytes(dataEmgBytes.length);
+            getDataRateBytes(byteLength);
             for (int i = 0; i < byteLength/3; i++) { //0→9
                 dataCnt1000++; //count?
                 int data = unsignedBytesToInt(dataEmgBytes[3*i], dataEmgBytes[3*i+1], dataEmgBytes[3*i+2]);
                 eeg_ch3_data[i] = unsignedToSigned(data, 24);
             }
+//            Log.e("Ch3 = ",String.valueOf(byteLength)+" # of bytes");
         }
 
         if (AppConstant.CHAR_EEG_CH4_SIGNAL.equals(characteristic.getUuid())) {
@@ -759,13 +762,13 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             byte[] dataEmgBytes = characteristic.getValue();
             int byteLength = dataEmgBytes.length;
             //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
-            Log.e("Ch4 = ",String.valueOf(dataEmgBytes.length)+" # of bytes");
-            getDataRateBytes(dataEmgBytes.length);
+            getDataRateBytes(byteLength);
             for (int i = 0; i < byteLength/3; i++) { //0→9
                 dataCnt1000++; //count?
                 int data = unsignedBytesToInt(dataEmgBytes[3*i], dataEmgBytes[3*i+1], dataEmgBytes[3*i+2]);
                 eeg_ch4_data[i] = unsignedToSigned(data, 24);
             }
+//            Log.e("Ch4 = ",String.valueOf(byteLength)+" # of bytes");
         }
         if(eeg_ch4_data_on && eeg_ch3_data_on && eeg_ch2_data_on && eeg_ch1_data_on) {
             eeg_ch1_data_on = false;
@@ -775,6 +778,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             for (int i = 0; i < 6; i++) {
                 writeToDisk24(eeg_ch1_data[i],eeg_ch2_data[i],eeg_ch3_data[i],eeg_ch4_data[i]);
             }
+            Log.d(TAG,"Arrays 1-4 Received");
         }
     }
 
@@ -970,8 +974,8 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                         explicitXValsLong[750+i] = ((double) mTimeSeconds) + ((double)i/250);
                     }
                     //filter:
-//                ECGBufferFiltered2 = jFirFilter(ECGBufferUnfiltered);
-                    ECGBufferFiltered2 = jBwFilter(ECGBufferUnfiltered);
+//                    ECGBufferFiltered2 = jBwFilter(ECGBufferUnfiltered);
+                    ECGBufferFiltered2 = jeegcfilt(ECGBufferUnfiltered);
                     //Todo: adjust Range Step Value every 1 s:
                     //Every 4 seconds elapsed:
                     //TODO: Now Analyze filtered data (after plot)
@@ -1000,7 +1004,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                         newMaxX = Math.floor(explicitXValsLong[999]);
                         eegPlot.setDomainBoundaries(newMinX, newMaxX, BoundaryMode.AUTO);
                     }
-                    /**
+                    /*
                      * TODO: Probably set graph so that it plots at 1ms.??
                      * clearGraph(), and plotGraph() work, but doesn't look good
                      */
@@ -1211,34 +1215,34 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         @Override
         public void run() {
             if (startedGraphingEcgData) {
-                if (ecgIndex < 1000) {
+                if (eegIndex < 1000) {
                     if (eegDataSeries1.size() > 1000) {
                         eegDataSeries1.removeFirst();
                     }
                     if (plotImplicitXVals) {
                         if (filterData) {
-                            eegDataSeries1.addLast(null, ECGBufferFiltered2[ecgIndex]);
+                            eegDataSeries1.addLast(null, ECGBufferFiltered2[eegIndex]);
                             /*if(!filterType){
                             } else {
-                                eegDataSeries1.addLast(null, ECGBufferFiltered3[ecgIndex]);
+                                eegDataSeries1.addLast(null, ECGBufferFiltered3[eegIndex]);
                             }*/
                         } else {
-                            eegDataSeries1.addLast(null, ECGBufferUnfiltered[ecgIndex]);
+                            eegDataSeries1.addLast(null, ECGBufferUnfiltered[eegIndex]);
                         }
                     } else {
                         if (filterData) {
-                            eegDataSeries1.addLast(explicitXValsLong[ecgIndex], ECGBufferFiltered2[ecgIndex]);
+                            eegDataSeries1.addLast(explicitXValsLong[eegIndex], ECGBufferFiltered2[eegIndex]);
                             /*if(!filterType){
                             } else {
-                                eegDataSeries1.addLast(explicitXValsLong[ecgIndex], ECGBufferFiltered3[ecgIndex]);
+                                eegDataSeries1.addLast(explicitXValsLong[eegIndex], ECGBufferFiltered3[eegIndex]);
                             }*/
                         } else {
-                            eegDataSeries1.addLast(explicitXValsLong[ecgIndex], ECGBufferUnfiltered[ecgIndex]);
+                            eegDataSeries1.addLast(explicitXValsLong[eegIndex], ECGBufferUnfiltered[eegIndex]);
                         }
                     }
-                    ecgIndex++;
+                    eegIndex++;
                 } else {
-                    ecgIndex = 750;
+                    eegIndex = 750;
                     lastFilteredPacket++;
                     stopGraphEcgData();
                     Log.d("Graphing Packet#", String.valueOf(lastFilteredPacket));
@@ -1606,23 +1610,14 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     }
 
     //ECG FIR FILTER:
-//    private native int jmainFirFilter(boolean b);
-
     private native int jmainFHC(boolean b);
 
     private native double[] jfullHybridClassifier(double[] data1, double[] data2, double[] data3, double[] data4, boolean EOGOnly); //size = 1000
 
     //ECG BW Filter:
+    private native int jmainEegFilt(boolean b);
+
+    private native double[] jeegcfilt(double[] array);
 
     private native double[] jBwFilter(double[] ecg);
-
-    //ECG ANALYSIS (SIMPLE):
-//    private native double jEcgAnalysis(double[] ecg);
-
-    //ECG Afib Detection:
-//    private native int jmainAfibDetectionInit(boolean b);
-
-//    private native double jAfibDetectionAnalysis(double[] ecg_h, double MeanHeartRate);
-
-    //FALL DETECTION:
 }
