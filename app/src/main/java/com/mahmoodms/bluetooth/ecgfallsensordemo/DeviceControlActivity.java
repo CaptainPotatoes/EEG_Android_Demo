@@ -219,12 +219,12 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 }
             }
         });
-        unfiltIndex = 940;
         makeFilterSwitchVisible(false);
         mFilterSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 filterData = isChecked;
+                clearPlot();
             }
         });
         mLastTime = System.currentTimeMillis();
@@ -660,6 +660,8 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private int[] eeg_ch2_data = new int[6];
     private int[] eeg_ch3_data = new int[6];
     private int[] eeg_ch4_data = new int[6];
+    private double[] unfilteredEegSignal = new double[1000]; //250 or 500
+    private double[] filteredEegSignal = new double[1000];
     @Override
     public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
         //TODO: ADD BATTERY MEASURE CAPABILITY IN FIRMWARE: (ble_ADC)
@@ -679,11 +681,17 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             int byteLength = dataEmgBytes.length;
             //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
             getDataRateBytes(byteLength);
+            System.arraycopy(unfilteredEegSignal, 6, unfilteredEegSignal, 0, 1000-6);
+            System.arraycopy(explicitXValsLong, 6, explicitXValsLong, 0, 1000-6);
             for (int i = 0; i < byteLength/3; i++) { //0→9
                 dataCnt1000++; //count?
                 int data = unsignedBytesToInt(dataEmgBytes[3*i], dataEmgBytes[3*i+1], dataEmgBytes[3*i+2]);
                 eeg_ch1_data[i] = unsignedToSigned(data, 24);
-                updateEEG(eeg_ch1_data[i]);
+                numberDataPointsCh1++;
+                timeData = numberDataPointsCh1*0.0040;
+                explicitXValsLong[994+i] = timeData;//plus adjustment for offset
+                unfilteredEegSignal[994+i] = convert24bitInt(data);
+                updateEEG(timeData, eeg_ch1_data[i]);
             }
 //            Log.e("Ch1 = ",String.valueOf(byteLength)+" # of bytes");
         }
@@ -751,8 +759,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     }
 
 
-    private int unfiltIndex = 940;
-    private double[] unfilteredEegSignal = new double[1000]; //250 or 500
+
 
     private void writeToDisk24(final int value) {
         try {
@@ -784,17 +791,23 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
 
     private void clearPlot() {
         if(eegDataSeries1!=null) {
-            for (int i = 0; i < eegDataSeries1.size(); i++) {
+//            for (int i = 0; i < eegDataSeries1.size(); i++) {
+//                eegDataSeries1.removeFirst();
+//            }
+            redrawer.pause();
+            while(eegDataSeries1.size()>0) {
                 eegDataSeries1.removeFirst();
             }
+            adjustGraph(true);
+            redrawer.start();
         }
     }
 
     private double[] explicitXValsLong = new double[1000];
     private int newValsPlotted = 0;
 
-    private void adjustGraph(){
-        if(newValsPlotted%249==0) {
+    private void adjustGraph(boolean forceAdjust){
+        if(newValsPlotted%60==0 || forceAdjust) {
             newValsPlotted = 0;
             double max = findGraphMax(eegDataSeries1);
             double min = findGraphMin(eegDataSeries1);
@@ -817,21 +830,14 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         eegPlot.setDomainBoundaries(newMinX, newMaxX, BoundaryMode.AUTO);
     }
 
-    private void plot() {
-        if(numberDataPointsCh1>999) {
-            double[] filteredData = jeegcfilt(unfilteredEegSignal);
-            double[] tempArray = explicitXValsLong;
-            for (int i = 0; i < filteredData.length; i++) {
-                plot(tempArray[i],filteredData[i]);
+    private void plot(double[] xarray, double[] yarray) {
+        if (yarray.length>999) {
+            for (int i = 0; i < yarray.length; i++) {
+                plotReverse(xarray[i],yarray[i]);
             }
         } else {
-            int tempVar = numberDataPointsCh1;
-            double[] currentDataSet = new double[tempVar];
-            System.arraycopy(unfilteredEegSignal, 999-tempVar, currentDataSet, 0, tempVar);
-            double[] tempArray = explicitXValsLong;
-            double[] filteredData = jeegcfilt(currentDataSet);
-            for (int i = unfilteredEegSignal.length-1; i > unfilteredEegSignal.length-tempVar ; i--) {
-                plot(tempArray[i],filteredData[i-(unfilteredEegSignal.length-1)+tempVar-1]);
+            for (int i = 0; i < yarray.length; i++) {
+                plot(xarray[i],yarray[i],yarray.length);
             }
         }
     }
@@ -843,44 +849,48 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         eegDataSeries1.addLast(x,y);
         newValsPlotted++;
         if(newValsPlotted>=999) {
-            adjustGraph();
+            adjustGraph(true);
+        }
+    }
+
+    private void plotReverse(double x, double y) {
+        if(eegDataSeries1.size()>999) {
+            eegDataSeries1.removeLast();
+        }
+        eegDataSeries1.addFirst(x,y);
+        newValsPlotted++;
+        if(newValsPlotted>=999) {
+            adjustGraph(true);
+        }
+    }
+
+    private void plot(double x, double y, int len) {
+        if(eegDataSeries1.size()>len-1) {
+            eegDataSeries1.removeLast();
+        }
+        eegDataSeries1.addFirst(x,y);
+        newValsPlotted++;
+        if(newValsPlotted>=len-1) {
+            adjustGraph(true);
         }
     }
     private int numberDataPointsCh1 = 0;
     private double timeData = 0;
-    private void updateEEG(final int value) {
+    private void updateEEG(final double timeData, final int value) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 mEegValsTextView.setText(" " + " IntVal="+String.valueOf(value));
-                double dividedInt = (double) value / 8388607.0;
-                double dataVoltage = (dividedInt * 2.42);
-                //TODO: Exporting unfiltered data to drive.
-                timeData = numberDataPointsCh1*0.0040;//add to buffer
-                numberDataPointsCh1++;
-                explicitXValsLong[unfiltIndex] = timeData;//plus adjustment for offset
-                unfilteredEegSignal[unfiltIndex] = dataVoltage;
+                double dataVoltage = convert24bitInt(value);
                 if(filterData) {
+                    filteredEegSignal = jeegcfilt(unfilteredEegSignal);
                     if(numberDataPointsCh1%60==0 && numberDataPointsCh1!=0) {
-                        //shift everything back by 60:
-                        plot();
-                        for (int i = 0; i < 940; i++) {
-                            //Shift Back Buffer
-                            unfilteredEegSignal[i] = unfilteredEegSignal[i+60];
-                            //Shift Back ExplicitX;
-                            explicitXValsLong[i] = explicitXValsLong[i+60];
-                        }
+                        plot(explicitXValsLong,filteredEegSignal);
                     }
                 } else {
                     plot(timeData,dataVoltage);
                 }
-
-                if(unfiltIndex<999) {
-                    unfiltIndex++;
-                } else {
-                    unfiltIndex = 940;
-                }
-
+//                Log.d(TAG, "TimeData: "+String.valueOf(timeData)+" TimeData2: "+String.valueOf(explicitXValsLong[999]));
             }
         });
     }
@@ -919,18 +929,6 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         Arrays.sort(maxVals);
         return maxVals[1];
     }
-
-    private double findGraphMax(SimpleXYSeries s) {
-        double max = (double)s.getY(0);
-        for (int i = 1; i < s.size(); i++) {
-            double a = (double)s.getY(i);
-            if(a>max) {
-                max = a;
-            }
-        }
-        return max;
-    }
-
     private double findGraphMin (SimpleXYSeries s1, SimpleXYSeries s2, SimpleXYSeries s3, SimpleXYSeries s4) {
         double min1 = (double) s1.getY(0);
         double min2 = (double) s2.getY(0);
@@ -965,15 +963,34 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         return minVals[4];
     }
 
-    private double findGraphMin(SimpleXYSeries s) {
-        double min = (double)s.getY(0);
-        for (int i = 1; i < s.size(); i++) {
-            double a = (double)s.getY(i);
-            if(a<min) {
-                min = a;
+    private double findGraphMax(SimpleXYSeries s) {
+        if (s.size() > 0) {
+            double max = (double)s.getY(0);
+            for (int i = 1; i < s.size(); i++) {
+                double a = (double)s.getY(i);
+                if(a>max) {
+                    max = a;
+                }
             }
+            return max;
+        } else
+            return 0.0;
+    }
+
+
+    private double findGraphMin(SimpleXYSeries s) {
+        if (s.size()>0) {
+            double min = (double)s.getY(0);
+            for (int i = 1; i < s.size(); i++) {
+                double a = (double)s.getY(i);
+                if(a<min) {
+                    min = a;
+                }
+            }
+            return min;
+        } else {
+            return 0.0;
         }
-        return min;
     }
 
     private Number newMinX;

@@ -37,42 +37,41 @@
     </LinearLayout>
 
     <LinearLayout
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:layout_weight="1"
         android:layout_width="fill_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="horizontal">
 
         <com.androidplot.xy.XYPlot
-            style="@style/APDefacto.Dark"
             android:id="@+id/eegPlot"
-            android:layout_width="fill_parent"
-            android:layout_height="fill_parent"
-            ap:label="EMG Data"
-            ap:rangeLabel="range"
-            ap:domainLabel="domain"
-            android:layout_weight="1"
-            android:layout_marginTop="0dp"
-            android:layout_marginLeft="0dp"
-            android:layout_marginRight="0dp"
+            style="@style/APDefacto.Dark"
             androidPlot.backgroundPaint.color="#FFFFFF"
             androidPlot.borderPaint.color="#FFFFFF"
-            androidplot.renderMode="use_background_thread"
-            androidPlot.title="ECG Data Plot"
             androidPlot.domainLabel="Domain"
-            androidPlot.rangeLabel="Range"
-            androidPlot.titleWidget.labelPaint.textSize="@dimen/title_font_size"
             androidPlot.domainLabelWidget.labelPaint.textSize="@dimen/domain_label_font_size"
-            androidPlot.rangeLabelWidget.labelPaint.textSize="@dimen/range_label_font_size"
             androidPlot.graphWidget.backgroundPaint.color="#FFFFFF"
-            androidPlot.graphWidget.gridBackgroundPaint.color="#fafafa"
-            androidPlot.graphWidget.marginTop="12dp"
-            androidPlot.graphWidget.marginLeft="10dp"
-            androidPlot.graphWidget.marginBottom="14dp"
-            androidPlot.graphWidget.marginRight="0dp"
-            androidPlot.graphWidget.rangeOriginLabelPaint.textSize="@dimen/range_tick_label_font_size"
             androidPlot.graphWidget.domainOriginLabelPaint.textSize="@dimen/domain_tick_label_font_size"
-            />
+            androidPlot.graphWidget.gridBackgroundPaint.color="#fafafa"
+            androidPlot.graphWidget.marginBottom="14dp"
+            androidPlot.graphWidget.marginLeft="10dp"
+            androidPlot.graphWidget.marginRight="0dp"
+            androidPlot.graphWidget.marginTop="12dp"
+            androidPlot.graphWidget.rangeOriginLabelPaint.textSize="@dimen/range_tick_label_font_size"
+            androidPlot.rangeLabel="Range"
+            androidPlot.rangeLabelWidget.labelPaint.textSize="@dimen/range_label_font_size"
+            androidPlot.title="ECG Data Plot"
+            androidPlot.titleWidget.labelPaint.textSize="@dimen/title_font_size"
+            androidplot.renderMode="use_background_thread"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:layout_marginLeft="0dp"
+            android:layout_marginRight="0dp"
+            android:layout_marginTop="0dp"
+            android:layout_weight="1"
+            ap:domainLabel="domain"
+            ap:label="EMG Data"
+            ap:rangeLabel="range" />
 
         <LinearLayout
             android:layout_width="150dp"
@@ -84,11 +83,13 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="C1 0x01" />
+
             <Button
                 android:id="@+id/c2button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="C2 0x0F" />
+
             <Button
                 android:id="@+id/c3button"
                 android:layout_width="match_parent"
@@ -99,7 +100,7 @@
                 android:id="@+id/c4button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="C4 0xF0" />
+                android:text="C4 0xFF" />
 
         </LinearLayout>
 
