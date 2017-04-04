@@ -86,15 +86,13 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private Switch mFilterSwitch;
 
     private long mLastTime;
-    private long mLastTime2;
     private long mCurrentTime;
-    private long mCurrentTime2;
     private int mTimeSeconds = 0;
     private String mLastRssi;
 
     private ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
 
-    private boolean filterData = false;
+    private boolean filterData = true;
     private int dataCount = 0;
     private int points = 0;
     private Menu menu;
@@ -231,12 +229,14 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             }
         });
         eegIndex = 750;
+        unfiltIndex = 940;
         makeFilterSwitchVisible(false);
         mFilterSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 filterData = isChecked;
-                if(filterData) {
+                clearPlot();
+                /*if(filterData) {
                     if(eegDataSeries1.size()>0) {
                         double average = 0;
                         for (int i = 0; i < eegDataSeries1.size(); i++) {
@@ -263,11 +263,10 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                         eegPlot.setRangeBoundaries(average-0.010, average+0.010, BoundaryMode.AUTO);
                         eegPlot.setRangeStepValue(0.1);
                     }
-                }
+                }*/
             }
         });
         mLastTime = System.currentTimeMillis();
-        mLastTime2 = mLastTime;
         Arrays.fill(ECGBufferUnfiltered, 0.0);
         this.registerReceiver(this.mBatInfoReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         if(mDeviceName.equals("ECG 1000Hz")) {
@@ -349,6 +348,13 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                     if(mLedService!=null)
                     mBluetoothLe.writeCharacteristic(mBluetoothGatt2, mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
                 }
+            }
+        });
+        Button clearPlotButton = (Button) findViewById(R.id.buttonClrPlot);
+        clearPlotButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                clearPlot();
             }
         });
     }
@@ -789,8 +795,8 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     /**
      * TODO: FIX THIS:
      */
-    private int unfiltIndex = 0;
-    private double[] unfilteredEcgSignal = new double[250]; //250 or 500
+    private int unfiltIndex = 940;
+    private double[] unfilteredEegSignal = new double[1000]; //250 or 500
     private double[] ECGBufferUnfiltered = new double[ECGBDSize]; //1000
     private double[] ECGBufferFiltered2 = new double[ECGBDSize];
 //    private double[] ECGBufferAfibDetection = new double[3000];
@@ -849,115 +855,131 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         return dividedInt*2.42;
     }
 
-    private int unfiltIndexCh1 = 0;
-    private double[] explicitXValsCh1 = new double[1000];
-    private double[] explicitXValsCh2 = new double[1000];
-    private double[] explicitXValsCh3 = new double[1000];
-    private double[] explicitXValsCh4 = new double[1000];
-    private double[] unfiltEEGCH1 = new double[250];
-    private double[] EEGBufferCh1Unfiltered = new double[1000];
-    private double[] EEGBufferCh1Filtered = new double[1000];
-    private int unfiltIndexCh2 = 0;
-    private double[] unfiltEEGCH2 = new double[250];
-    private double[] EEGBufferCh2Unfiltered = new double[1000];
-    private double[] EEGBufferCh2Filtered = new double[1000];
-    private int unfiltIndexCh3 = 0;
-    private double[] unfiltEEGCH3 = new double[250];
-    private double[] EEGBufferCh3Unfiltered = new double[1000];
-    private double[] EEGBufferCh3Filtered = new double[1000];
-    private int unfiltIndexCh4 = 0;
-    private double[] unfiltEEGCH4 = new double[250];
-    private double[] EEGBufferCh4Unfiltered = new double[1000];
-    private double[] EEGBufferCh4Filtered = new double[1000];
-
-   /* private void updateEEG(final int value, final int channelNum) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                double dividedInt = (double) value / 8388607.0;
-                double dataVoltage = (dividedInt * 2.42);
-                switch (channelNum) {
-                    case 1:
-                        mEegValsTextView.setText(" " + " IntVal="+String.valueOf(value));
-                        unfiltEEGCH1[unfiltIndexCh1] = dataVoltage;
-                        if((unfiltIndexCh1 % 249==0) && unfiltIndexCh1!=0) {
-                            for (int i = 0; i < 750; i++) {
-                                //Shift Back EEGBufferCh1Unfiltered
-                                EEGBufferCh1Unfiltered[i] = EEGBufferCh1Unfiltered[i+250];
-                                //Shift Back ExplicitX;
-                                explicitXValsLong[i] = explicitXValsLong[250+i];
-                            }
-                            for (int i = 0; i < 250; i++) {
-                                //Add to front (ECGBufferUnfiltered):
-                                EEGBufferCh1Unfiltered[750+i] = unfiltEEGCH1[i];
-                                //Add to front (explicitX)
-                                explicitXValsLong[750+i] = ((double) mTimeSeconds) + ((double)i/250);
-                            }
-                            EEGBufferCh1Filtered = jBwFilter(EEGBufferCh1Unfiltered);
-                            if(eegDataSeries1.size()>249) {
-                                double max = findGraphMax(eegDataSeries1, eegDataSeries2, eegDataSeries3, eegDataSeries4);
-                                double min = findGraphMin(eegDataSeries1, eegDataSeries2, eegDataSeries3, eegDataSeries4);
-                                if((max-min)!=0) {
-                                    if(currentBM!=BoundaryMode.AUTO) {
-                                        eegPlot.setRangeBoundaries(-2.5, 2.5, BoundaryMode.AUTO);
-                                        currentBM = BoundaryMode.AUTO;
-                                    }
-                                    eegPlot.setRangeStepValue((max-min)/5);
-                                } else {
-                                    if(currentBM!=BoundaryMode.FIXED) {
-                                        eegPlot.setRangeBoundaries(min-1, max+1, BoundaryMode.FIXED);
-                                        currentBM = BoundaryMode.FIXED;
-                                    }
-                                    eegPlot.setRangeStepValue(2.0/5.0);
-                                }
-                            }
-                            //TODO: Now plot:
-
-                        } else {
-                            unfiltIndexCh1++;
-                        }
-                        break;
-                    case 2:
-                        unfiltEEGCH2[unfiltIndexCh2] = dataVoltage;
-                        if((unfiltIndexCh2 % 249==0) && unfiltIndexCh2!=0) {
-                            //TODO:
-                        } else {
-                            unfiltIndexCh2++;
-                        }
-                        break;
-                    case 3:
-                        unfiltEEGCH3[unfiltIndexCh3] = dataVoltage;
-                        if((unfiltIndexCh3 % 249==0) && unfiltIndexCh3!=0) {
-                            //TODO:
-                        } else {
-                            unfiltIndexCh3++;
-                        }
-                        break;
-                    case 4:
-                        unfiltEEGCH4[unfiltIndexCh4] = dataVoltage;
-                        if((unfiltIndexCh4 % 249==0) && unfiltIndexCh4!=0) {
-                            //TODO:
-                        } else {
-                            unfiltIndexCh4++;
-                        }
-                        break;
-                    default:
-                        break;
-                }
+    private void clearPlot() {
+        if(eegDataSeries1!=null) {
+            for (int i = 0; i < eegDataSeries1.size(); i++) {
+                eegDataSeries1.removeFirst();
             }
-        });
-    }*/
+        }
+    }
 
+    private double[] explicitXValsLong = new double[1000];
+    private int newValsPlotted = 0;
+
+    private void adjustGraph(){
+        if(newValsPlotted%249==0) {
+            newValsPlotted = 0;
+            double max = findGraphMax(eegDataSeries1);
+            double min = findGraphMin(eegDataSeries1);
+            if((max-min)!=0) {
+                if(currentBM!=BoundaryMode.AUTO) {
+                    eegPlot.setRangeBoundaries(-2.5, 2.5, BoundaryMode.AUTO);
+                    currentBM = BoundaryMode.AUTO;
+                }
+                eegPlot.setRangeStepValue((max-min)/5);
+            } else {
+                if(currentBM!=BoundaryMode.FIXED) {
+                    eegPlot.setRangeBoundaries(min-1, max+1, BoundaryMode.FIXED);
+                    currentBM = BoundaryMode.FIXED;
+                }
+                eegPlot.setRangeStepValue(2.0/5.0);
+            }
+        }
+        newMinX = Math.floor(explicitXValsLong[0]);
+        newMaxX = Math.floor(explicitXValsLong[999]);
+        eegPlot.setDomainBoundaries(newMinX, newMaxX, BoundaryMode.AUTO);
+    }
+
+    private void plot() {
+        if(numberDataPointsCh1>999) {
+            double[] filteredData = jeegcfilt(unfilteredEegSignal);
+            double[] tempArray = explicitXValsLong;
+            for (int i = 0; i < filteredData.length; i++) {
+                plot2(tempArray[i],filteredData[i]);
+            }
+        } else {
+            int tempVar = numberDataPointsCh1;
+            double[] currentDataSet = new double[tempVar];
+            System.arraycopy(unfilteredEegSignal, 999-tempVar, currentDataSet, 0, tempVar);
+            double[] tempArray = explicitXValsLong;
+            double[] filteredData = jeegcfilt(currentDataSet);
+            for (int i = unfilteredEegSignal.length-1; i > unfilteredEegSignal.length-tempVar ; i--) {
+                plot2(tempArray[i],filteredData[i-(unfilteredEegSignal.length-1)+tempVar-1]);
+            }
+        }
+    }
+
+    private void plot2(double x, double y) {
+        if(eegDataSeries1.size()>HISTORY_SIZE-1) {
+            eegDataSeries1.removeLast();
+        }
+        eegDataSeries1.addFirst(x,y);
+        newValsPlotted++;
+        if(numberDataPointsCh1>=999) {
+            adjustGraph();
+        }
+    }
+
+    private void plot(double x, double y) {
+        if(eegDataSeries1.size()>999) {
+            eegDataSeries1.removeFirst();
+        }
+        eegDataSeries1.addLast(x,y);
+        newValsPlotted++;
+        if(newValsPlotted>=999) {
+            adjustGraph();
+        }
+    }
+    private int bufferSize = 60;
+    private int numberDataPointsCh1 = 0;
+    private double timeData = 0;
     private void updateEEG(final int value) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                //Add to Back:
                 mEegValsTextView.setText(" " + " IntVal="+String.valueOf(value));
                 double dividedInt = (double) value / 8388607.0;
                 double dataVoltage = (dividedInt * 2.42);
                 //TODO: Exporting unfiltered data to drive.
-                unfilteredEcgSignal[unfiltIndex] = dataVoltage;
+                timeData = numberDataPointsCh1*0.0040;//add to buffer
+                numberDataPointsCh1++;
+                explicitXValsLong[unfiltIndex] = timeData;//plus adjustment for offset
+                unfilteredEegSignal[unfiltIndex] = dataVoltage;
+                if(filterData) {
+                    if(numberDataPointsCh1%60==0 && numberDataPointsCh1!=0) {
+                        //shift everything back by 60:
+                        plot();
+                        for (int i = 0; i < 940; i++) {
+                            //Shift Back Buffer
+                            unfilteredEegSignal[i] = unfilteredEegSignal[i+60];
+                            //Shift Back ExplicitX;
+                            explicitXValsLong[i] = explicitXValsLong[i+60];
+                        }
+                    }
+//                    for (int i = 0; i < unfiltIndex; i++) {
+//                        plot(explicitXValsLong[i],unfilteredEegSignal[i]);
+//                    }
+                } else {
+                    plot(timeData,dataVoltage);
+                }
+
+                if(unfiltIndex<999) {
+                    unfiltIndex++;
+                } else {
+                    unfiltIndex = 940;
+                }
+
+            }
+        });
+    }
+
+
+
+    private void updateEEGOLD(final int value) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                //Add to Back:
 
                 if((unfiltIndex % 249==0) && unfiltIndex!=0) { //SAMPLES_PER_SECOND - 1
                     for (int i = 0; i < 750; i++) {
@@ -969,7 +991,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
 
                     for (int i = 0; i < 250; i++) {
                         //Add to front (ECGBufferUnfiltered):
-                        ECGBufferUnfiltered[750+i] = unfilteredEcgSignal[i];
+                        ECGBufferUnfiltered[750+i] = unfilteredEegSignal[i];
                         //Add to front (explicitX)
                         explicitXValsLong[750+i] = ((double) mTimeSeconds) + ((double)i/250);
                     }
@@ -1022,89 +1044,6 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 } else {
                     unfiltIndex++;
                 }
-//                mEegValsTextView.setText(" " + " Voltage="+String.format("%1.4f",dataVoltage)+"V");
-            }
-        });
-    }
-
-    /**
-     * ### This method is for <b>250SPS</b> only
-     * @param value Single ECG value
-     */
-    private void shortUpdateECGState(final int value) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-            //Add to Back:
-            double dividedInt = (double) value / 32767.0;
-            double dataVoltage = (dividedInt * 2.42);
-            //TODO: Exporting unfiltered data to drive.
-            unfilteredEcgSignal[unfiltIndex] = dataVoltage;
-
-            if((unfiltIndex % 249==0) && unfiltIndex!=0) { //SAMPLES_PER_SECOND - 1
-                for (int i = 0; i < 750; i++) {
-                    //Shift Back ECGBuffer2
-                    ECGBufferUnfiltered[i] = ECGBufferUnfiltered[i+250];
-                    //Shift Back ExplicitX;
-                    explicitXValsLong[i] = explicitXValsLong[250+i];
-                }
-
-                for (int i = 0; i < 250; i++) {
-                    //Add to front (ECGBufferUnfiltered):
-                    ECGBufferUnfiltered[750+i] = unfilteredEcgSignal[i];
-                    //Add to front (explicitX)
-                    explicitXValsLong[750+i] = ((double) mTimeSeconds) + ((double)i/250);
-                }
-                //filter:
-//                ECGBufferFiltered2 = jFirFilter(ECGBufferUnfiltered);
-                ECGBufferFiltered2 = jBwFilter(ECGBufferUnfiltered);
-                //Todo: adjust Range Step Value every 1 s:
-                //Every 4 seconds elapsed:
-                //TODO: Now Analyze filtered data (after plot)
-                if(eegDataSeries1.size()>249) {
-                    double max = findGraphMax(eegDataSeries1);
-                    double min = findGraphMin(eegDataSeries1);
-                    if((max-min)!=0) {
-                        if(currentBM!=BoundaryMode.AUTO) {
-                            eegPlot.setRangeBoundaries(-2.5, 2.5, BoundaryMode.AUTO);
-                            currentBM = BoundaryMode.AUTO;
-                        }
-                        eegPlot.setRangeStepValue((max-min)/5);
-                    } else {
-                        if(currentBM!=BoundaryMode.FIXED) {
-                            eegPlot.setRangeBoundaries(min-1, max+1, BoundaryMode.FIXED);
-                            currentBM = BoundaryMode.FIXED;
-                        }
-                        eegPlot.setRangeStepValue(2.0/5.0);
-                    }
-                }
-                //TODO: Now plot:
-                 //The idea is that every time this thing is triggered, we want to plot the entirety
-                 //of [explicitXValsLong, ECGBufferFiltered2] BEFORE the next second occurs.
-                if(mTimeSeconds == HISTORY_SECONDS) {
-                    newMinX = Math.floor(explicitXValsLong[0]);
-                    newMaxX = Math.floor(explicitXValsLong[999]);
-                    eegPlot.setDomainBoundaries(newMinX, newMaxX, BoundaryMode.AUTO);
-                }
-                /**
-                 * TODO: Probably set graph so that it plots at 1ms.??
-                 * clearGraph(), and plotGraph() work, but doesn't look good
-                 */
-                if(!plotImplicitXVals) {
-                    if (!startedGraphingEcgData) {
-                        if (!initExecutor) {
-                            startGraphEcgData3();
-                            initExecutor = true;
-                        }
-                        startedGraphingEcgData = true;
-                    }
-                }
-                mTimeSeconds++;
-                unfiltIndex=0;
-            } else {
-                unfiltIndex++;
-            }
-            mEegValsTextView.setText(" " + " Voltage="+String.format("%1.4f",dataVoltage)+"V");
             }
         });
     }
@@ -1251,9 +1190,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         }
     }
 
-    private double[] ECGBufferDoubles = new double[ECGBDSize]; //4s of data, unfiltered
-    private double[] ECGBufferFiltered = new double[ECGBDSize];
-    private double[] explicitXValsLong = new double[ECGBDSize];
+
     private boolean initExecutor = false;
     private boolean startedGraphingEcgData = false;
 
@@ -1298,46 +1235,6 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 }
             });
         }
-    }
-    //Get Data Rate (assigned to ECG)
-    private void getDataRate(int pointnum) {
-        mCurrentTime = System.currentTimeMillis();
-        points += pointnum;
-        if (mCurrentTime > (mLastTime + 5000)) {
-            dataRate = (points / 5);
-            points = 0;
-            mLastTime = mCurrentTime;
-            Log.e("ECG DataRate:", String.valueOf(dataRate) + " Hz");
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-
-                    mDataRate.setText(String.valueOf(dataRate)+ " Hz");
-                }
-            });
-        }
-    }
-
-    //Get Data Rate 2 (assigned to MPU)
-    private void getDataRate2() {
-        mCurrentTime2 = System.currentTimeMillis();
-        dataCount++;
-        if (mCurrentTime2 > (mLastTime2 + 5000)) {
-            dataRate2 = (dataCount / 5);
-            dataCount = 0;
-            mLastTime2 = mCurrentTime2;
-            Log.e("MPU Data Rate:", String.valueOf(dataRate2) + " Hz");
-        }
-    }
-
-    private int[] getIntArrayFromByteArrayEcg(byte[] rawValue) {
-        int[] ecgArray = new int[rawValue.length/2];
-        for (int i = 0; i < (rawValue.length/2); i++) {
-            byte[] bin = {rawValue[2 * i], rawValue[2 * i + 1]};
-//            byte[] bin = {rawValue[2 * i + 1], rawValue[2 * i]};
-            ecgArray[i] = getIntfromByte(bin);
-        }
-        return ecgArray;
     }
 
     /**
@@ -1552,18 +1449,6 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             }
         });
     }
-
-    private void batteryNotAvailable() {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-//                Toast.makeText(getApplicationContext(), "Device Does Not Have Battery", Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    private double[] explicitXVals = new double[250];
-    private double[] responseFilteredEcg = new double[250];
 
     private void updateBatteryStatus(final int percent, final String status) {
         runOnUiThread(new Runnable() {

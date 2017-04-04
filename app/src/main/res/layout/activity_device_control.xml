@@ -184,7 +184,7 @@
             android:id="@+id/filterSwitch"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:checked="false"
+            android:checked="true"
             android:text="Filter:" />
 
         <Button
@@ -193,6 +193,13 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="OFF 0x00" />
+
+        <Button
+            android:id="@+id/buttonClrPlot"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Clr Plot" />
 
         <TextView
             android:layout_width="wrap_content"
