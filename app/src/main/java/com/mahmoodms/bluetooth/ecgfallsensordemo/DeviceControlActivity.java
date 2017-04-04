@@ -807,22 +807,32 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private int newValsPlotted = 0;
 
     private void adjustGraph(boolean forceAdjust){
+        double max = findGraphMax(eegDataSeries1);
+        double min = findGraphMin(eegDataSeries1);
         if(newValsPlotted%60==0 || forceAdjust) {
             newValsPlotted = 0;
-            double max = findGraphMax(eegDataSeries1);
-            double min = findGraphMin(eegDataSeries1);
-            if((max-min)!=0) {
-                if(currentBM!=BoundaryMode.AUTO) {
-                    eegPlot.setRangeBoundaries(-2.5, 2.5, BoundaryMode.AUTO);
-                    currentBM = BoundaryMode.AUTO;
+            if(filterData) {
+                if (max-min<0.008) {
+                    eegPlot.setRangeBoundaries(-0.004, 0.004, BoundaryMode.FIXED);
+                    eegPlot.setRangeStepValue(0.008 / 5.0);
+                } else {
+                    eegPlot.setRangeBoundaries(min-0.004, max+0.004,BoundaryMode.AUTO);
+                    eegPlot.setRangeStepValue((0.008+max-min)/5);
                 }
-                eegPlot.setRangeStepValue((max-min)/5);
             } else {
-                if(currentBM!=BoundaryMode.FIXED) {
-                    eegPlot.setRangeBoundaries(min-1, max+1, BoundaryMode.FIXED);
-                    currentBM = BoundaryMode.FIXED;
+                if((max-min)!=0) {
+                    if(currentBM!=BoundaryMode.AUTO) {
+                        eegPlot.setRangeBoundaries(-2.5, 2.5, BoundaryMode.AUTO);
+                        currentBM = BoundaryMode.AUTO;
+                    }
+                    eegPlot.setRangeStepValue((max-min)/5);
+                } else {
+                    if(currentBM!=BoundaryMode.FIXED) {
+                        eegPlot.setRangeBoundaries(min-1, max+1, BoundaryMode.FIXED);
+                        currentBM = BoundaryMode.FIXED;
+                    }
+                    eegPlot.setRangeStepValue(2.0/5.0);
                 }
-                eegPlot.setRangeStepValue(2.0/5.0);
             }
         }
         newMinX = Math.floor(explicitXValsLong[0]);
@@ -884,7 +894,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 double dataVoltage = convert24bitInt(value);
                 if(filterData) {
                     filteredEegSignal = jeegcfilt(unfilteredEegSignal);
-                    if(numberDataPointsCh1%60==0 && numberDataPointsCh1!=0) {
+                    if(numberDataPointsCh1%36==0 && numberDataPointsCh1!=0) {
                         plot(explicitXValsLong,filteredEegSignal);
                     }
                 } else {
