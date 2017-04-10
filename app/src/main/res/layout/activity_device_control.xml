@@ -82,25 +82,25 @@
                 android:id="@+id/c1button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="C1 0x01" />
+                android:text="C1 FWD" />
 
             <Button
                 android:id="@+id/c2button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="C2 0x0F" />
+                android:text="C2 LEFT" />
 
             <Button
                 android:id="@+id/c3button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="C3 0xF0" />
+                android:text="C3 RIGHT" />
 
             <Button
                 android:id="@+id/c4button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="C4 0xFF" />
+                android:text="C4 REVERSE" />
 
         </LinearLayout>
 
@@ -169,17 +169,17 @@
     </LinearLayout>
 
     <LinearLayout
-        android:orientation="horizontal"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
 
         <Button
+            android:id="@+id/button_export"
             style="?android:attr/buttonStyleSmall"
             android:layout_width="114dp"
             android:layout_height="wrap_content"
             android:text="Export"
-            android:id="@+id/button_export"
-            android:textColor="#000000"/>
+            android:textColor="#000000" />
 
         <Switch
             android:id="@+id/filterSwitch"
@@ -193,21 +193,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="OFF 0x00" />
-
-        <Button
-            android:id="@+id/buttonClrPlot"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Clr Plot" />
+            android:text="OFF RESET/STOP" />
 
         <TextView
+            android:id="@+id/ecgValue"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceSmall"
             android:text="Current Value"
-            android:id="@+id/ecgValue"
+            android:textAppearance="?android:attr/textAppearanceSmall"
             android:textSize="16sp" />
 
     </LinearLayout>

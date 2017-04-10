@@ -136,6 +136,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         mDeviceName = intent.getStringExtra(AppConstant.EXTRAS_DEVICE_NAME);
         mDeviceAddress = intent.getStringExtra(AppConstant.EXTRAS_DEVICE_ADDRESS);
         mDeviceAddress2 = "C7:93:2D:DD:64:D1";
+//        mDeviceAddress2 = "E2:77:42:24:7A:09";
         Log.d(TAG, "mDeviceAddress(1): "+mDeviceAddress);
         Log.d(TAG, "mDeviceAddress(2): "+mDeviceAddress2);
         //Set up action bar:
@@ -310,13 +311,13 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 }
             }
         });
-        Button clearPlotButton = (Button) findViewById(R.id.buttonClrPlot);
-        clearPlotButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                clearPlot();
-            }
-        });
+//        Button clearPlotButton = (Button) findViewById(R.id.buttonClrPlot);
+//        clearPlotButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                clearPlot();
+//            }
+//        });
     }
 
     private String androidDeviceBatteryLevel = "-1%";
@@ -398,8 +399,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         if (root.canWrite() && init) {
             File dir = new File(root.getAbsolutePath() + "/DataDirectory");
             boolean mkdirsA = dir.mkdirs();
-            file = new File(dir, fileTimeStamp + "_part"+ String.valueOf(exportFilePart) + ".csv")
-            ;
+            file = new File(dir, fileTimeStamp + "_part"+ String.valueOf(exportFilePart) + ".csv");
             csvWriter = new CSVWriter(new FileWriter(file));
             Log.d("New File Generated", fileTimeStamp + "_part"+ String.valueOf(exportFilePart) + ".csv");
             exportLogFile(false, "NEW FILE GENERATED: "+fileTimeStamp + "_part"+ String.valueOf(exportFilePart) + ".csv\r\n\r\n");
@@ -772,17 +772,16 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private void writeToDisk24(final int ch1, final int ch2, final int ch3, final int ch4) {
         //Add to Back: TODO: Exporting unfiltered data to drive.
         try {
-            for (int i = 0; i < 6; i++) {
-                double ch1d = convert24bitInt(ch1);
-                double ch2d = convert24bitInt(ch2);
-                double ch3d = convert24bitInt(ch3);
-                double ch4d = convert24bitInt(ch4);
-                exportFile(false, false, "", ch1d,ch2d,ch3d,ch4d);
-            }
+            double ch1d = convert24bitInt(ch1);
+            double ch2d = convert24bitInt(ch2);
+            double ch3d = convert24bitInt(ch3);
+            double ch4d = convert24bitInt(ch4);
+            exportFile(false, false, "", ch1d,ch2d,ch3d,ch4d);
         } catch (IOException e) {
             Log.e("IOException", e.toString());
         }
     }
+    
 
     private double convert24bitInt(final int int24bit) {
         double dividedInt = (double) int24bit/8388607.0;
@@ -791,9 +790,6 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
 
     private void clearPlot() {
         if(eegDataSeries1!=null) {
-//            for (int i = 0; i < eegDataSeries1.size(); i++) {
-//                eegDataSeries1.removeFirst();
-//            }
             redrawer.pause();
             while(eegDataSeries1.size()>0) {
                 eegDataSeries1.removeFirst();
@@ -1035,7 +1031,6 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-
                     mDataRate.setText(String.valueOf(dataRate)+ " Bytes/s");
                 }
             });
@@ -1050,20 +1045,6 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
      */
     private int getIntfromByte(byte[] rawValue) {//Assumes 2 bytes
         return (int) rawValue[0] + ((int) rawValue[1] << 8);
-    }
-
-    /**
-     * Ignore this, it basically does the same as the above funcs.
-     * @param rawValue byte array of type int
-     * @return intValue returns a single integer value up to 4-bytes (32-bit int)
-     */
-    private int getIntfromByteAlt(byte[] rawValue) {//Up to 4 bytes
-        int intValue = 0;
-        if (rawValue.length > 0) intValue = (int) rawValue[0];
-        if (rawValue.length > 1) intValue = intValue + ((int) rawValue[1] << 8); //16-bit
-        if (rawValue.length > 2) intValue = intValue + ((int) rawValue[2] << 8);
-        if (rawValue.length > 3) intValue = intValue + ((int) rawValue[3] << 8);
-        return intValue;
     }
 
     /**
