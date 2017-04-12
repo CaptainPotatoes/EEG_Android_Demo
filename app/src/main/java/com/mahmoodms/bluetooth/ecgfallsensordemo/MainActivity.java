@@ -23,10 +23,12 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by mahmoodms on 6/30/2016.
@@ -40,15 +42,16 @@ public class MainActivity extends Activity {
     private Handler mHandler;
     private ListView scanningDeviceListView;
     private BluetoothAdapter mBluetoothAdapter;
-    private static final int MY_PERMISSIONS_LOCATIONS_COARSE = 156;
-    private static final int MY_PERMISSIONS_WRITE_STORAGE = 754;
-    private static final int MY_PERMISSIONS_SEND_SMS = 2285;
-    private static final int MY_PERMISSIONS_INTERNET = 1654;
     private static final int MULTIPLE_PERMISSIONS_REQUEST = 139;
-
     private ScannedDeviceAdapter scannedDeviceAdapter;
     private static final long SCAN_PERIOD = 10000;
     private final static int REQUEST_ENABLE_BT = 12;
+    private List<String> mDeviceAddressesMAC = new ArrayList<>();//up to 3;
+    private List<String> mDeviceNames = new ArrayList<>();//up to 3;
+    private int mDevicesSelectedCount = 0;
+
+    public final static String INTENT_DEVICES_KEY = "DEVICES_TO_PARSE";
+    public final static String INTENT_DEVICES_NAMES = "DEVICE_NAMES_TO_PARSE";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -58,7 +61,7 @@ public class MainActivity extends Activity {
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         //Set up action bar:
         if (getActionBar()!=null) getActionBar().setDisplayHomeAsUpEnabled(false);
-        ActionBar actionBar = getActionBar();
+        final ActionBar actionBar = getActionBar();
         actionBar.setBackgroundDrawable(new ColorDrawable(Color.parseColor("#800020")));
         //Set orientation of device based on screen type/size:
         //Flag to keep screen on (stay-awake):
@@ -68,7 +71,6 @@ public class MainActivity extends Activity {
 
         //Initialize scanningDeviceListView Adapter:
         scanningDeviceListView = (ListView) findViewById(R.id.scanningList);
-
         //Check for BLE Support
         if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
             Toast.makeText(this, R.string.ble_not_supported, Toast.LENGTH_SHORT).show();
@@ -82,26 +84,7 @@ public class MainActivity extends Activity {
             finish();
             return;
         }
-        /**
-         * TODO: Need to add request that will give option to enable permissions, if permissions have not been granted yet
-         */
-        int permissionCheck = ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION);
-        int permissionCheck2 = ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
-        int permissionCheck3 = ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.SEND_SMS);
-        int permissionCheck4 = ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.INTERNET);
-        if(permissionCheck!=PackageManager.PERMISSION_GRANTED && permissionCheck2!=PackageManager.PERMISSION_GRANTED &&  permissionCheck3!=PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.SEND_SMS, Manifest.permission.INTERNET}, MULTIPLE_PERMISSIONS_REQUEST);
-        } else if (permissionCheck!=PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, MY_PERMISSIONS_LOCATIONS_COARSE);
-        } else if (permissionCheck2!=PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, MY_PERMISSIONS_WRITE_STORAGE);
-        } else if (permissionCheck3!=PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.SEND_SMS}, MY_PERMISSIONS_SEND_SMS);
-        } else if (permissionCheck4!=PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.INTERNET}, MY_PERMISSIONS_INTERNET);
-        }
-
+        final Button connectButton = (Button) findViewById(R.id.connectButton);
         //Initialize list view adapter:
         scannedDeviceAdapter = new ScannedDeviceAdapter(this, R.layout.scanning_item, new ArrayList<ScannedDevice>());
         scanningDeviceListView.setAdapter(scannedDeviceAdapter);
@@ -111,71 +94,126 @@ public class MainActivity extends Activity {
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
             ScannedDevice item = scannedDeviceAdapter.getItem(position);
             if (item!=null) {
-                final Intent intent = new Intent(MainActivity.this, DeviceControlActivity.class);
-                intent.putExtra(AppConstant.EXTRAS_DEVICE_NAME, item.getDisplayName());
-                intent.putExtra(AppConstant.EXTRAS_DEVICE_ADDRESS, item.getDeviceMac());
-                if(mScanning) {
-                    //TODO - Requires v21 or greater...
-                    //@Deprecated:
-//                    mBluetoothAdapter.stopLeScan(mLeScanCallback);
-                    if (mBluetoothAdapter.isEnabled())
-                        mBluetoothAdapter.getBluetoothLeScanner().stopScan(mScanCallback);
-                    mScanning = false;
+                if(!mDeviceAddressesMAC.contains(item.getDeviceMac())) {
+                    mDeviceNames.add(item.getDisplayName());
+                    mDeviceAddressesMAC.add(item.getDeviceMac());
+                    mDevicesSelectedCount++;
+                    Toast.makeText(MainActivity.this, "Device Selected: "+item.getDisplayName()+"\n"+item.getDeviceMac(), Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(MainActivity.this, "Device Already in List!", Toast.LENGTH_SHORT).show();
                 }
-                startActivity(intent);
+//                final Intent intent = new Intent(MainActivity.this, DeviceControlActivity.class);
+//                intent.putExtra(AppConstant.EXTRAS_DEVICE_NAME, item.getDisplayName());
+//                intent.putExtra(AppConstant.EXTRAS_DEVICE_ADDRESS, item.getDeviceMac());
+//                if(mScanning) {
+//                    if (mBluetoothAdapter.isEnabled())
+//                        mBluetoothAdapter.getBluetoothLeScanner().stopScan(mScanCallback);
+//                    mScanning = false;
+//                }
+//                startActivity(intent);
             }
+            }
+        });
+        connectButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(mDevicesSelectedCount>0) {
+                    if(mScanning) {
+                        if (mBluetoothAdapter.isEnabled())
+                            mBluetoothAdapter.getBluetoothLeScanner().stopScan(mScanCallback);
+                        mScanning = false;
+                    }
+                    //Send intent
+                    if(mDeviceAddressesMAC != null) {
+                        String[] selectedDeviceArray = mDeviceAddressesMAC.toArray(new String[0]);
+                        String[] selectedDeviceNames = mDeviceNames.toArray(new String[0]);
+//                                new String[mDeviceNames.size()];
+                        final Intent intent = new Intent(MainActivity.this, DeviceControlActivity.class);
+                        intent.putExtra(INTENT_DEVICES_KEY,selectedDeviceArray);
+                        intent.putExtra(INTENT_DEVICES_NAMES,selectedDeviceNames);
+                        startActivity(intent);
+                    } else {
+                        Toast.makeText(MainActivity.this, "No Devices Selected!", Toast.LENGTH_SHORT).show();
+                    }
+                }
             }
         });
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
-        switch (requestCode) {
-            case MY_PERMISSIONS_LOCATIONS_COARSE: {
-                if(grantResults.length>0 && grantResults[0]==PackageManager.PERMISSION_GRANTED) {
-
-                } else {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-//                            Toast toast = Toast.makeText(getApplicationContext(),
-//                                    "This permission is needed for Bluetooth LE!", Toast.LENGTH_LONG);
-//                            toast.show();
-                        }
-                    });
-                }
-                return;
-            }
-            case MY_PERMISSIONS_WRITE_STORAGE: {
-                if(grantResults.length>0 && grantResults[0]==PackageManager.PERMISSION_GRANTED) {
-
-                } else {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-//                            Toast toast = Toast.makeText(getApplicationContext(),
-//                                    "This permission is required to save data!", Toast.LENGTH_LONG);
-//                            toast.show();
-                        }
-                    });
-                }
-                return;
-            }
-            case MULTIPLE_PERMISSIONS_REQUEST: {
-                if(grantResults.length>0 && grantResults[0]==PackageManager.PERMISSION_GRANTED && grantResults[1]==PackageManager.PERMISSION_GRANTED) {
-                } else {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast toast = Toast.makeText(getApplicationContext(),
-                                    "These permissions are required!", Toast.LENGTH_LONG);
-                            toast.show();
-                        }
-                    });
-                }
-            }
+    public boolean checkPermissions() {
+        int permissionCheck1 = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION);
+        int permissionCheck2 = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        int permissionCheck3 = ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS);
+        int permissionCheck4 = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE);
+        List<String> listPermissionsNeeded = new ArrayList<>();
+        if (permissionCheck1!=PackageManager.PERMISSION_GRANTED) {
+            listPermissionsNeeded.add(Manifest.permission.ACCESS_COARSE_LOCATION);
         }
+        if (permissionCheck2!=PackageManager.PERMISSION_GRANTED) {
+            listPermissionsNeeded.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        }
+        if (permissionCheck3!=PackageManager.PERMISSION_GRANTED) {
+            listPermissionsNeeded.add(Manifest.permission.SEND_SMS);
+        }
+        if(permissionCheck4!=PackageManager.PERMISSION_GRANTED) {
+            listPermissionsNeeded.add(Manifest.permission.READ_PHONE_STATE);
+        }
+        Log.e(TAG,"Permissions List Size: "+String.valueOf(listPermissionsNeeded.size()));
+        if(!listPermissionsNeeded.isEmpty()) {
+            ActivityCompat.requestPermissions(this, listPermissionsNeeded.toArray(new String[listPermissionsNeeded.size()]),MULTIPLE_PERMISSIONS_REQUEST);
+            return false;
+        }
+        return true;
     }
+
+//    @Override
+//    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+//        switch (requestCode) {
+//            case MY_PERMISSIONS_LOCATIONS_COARSE: {
+//                if(grantResults.length>0 && grantResults[0]==PackageManager.PERMISSION_GRANTED) {
+//
+//                } else {
+//                    runOnUiThread(new Runnable() {
+//                        @Override
+//                        public void run() {
+////                            Toast toast = Toast.makeText(getApplicationContext(),
+////                                    "This permission is needed for Bluetooth LE!", Toast.LENGTH_LONG);
+////                            toast.show();
+//                        }
+//                    });
+//                }
+//                return;
+//            }
+//            case MY_PERMISSIONS_WRITE_STORAGE: {
+//                if(grantResults.length>0 && grantResults[0]==PackageManager.PERMISSION_GRANTED) {
+//
+//                } else {
+//                    runOnUiThread(new Runnable() {
+//                        @Override
+//                        public void run() {
+////                            Toast toast = Toast.makeText(getApplicationContext(),
+////                                    "This permission is required to save data!", Toast.LENGTH_LONG);
+////                            toast.show();
+//                        }
+//                    });
+//                }
+//                return;
+//            }
+//            case MULTIPLE_PERMISSIONS_REQUEST: {
+//                if(grantResults.length>0 && grantResults[0]==PackageManager.PERMISSION_GRANTED && grantResults[1]==PackageManager.PERMISSION_GRANTED) {
+//                } else {
+//                    runOnUiThread(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            Toast toast = Toast.makeText(getApplicationContext(),
+//                                    "These permissions are required!", Toast.LENGTH_LONG);
+//                            toast.show();
+//                        }
+//                    });
+//                }
+//            }
+//        }
+//    }
 
     @Override
     protected void onPause() {
@@ -187,17 +225,19 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        /**
+        /*
          * Ensures Bluetooth is enabled on the device - if not enabled - fire intent to display a
-         * dialog to ask permission to enable
+         * dialog to ask permissioo enable
          */
-        if (!mBluetoothAdapter.isEnabled()) {
+        if(checkPermissions()) {
             if (!mBluetoothAdapter.isEnabled()) {
-                Intent enableBt = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                startActivityForResult(enableBt, REQUEST_ENABLE_BT);
+                if (!mBluetoothAdapter.isEnabled()) {
+                    Intent enableBt = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                    startActivityForResult(enableBt, REQUEST_ENABLE_BT);
+                }
             }
+            scanLeDevice(true);
         }
-        scanLeDevice(true);
     }
 
     private ScanCallback mScanCallback = new ScanCallback() {
@@ -252,21 +292,18 @@ public class MainActivity extends Activity {
                 @Override
                 public void run() {
                     mScanning = false;
-//                    mBluetoothAdapter.stopLeScan(mLeScanCallback);
                     if (mBluetoothAdapter.isEnabled())
                         mBluetoothAdapter.getBluetoothLeScanner().stopScan(mScanCallback);
                     invalidateOptionsMenu();
                 }
             }, SCAN_PERIOD);
             mScanning = true;
-//            mBluetoothAdapter.startLeScan(mLeScanCallback);
             Log.i(TAG,"isNull?1"+String.valueOf(mScanCallback==null));
             Log.i(TAG,"isNull?2"+String.valueOf(mBluetoothAdapter==null));
             if (mBluetoothAdapter.isEnabled())
                 mBluetoothAdapter.getBluetoothLeScanner().startScan(mScanCallback);
         } else {
             mScanning = false;
-//            mBluetoothAdapter.stopLeScan(mLeScanCallback);
             if (mBluetoothAdapter.isEnabled())
                 mBluetoothAdapter.getBluetoothLeScanner().stopScan(mScanCallback);
         }

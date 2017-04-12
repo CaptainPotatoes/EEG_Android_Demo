@@ -22,7 +22,7 @@ public class ProcessQueueExecutor extends Thread {
     public final static int REQUEST_TYPE_READ_DESCRIPTOR = 3;
     public final static int REQUEST_TYPE_WRITE_DESCRIPTOR = 4;
     public final static int REQUEST_TYPE_NOTIFICATION_ON = 5;
-    public static long EXECUTE_DELAY = 1000;// delay in execution
+    public static long EXECUTE_DELAY = 1000;// delay in execution ms
     private static List<ReadWriteCharacteristic> processList = new ArrayList<ReadWriteCharacteristic>();
     Timer processQueueTimer = new Timer();
 

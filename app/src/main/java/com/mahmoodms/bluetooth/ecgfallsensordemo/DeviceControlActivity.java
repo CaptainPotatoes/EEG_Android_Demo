@@ -53,8 +53,11 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
+import java.util.StringTokenizer;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -67,15 +70,17 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     //LocalVars
     private String mDeviceName;
     private String mDeviceAddress;
-    private String mDeviceAddress2;
     private boolean mConnected;
     //Class instance variable
     private BluetoothLe mBluetoothLe;
     private BluetoothManager mBluetoothManager = null;
-    private BluetoothGatt mBluetoothGatt = null;
-    private BluetoothGatt mBluetoothGatt2 = null;
+//    private BluetoothGatt mBluetoothGatt = null;
+    private BluetoothDevice[] mBluetoothDeviceArray = null;
+    private BluetoothGatt[] mBluetoothGattArray = null;
     private BluetoothDevice mBluetoothDevice;
-    private BluetoothDevice mBluetoothDevice2;
+    //Multidevice Setup
+
+
     //Layout - TextViews and Buttons
 
     private TextView mEegValsTextView;
@@ -125,6 +130,11 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private Button mC4Button;
     private BluetoothGattService mLedService = null;
 
+    //Connecting to Multiple Devices
+    private String[] deviceMacAddresses = null;
+    private String[] deviceDisplayNames = null;
+    private BluetoothGatt[] mAllBluetoothGatts = null;
+    private int mWheelchairGattIndex;
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -133,12 +143,17 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         //Recieve Intents:
         Intent intent = getIntent();
-        mDeviceName = intent.getStringExtra(AppConstant.EXTRAS_DEVICE_NAME);
-        mDeviceAddress = intent.getStringExtra(AppConstant.EXTRAS_DEVICE_ADDRESS);
-        mDeviceAddress2 = "C7:93:2D:DD:64:D1";
+        deviceMacAddresses = intent.getStringArrayExtra(MainActivity.INTENT_DEVICES_KEY);
+        deviceDisplayNames = intent.getStringArrayExtra(MainActivity.INTENT_DEVICES_NAMES);
+        mDeviceName = deviceDisplayNames[0];
+        mDeviceAddress = deviceMacAddresses[0];
+        Log.d(TAG, "Device Names: "+Arrays.toString(deviceDisplayNames));
+        Log.d(TAG, "Device MAC Addresses: "+ Arrays.toString(deviceMacAddresses));
+//        mDeviceAddress = intent.getStringExtra(AppConstant.EXTRAS_DEVICE_ADDRESS);
+//        mDeviceAddress2 = "C7:93:2D:DD:64:D1";
 //        mDeviceAddress2 = "E2:77:42:24:7A:09";
-        Log.d(TAG, "mDeviceAddress(1): "+mDeviceAddress);
-        Log.d(TAG, "mDeviceAddress(2): "+mDeviceAddress2);
+//        Bundle bundle = this.getIntent().getExtras();
+        Log.d(TAG,Arrays.toString(deviceMacAddresses));
         //Set up action bar:
         if (getActionBar() != null) {
             getActionBar().setDisplayHomeAsUpEnabled(true);
@@ -158,7 +173,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         ActionBar ab = getActionBar();
         ab.setTitle(mDeviceName);
         ab.setSubtitle(mDeviceAddress);
-        initializeBluetooth();
+        initializeBluetoothArray();
         // Initialize our XYPlot reference:
         eegDataSeries1 = new SimpleXYSeries("EEG Data Ch 1 (V)");
         eegPlot = (XYPlot) findViewById(R.id.eegPlot);
@@ -262,8 +277,10 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 if(mConnected) {
                     byte[] bytes = new byte[1];
                     bytes[0] = (byte) 0x00;
-                    if(mLedService!=null)
-                    mBluetoothLe.writeCharacteristic(mBluetoothGatt2, mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
+                    if(mLedService!=null) {
+                        //TODO: REPLACE mBluetoothGatt with specific identifier used only for wheelchair control.
+                        mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex], mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
+                    }
                 }
             }
         });
@@ -274,7 +291,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                     byte[] bytes = new byte[1];
                     bytes[0] = (byte) 0x01;
                     if(mLedService!=null)
-                    mBluetoothLe.writeCharacteristic(mBluetoothGatt2, mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
+                    mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex], mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
                 }
             }
         });
@@ -285,7 +302,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                     byte[] bytes = new byte[1];
                     bytes[0] = (byte) 0x0F;
                     if(mLedService!=null)
-                    mBluetoothLe.writeCharacteristic(mBluetoothGatt2, mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
+                    mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex], mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
                 }
             }
         });
@@ -296,7 +313,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                     byte[] bytes = new byte[1];
                     bytes[0] = (byte) 0xF0;
                     if(mLedService!=null)
-                    mBluetoothLe.writeCharacteristic(mBluetoothGatt2, mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
+                    mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex], mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
                 }
             }
         });
@@ -307,7 +324,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                     byte[] bytes = new byte[1];
                     bytes[0] = (byte) 0xFF;
                     if(mLedService!=null)
-                    mBluetoothLe.writeCharacteristic(mBluetoothGatt2, mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
+                    mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex], mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
                 }
             }
         });
@@ -491,14 +508,38 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         super.onPause();
     }
 
+    private void initializeBluetoothArray() {
+        mBluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        mBluetoothDeviceArray = new BluetoothDevice[deviceMacAddresses.length];
+        mBluetoothGattArray = new BluetoothGatt[deviceMacAddresses.length];
+        Log.d(TAG, "Device Addresses: "+Arrays.toString(deviceMacAddresses));
+        if(deviceMacAddresses!=null) {
+            for (int i = 0; i < deviceMacAddresses.length; i++) {
+                mBluetoothDeviceArray[i] = mBluetoothManager.getAdapter().getRemoteDevice(deviceMacAddresses[i]);
+            }
+        } else {
+            Log.e(TAG, "No Devices Queued, Restart!");
+            Toast.makeText(this, "No Devices Queued, Restart!", Toast.LENGTH_SHORT).show();
+        }
+        mBluetoothLe = new BluetoothLe(this, mBluetoothManager, this);
+        for (int i = 0; i < mBluetoothDeviceArray.length; i++) {
+            mBluetoothGattArray[i] = mBluetoothLe.connect(mBluetoothDeviceArray[i],false);
+            Log.e(TAG,"Connecting to Device: "+String.valueOf(mBluetoothDeviceArray[i].getName()+" "+mBluetoothDeviceArray[i].getAddress()));
+            if("WheelchairControl".equals(mBluetoothDeviceArray[i].getName())) {
+                mWheelchairGattIndex = i;
+                Log.e(TAG,"mWheelchairGattIndex: "+mWheelchairGattIndex);
+            }
+        }
+    }
+
     private void initializeBluetooth() {
+        //TODO: Connect To Devices in Queue
         mBluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothDevice = mBluetoothManager.getAdapter().getRemoteDevice(mDeviceAddress);
-        //TODO: Connect To Another Device.
-        mBluetoothDevice2 = mBluetoothManager.getAdapter().getRemoteDevice(mDeviceAddress2);
+//        mBluetoothDevice2 = mBluetoothManager.getAdapter().getRemoteDevice(mDeviceAddress2);
         mBluetoothLe = new BluetoothLe(this, mBluetoothManager, this);
-        mBluetoothGatt = mBluetoothLe.connect(mBluetoothDevice, false);
-        mBluetoothGatt2 = mBluetoothLe.connect(mBluetoothDevice2, false);
+//        mBluetoothGatt = mBluetoothLe.connect(mBluetoothDevice, false);
+//        mBluetoothGatt2 = mBluetoothLe.connect(mBluetoothDevice2, false);
     }
 
     private void setNameAddress(String name_action, String address_action) {
@@ -512,11 +553,18 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     @Override
     protected void onDestroy() {
         redrawer.finish();
-        mBluetoothLe.disconnect(mBluetoothGatt);
-        mBluetoothLe.disconnect(mBluetoothGatt2);
+        disconnectAllBLE();
         this.unregisterReceiver(mBatInfoReceiver);
         stopMonitoringRssiValue();
         super.onDestroy();
+    }
+
+    private void disconnectAllBLE() {
+        if(mBluetoothLe!=null) {
+            for (BluetoothGatt bluetoothGatt:mBluetoothGattArray) {
+                mBluetoothLe.disconnect(bluetoothGatt);
+            }
+        }
     }
 
     @Override
@@ -540,28 +588,30 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         switch (item.getItemId()) {
             case R.id.menu_connect:
                 if (mBluetoothLe != null)
-                    mBluetoothLe.connect(mBluetoothDevice, false);
-//                    mBluetoothLe.connect(mBluetoothDevice2, false);
+                    initializeBluetoothArray();
+//                    mBluetoothLe.connect(mBluetoothDevice, false);
                 connect();
                 return true;
             case R.id.menu_disconnect:
                 if (mBluetoothLe != null) {
-                    if (mBluetoothGatt != null) {
-                        mBluetoothLe.disconnect(mBluetoothGatt);
-                    }
-                    if(mBluetoothGatt2 != null) {
-                        mBluetoothLe.disconnect(mBluetoothGatt2);
-                    }
+                    disconnectAllBLE();
+//                    if (mBluetoothGatt != null) {
+//                        mBluetoothLe.disconnect(mBluetoothGatt);
+//                    }
+//                    if(mBluetoothGatt2 != null) {
+//                        mBluetoothLe.disconnect(mBluetoothGatt2);
+//                    }
                 }
                 return true;
             case android.R.id.home:
                 if (mBluetoothLe != null) {
-                    if(mBluetoothGatt!=null) {
-                        mBluetoothLe.disconnect(mBluetoothGatt);
-                    }
-                    if(mBluetoothGatt2 != null) {
-                        mBluetoothLe.disconnect(mBluetoothGatt2);
-                    }
+                    disconnectAllBLE();
+//                    if(mBluetoothGatt!=null) {
+//                        mBluetoothLe.disconnect(mBluetoothGatt);
+//                    }
+//                    if(mBluetoothGatt2 != null) {
+//                        mBluetoothLe.disconnect(mBluetoothGatt2);
+//                    }
                 }
                 NavUtils.navigateUpFromSameTask(this);
                 onBackPressed();
@@ -691,7 +741,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 timeData = numberDataPointsCh1*0.0040;
                 explicitXValsLong[994+i] = timeData;//plus adjustment for offset
                 unfilteredEegSignal[994+i] = convert24bitInt(data);
-                updateEEG(timeData, eeg_ch1_data[i]);
+//                updateEEG(timeData, eeg_ch1_data[i]);
             }
 //            Log.e("Ch1 = ",String.valueOf(byteLength)+" # of bytes");
         }
@@ -702,7 +752,6 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             }
             byte[] dataEmgBytes = characteristic.getValue();
             int byteLength = dataEmgBytes.length;
-            //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
             getDataRateBytes(byteLength);
             for (int i = 0; i < byteLength/3; i++) { //0→9
                 dataCnt1000++; //count?
@@ -718,8 +767,8 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             }
             byte[] dataEmgBytes = characteristic.getValue();
             int byteLength = dataEmgBytes.length;
-            //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
             getDataRateBytes(byteLength);
+            //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
             for (int i = 0; i < byteLength/3; i++) { //0→9
                 dataCnt1000++; //count?
                 int data = unsignedBytesToInt(dataEmgBytes[3*i], dataEmgBytes[3*i+1], dataEmgBytes[3*i+2]);
@@ -734,8 +783,8 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             }
             byte[] dataEmgBytes = characteristic.getValue();
             int byteLength = dataEmgBytes.length;
-            //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
             getDataRateBytes(byteLength);
+            //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
             for (int i = 0; i < byteLength/3; i++) { //0→9
                 dataCnt1000++; //count?
                 int data = unsignedBytesToInt(dataEmgBytes[3*i], dataEmgBytes[3*i+1], dataEmgBytes[3*i+2]);
@@ -781,7 +830,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             Log.e("IOException", e.toString());
         }
     }
-    
+
 
     private double convert24bitInt(final int int24bit) {
         double dividedInt = (double) int24bit/8388607.0;
@@ -1004,8 +1053,8 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
 
     private String getDetails() {
         return "Details:\r\n" +
-                "Bluetooth LE Device Name: "+mBluetoothDevice.getName() + "\r\n" +
-                "Bluetooth LE Address: "+mBluetoothDevice.getAddress() + "\r\n" +
+                "Bluetooth LE Device Name: "+mBluetoothDeviceArray[0].getName() + "\r\n" +
+                "Bluetooth LE Address: "+mBluetoothDeviceArray[0].getAddress() + "\r\n" +
                 "Last Battery Level: "+String.valueOf(batteryLevel)+"% \r\n\r\n" +
                 "Last RSSI: "+mLastRssi + "\r\n" +
                 "Sampling Rate: "+String.valueOf(DATA_RATE_SAMPLES_PER_SECOND)+"Hz\r\n" +
@@ -1023,6 +1072,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private void getDataRateBytes(int bytes) {
         mCurrentTime = System.currentTimeMillis();
         points += bytes;
+//        Log.e(TAG,"DataRate: Points: "+ String.valueOf(points));
         if (mCurrentTime > (mLastTime + 5000)) {
             dataRate = (points / 5);
             points = 0;
@@ -1167,7 +1217,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     public void readPeriodicallyRssiValue(final boolean repeat) {
         mTimerEnabled = repeat;
         // check if we should stop checking RSSI value
-        if (!mConnected || mBluetoothGatt == null || !mTimerEnabled) {
+        if (!mConnected || mBluetoothGattArray == null || !mTimerEnabled) {
             mTimerEnabled = false;
             return;
         }
@@ -1175,13 +1225,12 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         mTimerHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                if (mBluetoothGatt == null  || !mConnected) {
+                if (mBluetoothGattArray == null  || !mConnected) {
                     mTimerEnabled = false;
                     return;
                 }
-
                 // request RSSI value
-                mBluetoothGatt.readRemoteRssi();
+                mBluetoothGattArray[0].readRemoteRssi();
                 // add call it once more in the future
                 readPeriodicallyRssiValue(mTimerEnabled);
             }
