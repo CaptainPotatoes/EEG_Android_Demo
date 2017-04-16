@@ -1,4 +1,4 @@
-package com.mahmoodms.bluetooth.ecgfallsensordemo;
+package com.mahmoodms.bluetooth.eegssvepdemo;
 
 
 import javax.activation.DataHandler;

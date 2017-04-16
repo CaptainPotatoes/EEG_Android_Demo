@@ -155,7 +155,7 @@ int main(int, const char * const [])
 
 extern "C" {
 JNIEXPORT jint JNICALL
-Java_com_mahmoodms_bluetooth_ecgfallsensordemo_DeviceControlActivity_jmainFHC(
+Java_com_mahmoodms_bluetooth_eegssvepdemo_DeviceControlActivity_jmainFHC(
         JNIEnv *env, jobject obj, jboolean terminate) {
   if(!(bool)terminate) {
     fullHybridClassifier_initialize();

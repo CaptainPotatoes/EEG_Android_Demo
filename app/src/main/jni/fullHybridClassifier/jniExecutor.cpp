@@ -41,7 +41,7 @@ extern "C" {
 JNIEXPORT jdoubleArray JNICALL
 //Call this function with (data, data, data, data, datalen, Fs);
 //Don't need array size; can check size array in C.
-Java_com_mahmoodms_bluetooth_ecgfallsensordemo_DeviceControlActivity_jfullHybridClassifier(
+Java_com_mahmoodms_bluetooth_eegssvepdemo_DeviceControlActivity_jfullHybridClassifier(
         JNIEnv *env, jobject jobject1, jdoubleArray array1, jdoubleArray array2, jdoubleArray array3, jdoubleArray array4, jboolean eogOnly) {
     jdouble  *c_array_ch1 = env->GetDoubleArrayElements(array1, NULL);
     jdouble  *c_array_ch2 = env->GetDoubleArrayElements(array2, NULL);
@@ -74,7 +74,7 @@ extern "C" {
 JNIEXPORT jdoubleArray JNICALL
 //Call this function with (data, data, data, data, datalen, Fs);
 //Don't need array size; can check size array in C.
-Java_com_mahmoodms_bluetooth_ecgfallsensordemo_DeviceControlActivity_jeegcfilt(
+Java_com_mahmoodms_bluetooth_eegssvepdemo_DeviceControlActivity_jeegcfilt(
         JNIEnv *env, jobject jobject1, jdoubleArray array) {
     int len = 0;
     jdouble  *c_array = env->GetDoubleArrayElements(array, NULL);

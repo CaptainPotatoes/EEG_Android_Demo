@@ -127,7 +127,7 @@ static void main_eegcfilt()
 
 extern "C" {
 JNIEXPORT jint JNICALL
-Java_com_mahmoodms_bluetooth_ecgfallsensordemo_DeviceControlActivity_jmainEegFilt(
+Java_com_mahmoodms_bluetooth_eegssvepdemo_DeviceControlActivity_jmainEegFilt(
         JNIEnv *env, jobject obj, jboolean terminate) {
   if(!(bool)terminate) {
     eegcfilt_initialize();

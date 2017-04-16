@@ -1,4 +1,4 @@
-package com.mahmoodms.bluetooth.ecgfallsensordemo;
+package com.mahmoodms.bluetooth.eegssvepdemo;
 
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.le.ScanRecord;
@@ -14,6 +14,7 @@ import java.util.List;
 /**
  * Created by mahmoodms on 5/31/2016.
  */
+
 public class ScannedDeviceAdapter extends ArrayAdapter<ScannedDevice> {
     private List<ScannedDevice> list;
     private LayoutInflater inflater;
@@ -41,10 +42,10 @@ public class ScannedDeviceAdapter extends ArrayAdapter<ScannedDevice> {
         deviceRSSI.setText(currentRSSI);
         return convertView;
     }
+
     /**
      * add or update BluetoothDevice
      */
-
     public void update(BluetoothDevice newDevice, int rssi, byte[] scanRecord) {
         if ((newDevice==null)||(newDevice.getAddress()==null)) return;
         boolean contains = false;
@@ -55,7 +56,6 @@ public class ScannedDeviceAdapter extends ArrayAdapter<ScannedDevice> {
                 break;
             }
         }
-
         if(!contains) {
             list.add(new ScannedDevice(newDevice, rssi));
         }
@@ -75,5 +75,15 @@ public class ScannedDeviceAdapter extends ArrayAdapter<ScannedDevice> {
         if(!contains) {
             list.add(new ScannedDevice(newDevice, rssi));
         }
+    }
+
+    public void add(ScannedDevice scannedDevice) {
+        if(!list.contains(scannedDevice)) {
+            list.add(scannedDevice);
+        }
+    }
+
+    public void remove(int index) {
+        list.remove(index);
     }
 }

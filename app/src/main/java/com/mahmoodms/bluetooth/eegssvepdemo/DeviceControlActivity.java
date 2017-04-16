@@ -1,4 +1,4 @@
-package com.mahmoodms.bluetooth.ecgfallsensordemo;
+package com.mahmoodms.bluetooth.eegssvepdemo;
 
 import android.app.ActionBar;
 import android.app.Activity;
@@ -25,7 +25,6 @@ import android.os.Environment;
 import android.os.Handler;
 import android.provider.Settings;
 import android.support.v4.app.NavUtils;
-import android.telephony.SmsManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -53,13 +52,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.List;
-import java.util.StringTokenizer;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created by mahmoodms on 5/31/2016.
@@ -278,8 +273,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                     byte[] bytes = new byte[1];
                     bytes[0] = (byte) 0x00;
                     if(mLedService!=null) {
-                        //TODO: REPLACE mBluetoothGatt with specific identifier used only for wheelchair control.
-                        mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex], mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
+                            mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex], mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
                     }
                 }
             }
@@ -291,7 +285,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                     byte[] bytes = new byte[1];
                     bytes[0] = (byte) 0x01;
                     if(mLedService!=null)
-                    mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex], mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
+                        mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex], mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
                 }
             }
         });
@@ -302,7 +296,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                     byte[] bytes = new byte[1];
                     bytes[0] = (byte) 0x0F;
                     if(mLedService!=null)
-                    mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex], mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
+                        mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex], mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
                 }
             }
         });
@@ -313,7 +307,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                     byte[] bytes = new byte[1];
                     bytes[0] = (byte) 0xF0;
                     if(mLedService!=null)
-                    mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex], mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
+                        mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex], mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
                 }
             }
         });
@@ -324,17 +318,10 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                     byte[] bytes = new byte[1];
                     bytes[0] = (byte) 0xFF;
                     if(mLedService!=null)
-                    mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex], mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
+                        mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex], mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
                 }
             }
         });
-//        Button clearPlotButton = (Button) findViewById(R.id.buttonClrPlot);
-//        clearPlotButton.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                clearPlot();
-//            }
-//        });
     }
 
     private String androidDeviceBatteryLevel = "-1%";
@@ -480,6 +467,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     public void onResume() {
         makeFilterSwitchVisible(true);
         int fHCMain = jmainFHC(initialize);
+        jmainEegFilt(initialize);
         Log.i("fHCMain","INITIALIZED: "+String.valueOf(fHCMain));
         double[] array0 = new double[1000];
         Arrays.fill(array0,0.0);
@@ -536,10 +524,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         //TODO: Connect To Devices in Queue
         mBluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         mBluetoothDevice = mBluetoothManager.getAdapter().getRemoteDevice(mDeviceAddress);
-//        mBluetoothDevice2 = mBluetoothManager.getAdapter().getRemoteDevice(mDeviceAddress2);
         mBluetoothLe = new BluetoothLe(this, mBluetoothManager, this);
-//        mBluetoothGatt = mBluetoothLe.connect(mBluetoothDevice, false);
-//        mBluetoothGatt2 = mBluetoothLe.connect(mBluetoothDevice2, false);
     }
 
     private void setNameAddress(String name_action, String address_action) {
@@ -587,31 +572,19 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_connect:
-                if (mBluetoothLe != null)
+                if (mBluetoothLe != null) {
                     initializeBluetoothArray();
-//                    mBluetoothLe.connect(mBluetoothDevice, false);
+                }
                 connect();
                 return true;
             case R.id.menu_disconnect:
                 if (mBluetoothLe != null) {
                     disconnectAllBLE();
-//                    if (mBluetoothGatt != null) {
-//                        mBluetoothLe.disconnect(mBluetoothGatt);
-//                    }
-//                    if(mBluetoothGatt2 != null) {
-//                        mBluetoothLe.disconnect(mBluetoothGatt2);
-//                    }
                 }
                 return true;
             case android.R.id.home:
                 if (mBluetoothLe != null) {
                     disconnectAllBLE();
-//                    if(mBluetoothGatt!=null) {
-//                        mBluetoothLe.disconnect(mBluetoothGatt);
-//                    }
-//                    if(mBluetoothGatt2 != null) {
-//                        mBluetoothLe.disconnect(mBluetoothGatt2);
-//                    }
                 }
                 NavUtils.navigateUpFromSameTask(this);
                 onBackPressed();
@@ -656,6 +629,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                     mBluetoothLe.setCharacteristicNotification(gatt, service.getCharacteristic(AppConstant.CHAR_EEG_CH3_SIGNAL), true);
                     mBluetoothLe.setCharacteristicNotification(gatt, service.getCharacteristic(AppConstant.CHAR_EEG_CH4_SIGNAL), true);
                 }
+
 
                 if (AppConstant.SERVICE_BATTERY_LEVEL.equals(service.getUuid())) {
                     //Read the device battery percentage
@@ -797,18 +771,11 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             eeg_ch2_data_on = false;
             eeg_ch3_data_on = false;
             eeg_ch4_data_on = false;
-//            Log.i(TAG,"ARRAY1:"+Arrays.toString(eeg_ch1_data));
-//            Log.i(TAG,"ARRAY2:"+Arrays.toString(eeg_ch2_data));
-//            Log.i(TAG,"ARRAY3:"+Arrays.toString(eeg_ch3_data));
-//            Log.i(TAG,"ARRAY4:"+Arrays.toString(eeg_ch4_data));
             for (int i = 0; i < 6; i++) {
                 writeToDisk24(eeg_ch1_data[i],eeg_ch2_data[i],eeg_ch3_data[i],eeg_ch4_data[i]);
             }
         }
     }
-
-
-
 
     private void writeToDisk24(final int value) {
         try {
@@ -945,7 +912,6 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 } else {
                     plot(timeData,dataVoltage);
                 }
-//                Log.d(TAG, "TimeData: "+String.valueOf(timeData)+" TimeData2: "+String.valueOf(explicitXValsLong[999]));
             }
         });
     }
@@ -1323,5 +1289,5 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
 
     private native double[] jeegcfilt(double[] array);
 
-    private native double[] jBwFilter(double[] ecg);
+//    private native double[] jBwFilter(double[] eeg);
 }

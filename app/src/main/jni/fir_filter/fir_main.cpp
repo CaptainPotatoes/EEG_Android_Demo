@@ -114,7 +114,7 @@ static void main_fir_combined()
 
 extern "C" {
 JNIEXPORT jint JNICALL
-Java_com_mahmoodms_bluetooth_ecgfallsensordemo_DeviceControlActivity_jmainFirFilter(
+Java_com_mahmoodms_bluetooth_eegssvepdemo_DeviceControlActivity_jmainFirFilter(
         JNIEnv *env, jobject obj, jboolean terminate) {
     if(!(bool)terminate) {
       fir_combined_initialize();

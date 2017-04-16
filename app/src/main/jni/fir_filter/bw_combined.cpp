@@ -23,7 +23,7 @@
 
 extern "C" {
 JNIEXPORT jdoubleArray JNICALL
-Java_com_mahmoodms_bluetooth_ecgfallsensordemo_DeviceControlActivity_jBwFilter(
+Java_com_mahmoodms_bluetooth_eegssvepdemo_DeviceControlActivity_jBwFilter(
         JNIEnv *env, jobject jobject1, jdoubleArray array) {
   jdouble  *c_array;
   c_array = env->GetDoubleArrayElements(array, NULL);

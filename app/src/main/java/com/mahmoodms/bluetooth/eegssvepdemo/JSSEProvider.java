@@ -1,4 +1,4 @@
-package com.mahmoodms.bluetooth.ecgfallsensordemo;
+package com.mahmoodms.bluetooth.eegssvepdemo;
 
 /**
  * Created by mahmoodms on 11/5/2016.

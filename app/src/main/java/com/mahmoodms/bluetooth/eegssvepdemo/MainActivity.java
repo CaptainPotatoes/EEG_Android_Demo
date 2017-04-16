@@ -1,4 +1,4 @@
-package com.mahmoodms.bluetooth.ecgfallsensordemo;
+package com.mahmoodms.bluetooth.eegssvepdemo;
 
 import android.Manifest;
 import android.app.ActionBar;
@@ -28,6 +28,7 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -40,14 +41,15 @@ public class MainActivity extends Activity {
     private final static String TAG = DeviceControlActivity.class.getSimpleName();
     private boolean mScanning;
     private Handler mHandler;
-    private ListView scanningDeviceListView;
+//    private ListView scanningDeviceListView;
     private BluetoothAdapter mBluetoothAdapter;
     private static final int MULTIPLE_PERMISSIONS_REQUEST = 139;
     private ScannedDeviceAdapter scannedDeviceAdapter;
+    private ScannedDeviceAdapter selectedDeviceAdapter;
     private static final long SCAN_PERIOD = 10000;
     private final static int REQUEST_ENABLE_BT = 12;
-    private List<String> mDeviceAddressesMAC = new ArrayList<>();//up to 3;
-    private List<String> mDeviceNames = new ArrayList<>();//up to 3;
+    private List<String> mDeviceAddressesMAC = new ArrayList<>();
+    private List<String> mDeviceNames = new ArrayList<>();
     private int mDevicesSelectedCount = 0;
 
     public final static String INTENT_DEVICES_KEY = "DEVICES_TO_PARSE";
@@ -70,7 +72,8 @@ public class MainActivity extends Activity {
         mHandler = new Handler();
 
         //Initialize scanningDeviceListView Adapter:
-        scanningDeviceListView = (ListView) findViewById(R.id.scanningList);
+        ListView scanningDeviceListView = (ListView) findViewById(R.id.scanningList);
+        ListView selectedDeviceListView = (ListView) findViewById(R.id.selectedList);
         //Check for BLE Support
         if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
             Toast.makeText(this, R.string.ble_not_supported, Toast.LENGTH_SHORT).show();
@@ -87,7 +90,9 @@ public class MainActivity extends Activity {
         final Button connectButton = (Button) findViewById(R.id.connectButton);
         //Initialize list view adapter:
         scannedDeviceAdapter = new ScannedDeviceAdapter(this, R.layout.scanning_item, new ArrayList<ScannedDevice>());
+        selectedDeviceAdapter = new ScannedDeviceAdapter(this, R.layout.scanning_item, new ArrayList<ScannedDevice>());
         scanningDeviceListView.setAdapter(scannedDeviceAdapter);
+        selectedDeviceListView.setAdapter(selectedDeviceAdapter);
         // Click Item Listener:
         scanningDeviceListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -98,6 +103,10 @@ public class MainActivity extends Activity {
                     mDeviceNames.add(item.getDisplayName());
                     mDeviceAddressesMAC.add(item.getDeviceMac());
                     mDevicesSelectedCount++;
+                    scannedDeviceAdapter.remove(position);
+                    scannedDeviceAdapter.notifyDataSetChanged();
+                    selectedDeviceAdapter.add(item);
+                    selectedDeviceAdapter.notifyDataSetChanged();
                     Toast.makeText(MainActivity.this, "Device Selected: "+item.getDisplayName()+"\n"+item.getDeviceMac(), Toast.LENGTH_SHORT).show();
                 } else {
                     Toast.makeText(MainActivity.this, "Device Already in List!", Toast.LENGTH_SHORT).show();
@@ -246,29 +255,16 @@ public class MainActivity extends Activity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    scannedDeviceAdapter.update(result.getDevice(), result.getRssi(), result.getScanRecord());
-                    scannedDeviceAdapter.notifyDataSetChanged();
+                    if(!mDeviceAddressesMAC.contains(result.getDevice().getAddress())) {
+                        scannedDeviceAdapter.update(result.getDevice(), result.getRssi(), result.getScanRecord());
+                        scannedDeviceAdapter.notifyDataSetChanged();
+                    }
                 }
             });
             super.onScanResult(callbackType, result);
         }
     };
 
-    /*private BluetoothAdapter.LeScanCallback mLeScanCallback = new BluetoothAdapter.LeScanCallback() {
-        @Override
-        public void onLeScan(final BluetoothDevice device,
-                             final int rssi,
-                             final byte[] scanRecord) {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    scannedDeviceAdapter.update(device, rssi, scanRecord);
-                    scannedDeviceAdapter.notifyDataSetChanged();
-                }
-            });
-        }
-    };
-*/
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_device_scan, menu);
