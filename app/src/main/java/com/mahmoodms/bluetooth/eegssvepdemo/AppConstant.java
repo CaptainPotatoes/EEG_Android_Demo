@@ -25,7 +25,14 @@ public final class AppConstant {
     public static final UUID CHAR_EMG_DATARATE = UUID.fromString("00003262-0000-1000-8000-00805f9b34fb");
 
     /**
-     * For EEG (new):
+     * For EOG (new)
+     */
+    public static final UUID SERVICE_EOG_SIGNAL = UUID.fromString("228be0f0-35fd-875f-39fe-b2a394d28057");//E0F0
+    public static final UUID CHAR_EOG_CH1_SIGNAL = UUID.fromString("0000e0f1-0000-1000-8000-00805f9b34fb");
+    public static final UUID CHAR_EOG_CH2_SIGNAL = UUID.fromString("0000e0f2-0000-1000-8000-00805f9b34fb");
+    public static final UUID CHAR_EOG_CH3_SIGNAL = UUID.fromString("0000e0f3-0000-1000-8000-00805f9b34fb");
+    /**
+     * For EEG:
      */
     public static final UUID SERVICE_EEG_SIGNAL = UUID.fromString("228beef0-35fd-875f-39fe-b2a394d28057");
     //Characteristic:

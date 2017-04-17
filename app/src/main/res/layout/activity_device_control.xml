@@ -39,7 +39,6 @@
     <LinearLayout
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
         android:gravity="center"
         android:orientation="horizontal">
 
@@ -68,41 +67,63 @@
             android:layout_marginLeft="0dp"
             android:layout_marginRight="0dp"
             android:layout_marginTop="0dp"
-            android:layout_weight="1"
+            android:layout_weight="0.4"
             ap:domainLabel="domain"
             ap:label="EMG Data"
             ap:rangeLabel="range" />
 
-        <LinearLayout
-            android:layout_width="150dp"
+        <GridLayout
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="vertical">
+            android:layout_weight="0.6">
 
             <Button
-                android:id="@+id/c1button"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="C1 FWD" />
+                android:id="@+id/buttonUp"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:layout_column="1"
+                android:layout_row="0"
+                android:text="↑\nFwd"
+                android:textAppearance="@style/TextAppearance.AppCompat.Small" />
 
             <Button
-                android:id="@+id/c2button"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="C2 LEFT" />
+                android:id="@+id/buttonMiddle"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:layout_column="1"
+                android:layout_row="1"
+                android:text="Middle"
+                android:textAppearance="@style/TextAppearance.AppCompat.Small" />
 
             <Button
-                android:id="@+id/c3button"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="C3 RIGHT" />
+                android:id="@+id/buttonDown"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:layout_column="1"
+                android:layout_row="2"
+                android:text="Down\n↓"
+                android:textAppearance="@style/TextAppearance.AppCompat.Small" />
 
             <Button
-                android:id="@+id/c4button"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="C4 REVERSE" />
+                android:id="@+id/buttonLeft"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:layout_column="0"
+                android:layout_row="1"
+                android:text="←Left"
+                android:textAppearance="@style/TextAppearance.AppCompat.Small" />
 
-        </LinearLayout>
+            <Button
+                android:id="@+id/buttonRight"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:layout_column="2"
+                android:layout_row="1"
+                android:text="Right→"
+                android:textAppearance="@style/TextAppearance.AppCompat.Small" />
+
+
+        </GridLayout>
 
         <!--<GridLayout
             android:layout_width="81dp"
@@ -187,13 +208,6 @@
             android:layout_height="wrap_content"
             android:checked="true"
             android:text="Filter:" />
-
-        <Button
-            android:id="@+id/c0_off"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="OFF RESET/STOP" />
 
         <TextView
             android:id="@+id/ecgValue"
