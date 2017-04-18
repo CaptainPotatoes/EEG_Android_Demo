@@ -111,15 +111,6 @@ public class MainActivity extends Activity {
                 } else {
                     Toast.makeText(MainActivity.this, "Device Already in List!", Toast.LENGTH_SHORT).show();
                 }
-//                final Intent intent = new Intent(MainActivity.this, DeviceControlActivity.class);
-//                intent.putExtra(AppConstant.EXTRAS_DEVICE_NAME, item.getDisplayName());
-//                intent.putExtra(AppConstant.EXTRAS_DEVICE_ADDRESS, item.getDeviceMac());
-//                if(mScanning) {
-//                    if (mBluetoothAdapter.isEnabled())
-//                        mBluetoothAdapter.getBluetoothLeScanner().stopScan(mScanCallback);
-//                    mScanning = false;
-//                }
-//                startActivity(intent);
             }
             }
         });

@@ -54,7 +54,6 @@ import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 /**
  * Created by mahmoodms on 5/31/2016.
@@ -92,7 +91,8 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private long mCurrentTime2;
     private String mLastRssi;
 
-    private ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
+    private TextView mAllChannelsReadyTextView;
+
 
     private boolean filterData = true;
     private int points = 0;
@@ -115,11 +115,11 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private BoundaryMode currentBM = BoundaryMode.AUTO;
     //Data Variables:
     private int batteryWarning = 20;//%
-    //    final private boolean terminate = true;
     final private boolean initialize = false;
     private String fileTimeStamp = "";
     private double dataRate;
     private double mEOGClass = 0;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -134,10 +134,6 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         mDeviceAddress = deviceMacAddresses[0];
         Log.d(TAG, "Device Names: "+Arrays.toString(deviceDisplayNames));
         Log.d(TAG, "Device MAC Addresses: "+ Arrays.toString(deviceMacAddresses));
-//        mDeviceAddress = intent.getStringExtra(AppConstant.EXTRAS_DEVICE_ADDRESS);
-//        mDeviceAddress2 = "C7:93:2D:DD:64:D1";
-//        mDeviceAddress2 = "E2:77:42:24:7A:09";
-//        Bundle bundle = this.getIntent().getExtras();
         Log.d(TAG,Arrays.toString(deviceMacAddresses));
         //Set up action bar:
         if (getActionBar() != null) {
@@ -153,6 +149,8 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         mFilterSwitch = (Switch) findViewById(R.id.filterSwitch);
         mBatteryLevel = (TextView) findViewById(R.id.batteryText);
         mDataRate = (TextView) findViewById(R.id.dataRate);
+        mAllChannelsReadyTextView = (TextView) findViewById(R.id.allChannelsEnabledText);
+        mAllChannelsReadyTextView.setText("Waiting For EOG Device.");
         mDataRate.setText("...");
         //Initialize Bluetooth
         ActionBar ab = getActionBar();
@@ -265,6 +263,8 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         Button leftButton = (Button) findViewById(R.id.buttonLeft);
         Button rightButton = (Button) findViewById(R.id.buttonRight);
         Button centerButton = (Button) findViewById(R.id.buttonMiddle);
+        Button blinkButton = (Button) findViewById(R.id.buttonSB);
+        Button doubleBlinkButton = (Button) findViewById(R.id.buttonDB);
         upButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -274,7 +274,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                     if(mLedService!=null)
                         mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex], mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
                 }
-                mEOGClass = 1;
+                mEOGClass = 3;
                 mClassTime = System.currentTimeMillis();
             }
         });
@@ -287,7 +287,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                     if(mLedService!=null)
                         mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex], mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
                 }
-                mEOGClass = 4;
+                mEOGClass = 6;
                 mClassTime = System.currentTimeMillis();
             }
         });
@@ -300,7 +300,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                     if(mLedService!=null)
                         mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex], mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
                 }
-                mEOGClass = 2;
+                mEOGClass = 4;
                 mClassTime = System.currentTimeMillis();
             }
         });
@@ -313,7 +313,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                     if(mLedService!=null)
                         mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex], mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
                 }
-                mEOGClass = 3;
+                mEOGClass = 5;
                 mClassTime = System.currentTimeMillis();
             }
         });
@@ -327,7 +327,22 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                         mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex], mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
                     }
                 }
-                mEOGClass = 0;
+                mEOGClass = -1;
+                mClassTime = System.currentTimeMillis();
+            }
+        });
+        blinkButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+            public void onClick(View view) {
+                mEOGClass = 1;
+                mClassTime = System.currentTimeMillis();
+            }
+        });
+        doubleBlinkButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mEOGClass = 2;
+                mClassTime = System.currentTimeMillis();
             }
         });
     }
@@ -804,9 +819,19 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             int byteLength = dataEmgBytes.length;
             //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
             getDataRateBytes(byteLength);
+            // TODO: 4/18/2017 GRAPHING STUFF
+            System.arraycopy(unfilteredEegSignal, 6, unfilteredEegSignal, 0, 1000-6);
+            System.arraycopy(explicitXValsLong, 6, explicitXValsLong, 0, 1000-6);
+
             for (int i = 0; i < byteLength/3; i++) { //0→9
                 int data = unsignedBytesToInt(dataEmgBytes[3*i], dataEmgBytes[3*i+1], dataEmgBytes[3*i+2]);
                 eog_ch1_data[i] = unsignedToSigned(data, 24);
+                // TODO: 4/18/2017 PLOTTING STUFF (REMOVE LATER).
+                numberDataPointsCh1++;
+                timeData = numberDataPointsCh1*0.0040;
+                explicitXValsLong[994+i] = timeData;//plus adjustment for offset
+                unfilteredEegSignal[994+i] = convert24bitInt(data);
+                updateEEG(timeData, eog_ch1_data[i]);
             }
             Log.e(TAG,"EOG-CH1");
         }
@@ -841,6 +866,12 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         }
 
         if(eog_ch3_data_on && eog_ch2_data_on && eog_ch1_data_on) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mAllChannelsReadyTextView.setText("EOG Ready.");
+                }
+            });
             eog_ch3_data_on = false;
             eog_ch2_data_on = false;
             eog_ch1_data_on = false;
@@ -1125,7 +1156,6 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private void getDataRateBytes(int bytes) {
         mCurrentTime = System.currentTimeMillis();
         points += bytes;
-//        Log.e(TAG,"DataRate: Points: "+ String.valueOf(points));
         if (mCurrentTime > (mLastTime + 5000)) {
             dataRate = (points / 5);
             points = 0;
@@ -1375,6 +1405,4 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private native int jmainEegFilt(boolean b);
 
     private native double[] jeegcfilt(double[] array);
-
-//    private native double[] jBwFilter(double[] eeg);
 }
