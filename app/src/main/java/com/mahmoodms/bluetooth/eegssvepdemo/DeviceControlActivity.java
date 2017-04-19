@@ -94,7 +94,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private TextView mAllChannelsReadyTextView;
 
 
-    private boolean filterData = true;
+    private boolean filterData = false;
     private int points = 0;
     private Menu menu;
 
@@ -150,7 +150,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         mBatteryLevel = (TextView) findViewById(R.id.batteryText);
         mDataRate = (TextView) findViewById(R.id.dataRate);
         mAllChannelsReadyTextView = (TextView) findViewById(R.id.allChannelsEnabledText);
-        mAllChannelsReadyTextView.setText("Waiting For EOG Device.");
+        mAllChannelsReadyTextView.setText("  Waiting For EOG Device.");
         mDataRate.setText("...");
         //Initialize Bluetooth
         ActionBar ab = getActionBar();
@@ -327,7 +327,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                         mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex], mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
                     }
                 }
-                mEOGClass = -1;
+                mEOGClass = 1;
                 mClassTime = System.currentTimeMillis();
             }
         });
@@ -869,7 +869,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    mAllChannelsReadyTextView.setText("EOG Ready.");
+                    mAllChannelsReadyTextView.setText("  EOG Ready.");
                 }
             });
             eog_ch3_data_on = false;
