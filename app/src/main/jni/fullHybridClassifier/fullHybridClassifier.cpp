@@ -725,7 +725,7 @@ static void b_findpeaks(const double Yin[1025], emxArray_real_T *Ypk,
     apnd = ndbl + 1;
     cdiff = (ndbl - base->size[0]) + 1;
     idx = base->size[0];
-    if (std::abs((double)cdiff) < 4.4408920985006262E-16 * (double)idx) {
+    if (fabs((double)cdiff) < 4.4408920985006262E-16 * (double)idx) {
       ndbl++;
       apnd = base->size[0];
     } else if (cdiff > 0) {
@@ -1041,7 +1041,7 @@ static double b_mod(double x, double y)
     r = x - std::floor(x / y) * y;
   } else {
     r = x / y;
-    if (std::abs(r - rt_roundd_snf(r)) <= 2.2204460492503131E-16 * std::abs(r))
+    if (fabs(r - rt_roundd_snf(r)) <= 2.2204460492503131E-16 * fabs(r))
     {
       r = 0.0;
     } else {
@@ -1233,7 +1233,7 @@ static void c_findLocalMaxima(emxArray_real_T *yTemp, emxArray_real_T *iPk,
   apnd = ndbl + 1;
   cdiff = (ndbl - yTemp->size[0]) + 1;
   absb = yTemp->size[0];
-  if (std::abs((double)cdiff) < 4.4408920985006262E-16 * (double)absb) {
+  if (fabs((double)cdiff) < 4.4408920985006262E-16 * (double)absb) {
     ndbl++;
     apnd = yTemp->size[0];
   } else if (cdiff > 0) {
@@ -1548,7 +1548,7 @@ static void c_findPeaksSeparatedByMoreThanM(const emxArray_real_T *iPk,
     apnd = ndbl + 1;
     cdiff = (ndbl - iPk->size[0]) + 1;
     absb = iPk->size[0];
-    if (std::abs((double)cdiff) < 4.4408920985006262E-16 * (double)absb) {
+    if (fabs((double)cdiff) < 4.4408920985006262E-16 * (double)absb) {
       ndbl++;
       apnd = iPk->size[0];
     } else if (cdiff > 0) {
@@ -1632,7 +1632,7 @@ static void c_findpeaks(const emxArray_real_T *Yin, emxArray_real_T *Ypk,
       nm1d2 = 1;
     }
 
-    if (std::abs((double)cdiff) < 4.4408920985006262E-16 * (double)nm1d2) {
+    if (fabs((double)cdiff) < 4.4408920985006262E-16 * (double)nm1d2) {
       ndbl++;
       apnd = Yin->size[1];
     } else if (cdiff > 0) {
@@ -1881,7 +1881,7 @@ static void d_findpeaks(const emxArray_real_T *Yin, emxArray_real_T *Ypk,
       nm1d2 = 1;
     }
 
-    if (std::abs((double)cdiff) < 4.4408920985006262E-16 * (double)nm1d2) {
+    if (fabs((double)cdiff) < 4.4408920985006262E-16 * (double)nm1d2) {
       ndbl++;
       apnd = Yin->size[0];
     } else if (cdiff > 0) {
@@ -2179,7 +2179,7 @@ static void do_vectors(const emxArray_real_T *a, const emxArray_real_T *b,
     b_iblast = iblast;
     bk = skip_to_last_equal_value(&b_iblast, b);
     iblast = b_iblast;
-    if ((std::abs(bk - ak) < eps(bk / 2.0)) || (rtIsInf(ak) && rtIsInf(bk) &&
+    if ((fabs(bk - ak) < eps(bk / 2.0)) || (rtIsInf(ak) && rtIsInf(bk) &&
          ((ak > 0.0) == (bk > 0.0)))) {
       p = true;
     } else {
@@ -3088,7 +3088,7 @@ static double eps(double x)
   double r;
   double absxk;
   int exponent;
-  absxk = std::abs(x);
+  absxk = fabs(x);
   if ((!rtIsInf(absxk)) && (!rtIsNaN(absxk))) {
     if (absxk <= 2.2250738585072014E-308) {
       r = 4.94065645841247E-324;
@@ -6608,7 +6608,7 @@ static void findpeaks(const double Yin[250], emxArray_real_T *Ypk,
     apnd = ndbl + 1;
     cdiff = (ndbl - varargin_2->size[0]) + 1;
     idx = varargin_2->size[0];
-    if (std::abs((double)cdiff) < 4.4408920985006262E-16 * (double)idx) {
+    if (fabs((double)cdiff) < 4.4408920985006262E-16 * (double)idx) {
       ndbl++;
       apnd = varargin_2->size[0];
     } else if (cdiff > 0) {
@@ -7694,7 +7694,7 @@ static void hannWin(double x, emxArray_real_T *w)
     ndbl = std::floor((x - 1.0) + 0.5);
     apnd = ndbl;
     cdiff = ndbl - (x - 1.0);
-    if (std::abs(cdiff) < 4.4408920985006262E-16 * std::abs(x - 1.0)) {
+    if (fabs(cdiff) < 4.4408920985006262E-16 * fabs(x - 1.0)) {
       ndbl++;
       apnd = x - 1.0;
     } else if (cdiff > 0.0) {
@@ -13727,7 +13727,7 @@ static double knn(const double tsX[40])
       if (k + 1 > 712) {
         exitg5 = 1;
       } else {
-        eok = (std::abs((double)i - Uc->data[k]) < eps((double)i / 2.0));
+        eok = (fabs((double)i - Uc->data[k]) < eps((double)i / 2.0));
         if (!eok) {
           exitg5 = 1;
         }
@@ -14369,8 +14369,8 @@ static double rt_hypotd_snf(double u0, double u1)
   double y;
   double a;
   double b;
-  a = std::abs(u0);
-  b = std::abs(u1);
+  a = fabs(u0);
+  b = fabs(u1);
   if (a < b) {
     a /= b;
     y = b * std::sqrt(a * a + 1.0);
@@ -14393,7 +14393,7 @@ static double rt_hypotd_snf(double u0, double u1)
 static double rt_roundd_snf(double u)
 {
   double y;
-  if (std::abs(u) < 4.503599627370496E+15) {
+  if (fabs(u) < 4.503599627370496E+15) {
     if (u >= 0.5) {
       y = std::floor(u + 0.5);
     } else if (u > -0.5) {
@@ -14434,7 +14434,7 @@ static void scaleAbs(emxArray_real_T *X, emxArray_real_T *Y)
   y->size[0] = (int)unnamed_idx_0;
   emxEnsureCapacity((emxArray__common *)y, n, (int)sizeof(double));
   for (ixstart = 0; ixstart + 1 <= X->size[0]; ixstart++) {
-    y->data[ixstart] = std::abs(X->data[ixstart]);
+    y->data[ixstart] = fabs(X->data[ixstart]);
   }
 
   ixstart = 1;
@@ -14489,7 +14489,7 @@ static double skip_to_last_equal_value(int *k, const emxArray_real_T *x)
   xk = x->data[*k - 1];
   exitg1 = false;
   while ((!exitg1) && (*k < x->size[0])) {
-    if ((std::abs(xk - x->data[*k]) < eps(xk / 2.0)) || (rtIsInf(x->data[*k]) &&
+    if ((fabs(xk - x->data[*k]) < eps(xk / 2.0)) || (rtIsInf(x->data[*k]) &&
          rtIsInf(xk) && ((x->data[*k] > 0.0) == (xk > 0.0)))) {
       p = true;
     } else {
@@ -15976,7 +15976,7 @@ static void stft(const emxArray_real_T *x, double fs, emxArray_creal_T *s,
     ndbl = (int)std::floor(((double)nm1d2 - 128.0) / 64.0 + 0.5);
     apnd = 128 + (ndbl << 6);
     cdiff = apnd - nm1d2;
-    if (std::abs((double)cdiff) < 4.4408920985006262E-16 * (double)nm1d2) {
+    if (fabs((double)cdiff) < 4.4408920985006262E-16 * (double)nm1d2) {
       ndbl++;
       apnd = nm1d2;
     } else if (cdiff > 0) {
@@ -16300,7 +16300,7 @@ static void treeClassifier(const double F[30], const emxArray_real_T *F2, double
       if (b_k + 1 > khi) {
         exitg4 = 1;
       } else {
-        if ((std::abs(x - unqwLFFT->data[b_k]) < eps(x / 2.0)) || (rtIsInf
+        if ((fabs(x - unqwLFFT->data[b_k]) < eps(x / 2.0)) || (rtIsInf
              (unqwLFFT->data[b_k]) && rtIsInf(x) && ((unqwLFFT->data[b_k] > 0.0)
               == (x > 0.0)))) {
           p = true;
@@ -16451,7 +16451,7 @@ static void treeClassifier(const double F[30], const emxArray_real_T *F2, double
       if (b_k + 1 > khi) {
         exitg3 = 1;
       } else {
-        if ((std::abs(x - unqwPSD->data[b_k]) < eps(x / 2.0)) || (rtIsInf
+        if ((fabs(x - unqwPSD->data[b_k]) < eps(x / 2.0)) || (rtIsInf
              (unqwPSD->data[b_k]) && rtIsInf(x) && ((unqwPSD->data[b_k] > 0.0) ==
               (x > 0.0)))) {
           p = true;
@@ -16888,7 +16888,7 @@ static void welch_psd(const emxArray_real_T *signals, double fs, emxArray_real_T
     ndbl = (int)std::floor(cdiff + 0.5);
     apnd = ndbl;
     cdiff = (double)ndbl - (y - 1.0);
-    if (std::abs(cdiff) < 4.4408920985006262E-16 * std::abs(y - 1.0)) {
+    if (fabs(cdiff) < 4.4408920985006262E-16 * fabs(y - 1.0)) {
       ndbl++;
       cdiff = y - 1.0;
     } else if (cdiff > 0.0) {
@@ -17492,7 +17492,7 @@ void fullHybridClassifier(const emxArray_real_T *ch1, const emxArray_real_T *ch2
     k = 0;
     exitg1 = false;
     while ((!exitg1) && (k + 1 < 8)) {
-      if (std::abs(Y[k] - 1.0) < eps(Y[k] / 2.0)) {
+      if (fabs(Y[k] - 1.0) < eps(Y[k] / 2.0)) {
         DB = true;
         exitg1 = true;
       } else {

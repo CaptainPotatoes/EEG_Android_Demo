@@ -54,6 +54,7 @@ import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.StringTokenizer;
 
 /**
  * Created by mahmoodms on 5/31/2016.
@@ -458,12 +459,22 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
 
     public void exportFileWithClass(double eegData1, double eegData2, double eegData3) throws IOException {
         if (fileSaveInitialized) {
-                String[] valueCsvWrite = new String[4];
-                valueCsvWrite[0] = eegData1 + "";
-                valueCsvWrite[1] = eegData2 + "";
-                valueCsvWrite[2] = eegData3 + "";
-                valueCsvWrite[3] = mEOGClass + "";
-                csvWriter.writeNext(valueCsvWrite,false);
+            String[] valueCsvWrite = new String[4];
+            valueCsvWrite[0] = eegData1 + "";
+            valueCsvWrite[1] = eegData2 + "";
+            valueCsvWrite[2] = eegData3 + "";
+            valueCsvWrite[3] = mEOGClass + "";
+            csvWriter.writeNext(valueCsvWrite,false);
+        }
+    }
+
+    public void exportFileWithClass(double eegData1, double eegData2) throws IOException {
+        if (fileSaveInitialized) {
+            String[] writeCSVValue = new String[3];
+            writeCSVValue[0] = eegData1 + "";
+            writeCSVValue[1] = eegData2 + "";
+            writeCSVValue[2] = mEOGClass + "";
+            csvWriter.writeNext(writeCSVValue,false);
         }
     }
 
@@ -653,7 +664,11 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                     makeFilterSwitchVisible(true);
                     mBluetoothLe.setCharacteristicNotification(gatt, service.getCharacteristic(AppConstant.CHAR_EOG_CH1_SIGNAL), true);
                     mBluetoothLe.setCharacteristicNotification(gatt, service.getCharacteristic(AppConstant.CHAR_EOG_CH2_SIGNAL), true);
-                    mBluetoothLe.setCharacteristicNotification(gatt, service.getCharacteristic(AppConstant.CHAR_EOG_CH3_SIGNAL), true);
+                    for (BluetoothGattCharacteristic c:service.getCharacteristics()) {
+                        if(AppConstant.CHAR_EOG_CH3_SIGNAL.equals(c.getUuid())) {
+                            mBluetoothLe.setCharacteristicNotification(gatt, service.getCharacteristic(AppConstant.CHAR_EOG_CH3_SIGNAL), true);
+                        }
+                    }
                 }
 
                 if (AppConstant.SERVICE_BATTERY_LEVEL.equals(service.getUuid())) {
@@ -710,6 +725,9 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private int[] eeg_ch3_data = new int[6];
     private int[] eeg_ch4_data = new int[6];
     private double[] unfilteredEegSignal = new double[1000]; //250 or 500
+    private double[] unfiltEOGCh1 = new double[250];
+    private double[] unfiltEOGCh2 = new double[250];
+    private double[] unfiltEOGCh3 = new double[250];
     private double[] filteredEegSignal = new double[1000];
     //EOG:
     private boolean eog_ch1_data_on = false;
@@ -822,7 +840,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             // TODO: 4/18/2017 GRAPHING STUFF
             System.arraycopy(unfilteredEegSignal, 6, unfilteredEegSignal, 0, 1000-6);
             System.arraycopy(explicitXValsLong, 6, explicitXValsLong, 0, 1000-6);
-
+            System.arraycopy(unfiltEOGCh1,6,unfiltEOGCh1,0,250-6);
             for (int i = 0; i < byteLength/3; i++) { //0→9
                 int data = unsignedBytesToInt(dataEmgBytes[3*i], dataEmgBytes[3*i+1], dataEmgBytes[3*i+2]);
                 eog_ch1_data[i] = unsignedToSigned(data, 24);
@@ -832,28 +850,32 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 explicitXValsLong[994+i] = timeData;//plus adjustment for offset
                 unfilteredEegSignal[994+i] = convert24bitInt(data);
                 updateEEG(timeData, eog_ch1_data[i]);
+                unfiltEOGCh1[244+i] = convert24bitInt(data);
             }
-            Log.e(TAG,"EOG-CH1");
+//            Log.e(TAG,"EOG-CH1");
         }
 
         if (AppConstant.CHAR_EOG_CH2_SIGNAL.equals(characteristic.getUuid())) {
             if(!eog_ch2_data_on) {
                 eog_ch2_data_on = true;
             }
+            System.arraycopy(unfiltEOGCh2,6,unfiltEOGCh2,0,250-6);
             byte[] dataEmgBytes = characteristic.getValue();
             int byteLength = dataEmgBytes.length;
             getDataRateBytes(byteLength);
             for (int i = 0; i < byteLength/3; i++) { //0→9
                 int data = unsignedBytesToInt(dataEmgBytes[3*i], dataEmgBytes[3*i+1], dataEmgBytes[3*i+2]);
                 eog_ch2_data[i] = unsignedToSigned(data, 24);
+                unfiltEOGCh2[244+i] = convert24bitInt(data);
             }
-            Log.e(TAG,"EOG-CH2");
+//            Log.e(TAG,"EOG-CH2");
         }
 
         if (AppConstant.CHAR_EOG_CH3_SIGNAL.equals(characteristic.getUuid())) {
             if(!eog_ch3_data_on) {
                 eog_ch3_data_on = true;
             }
+            System.arraycopy(unfiltEOGCh3,6,unfiltEOGCh3,0,250-6);
             byte[] dataEmgBytes = characteristic.getValue();
             int byteLength = dataEmgBytes.length;
             getDataRateBytes(byteLength);
@@ -861,17 +883,33 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             for (int i = 0; i < byteLength/3; i++) { //0→9
                 int data = unsignedBytesToInt(dataEmgBytes[3*i], dataEmgBytes[3*i+1], dataEmgBytes[3*i+2]);
                 eog_ch3_data[i] = unsignedToSigned(data, 24);
+                unfiltEOGCh3[244+i] = convert24bitInt(data);
             }
-            Log.e(TAG,"EOG-CH3");
+//            Log.e(TAG,"EOG-CH3");
         }
 
-        if(eog_ch3_data_on && eog_ch2_data_on && eog_ch1_data_on) {
+        if(eog_ch2_data_on && eog_ch1_data_on) {
+            eog_ch2_data_on = false;
+            eog_ch1_data_on = false;
+            for (int i = 0; i < 6; i++) {
+                writeToDisk24(eog_ch1_data[i],eog_ch2_data[i]);
+                resetClass();
+            }
+            //CALL Classifier function:
+//            Log.e(TAG,"ARRAY1: "+Arrays.toString(unfiltEOGCh1));
+//            Log.e(TAG,"ARRAY2: "+Arrays.toString(unfiltEOGCh2));
+//            final double yfiteog = jeogknnclassifier(unfiltEOGCh1,unfiltEOGCh2,unfiltEOGCh3);
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    mAllChannelsReadyTextView.setText("  EOG Ready.");
+                    mAllChannelsReadyTextView.setText(" 2-ch Differential EOG Ready.");
+                    mBatteryLevel.setText("YFITEOG: "+ "{PLACEHOLDER}");
                 }
             });
+        }
+
+        if(eog_ch3_data_on && eog_ch2_data_on && eog_ch1_data_on) {
+
             eog_ch3_data_on = false;
             eog_ch2_data_on = false;
             eog_ch1_data_on = false;
@@ -879,6 +917,25 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 writeToDisk24(eog_ch1_data[i],eog_ch2_data[i],eog_ch3_data[i]);
                 resetClass();
             }
+            //CALL Classifier function:
+//            final double yfiteog = jeogknnclassifier(unfiltEOGCh1,unfiltEOGCh2,unfiltEOGCh3);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mAllChannelsReadyTextView.setText(" 3-ch EOG Ready.");
+                    mBatteryLevel.setText("YFITEOG: "+ "{PLACEHOLDER}");
+                }
+            });
+        }
+    }
+
+    private void writeToDisk24(final int ch1, final int ch2) {
+        try {
+            double ch1d = convert24bitInt(ch1);
+            double ch2d = convert24bitInt(ch2);
+            exportFileWithClass(ch1d,ch2d);
+        } catch (IOException e) {
+            Log.e("IOException", e.toString());
         }
     }
 
@@ -1408,4 +1465,6 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private native double[] jeegcfilt(double[] array);
 
     private native double[] jeogcfilt(double[] array);
+
+    private native double jeogknnclassifier(double[] array1, double[] array2, double[] array3);
 }

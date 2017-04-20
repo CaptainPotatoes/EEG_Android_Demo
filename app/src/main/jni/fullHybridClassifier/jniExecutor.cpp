@@ -5,6 +5,7 @@
 #include "fullHybridClassifier.h"
 #include "eegcfilt.h"
 #include "eogcfilt_a.h"
+#include "eog_knn.h"
 /*Additional Includes*/
 #include <jni.h>
 #include <android/log.h>
@@ -66,7 +67,20 @@ Java_com_mahmoodms_bluetooth_eegssvepdemo_DeviceControlActivity_jfullHybridClass
     return m_result;
 }
 }
+extern "C" {
+JNIEXPORT jdouble JNICALL
+Java_com_mahmoodms_bluetooth_eegssvepdemo_DeviceControlActivity_jeogknnclassifier(
+        JNIEnv *env, jobject jobject1, jdoubleArray array1, jdoubleArray array2, jdoubleArray array3) {
+    jdouble  *c_array_ch1 = env->GetDoubleArrayElements(array1, NULL);
+    jdouble  *c_array_ch2 = env->GetDoubleArrayElements(array2, NULL);
+    jdouble  *c_array_ch3 = env->GetDoubleArrayElements(array3, NULL);
+    if (c_array_ch1==NULL) LOGE("ERROR - C_ARRAY IS NULL");
+    if (c_array_ch2==NULL) LOGE("ERROR - C_ARRAY IS NULL");
+    if (c_array_ch3==NULL) LOGE("ERROR - C_ARRAY IS NULL");
+    return eog_knn(c_array_ch1,c_array_ch2,c_array_ch3);
+}
 
+}
 
 extern "C" {
 JNIEXPORT jdoubleArray JNICALL

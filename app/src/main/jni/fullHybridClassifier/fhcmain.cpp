@@ -37,6 +37,7 @@
 #include "fullHybridClassifier.h"
 #include "fhcmain.h"
 #include "eogcfilt_a.h"
+#include "eog_knn.h"
 /*Additional Includes*/
 #include <jni.h>
 #include <android/log.h>
@@ -153,6 +154,38 @@ int main(int, const char * const [])
   fullHybridClassifier_terminate();
   return 0;
 }
+static void argInit_250x1_real_T(double result[250]);
+
+static void argInit_250x1_real_T(double result[250])
+{
+    int idx0;
+
+    // Loop over the array to initialize each element.
+    for (idx0 = 0; idx0 < 250; idx0++) {
+        // Set the value of the array element.
+        // Change this value to the value that the application requires.
+        result[idx0] = argInit_real_T();
+    }
+}
+
+static void main_eog_knn()
+{
+    double dv8[250];
+    double dv9[250];
+    double dv10[250];
+    double Y;
+
+    // Initialize function 'eog_knn' input arguments.
+    // Initialize function input argument 'ch1'.
+    // Initialize function input argument 'ch2'.
+    // Initialize function input argument 'ch3'.
+    // Call the entry-point 'eog_knn'.
+    argInit_250x1_real_T(dv8);
+    argInit_250x1_real_T(dv9);
+    argInit_250x1_real_T(dv10);
+    Y = eog_knn(dv8, dv9, dv10);
+    LOGD("main-eog-knn: Y: %f",Y);
+}
 
 extern "C" {
 JNIEXPORT jint JNICALL
@@ -162,6 +195,8 @@ Java_com_mahmoodms_bluetooth_eegssvepdemo_DeviceControlActivity_jmainFHC(
     fullHybridClassifier_initialize();
     main_fullHybridClassifier();
     eogcfilt_a_initialize();
+    eog_knn_initialize();
+    main_eog_knn();
     return 0;
   } else {
       fullHybridClassifier_terminate();
