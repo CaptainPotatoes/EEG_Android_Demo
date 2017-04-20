@@ -4,14 +4,12 @@
 #include "rt_nonfinite.h"
 #include "fullHybridClassifier.h"
 #include "eegcfilt.h"
-//#include <cstdlib>
+#include "eogcfilt_a.h"
 /*Additional Includes*/
 #include <jni.h>
 #include <android/log.h>
 
 #define  LOG_TAG "jniExecutor-cpp"
-#define  LOGI(...)  __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define  LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 #define SAMPLING_RATE   250.0
 #define  RETURN_LEN     7
@@ -93,6 +91,29 @@ Java_com_mahmoodms_bluetooth_eegssvepdemo_DeviceControlActivity_jeegcfilt(
     for (int i = 0; i < len; ++i) {
         r_array[i] = Y->data[i];
     }
+    jdoubleArray m_result;
+    m_result = env->NewDoubleArray(len);
+    env->SetDoubleArrayRegion(m_result, 0, len, &r_array[0]);
+    return m_result;
+}
+}
+
+extern "C" {
+JNIEXPORT jdoubleArray JNICALL
+//Call this function with (data, data, data, data, datalen, Fs);
+//Don't need array size; can check size array in C.
+Java_com_mahmoodms_bluetooth_eegssvepdemo_DeviceControlActivity_jeogcfilt(
+        JNIEnv *env, jobject jobject1, jdoubleArray array) {
+    int len = 0;
+    jdouble  *c_array = env->GetDoubleArrayElements(array, NULL);
+    if (c_array!=NULL) {
+        len = env->GetArrayLength(array);
+    } else {
+        LOGE("ERROR - C_ARRAY IS NULL");
+    }
+    //Call function
+    double r_array[1000];
+    eogcfilt_a(c_array,r_array);
     jdoubleArray m_result;
     m_result = env->NewDoubleArray(len);
     env->SetDoubleArrayRegion(m_result, 0, len, &r_array[0]);

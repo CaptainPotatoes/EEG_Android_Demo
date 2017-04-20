@@ -36,6 +36,7 @@
 #include "rt_nonfinite.h"
 #include "fullHybridClassifier.h"
 #include "fhcmain.h"
+#include "eogcfilt_a.h"
 /*Additional Includes*/
 #include <jni.h>
 #include <android/log.h>
@@ -160,12 +161,10 @@ Java_com_mahmoodms_bluetooth_eegssvepdemo_DeviceControlActivity_jmainFHC(
   if(!(bool)terminate) {
     fullHybridClassifier_initialize();
     main_fullHybridClassifier();
-//    fir_combined_initialize();
-//    main_fir_combined();
+    eogcfilt_a_initialize();
     return 0;
   } else {
       fullHybridClassifier_terminate();
-//    fir_combined_terminate();
     return -1;
   }
 }

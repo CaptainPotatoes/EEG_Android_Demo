@@ -1014,7 +1014,8 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 mEegValsTextView.setText(" " + " IntVal="+String.valueOf(value));
                 double dataVoltage = convert24bitInt(value);
                 if(filterData) {
-                    filteredEegSignal = jeegcfilt(unfilteredEegSignal);
+//                    filteredEegSignal = jeegcfilt(unfilteredEegSignal);
+                    filteredEegSignal = jeogcfilt(unfilteredEegSignal);
                     if(numberDataPointsCh1%36==0 && numberDataPointsCh1!=0) {
                         plot(explicitXValsLong,filteredEegSignal);
                     }
@@ -1405,4 +1406,6 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private native int jmainEegFilt(boolean b);
 
     private native double[] jeegcfilt(double[] array);
+
+    private native double[] jeogcfilt(double[] array);
 }
