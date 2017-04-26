@@ -15,7 +15,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include "rtwtypes.h"
-#include "fullHybridClassifier_types.h"
+
+typedef struct emxArray_real_T
+{
+    double *data;
+    int *size;
+    int allocatedSize;
+    int numDimensions;
+    boolean_T canFreeData;
+} emxArray_real_T;
 
 // Function Declarations
 extern void eegcfilt2(const emxArray_real_T *X, emxArray_real_T *Y);

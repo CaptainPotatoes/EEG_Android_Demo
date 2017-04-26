@@ -2,13 +2,13 @@
 // Academic License - for use in teaching, academic research, and meeting
 // course requirements at degree granting institutions only.  Not for
 // government, commercial, or other organizational use.
-// File: eog_knn.h
+// File: EOGClassifier.h
 //
 // MATLAB Coder version            : 3.1
-// C/C++ source code generated on  : 20-Apr-2017 10:40:49
+// C/C++ source code generated on  : 24-Apr-2017 19:08:06
 //
-#ifndef EOG_KNN_H
-#define EOG_KNN_H
+#ifndef EOGCLASSIFIER_H
+#define EOGCLASSIFIER_H
 
 // Include Files
 #include <cmath>
@@ -18,22 +18,17 @@
 #include <string.h>
 #include "rt_nonfinite.h"
 #include "rtwtypes.h"
-#include "omp.h"
-#include "eog_knn_types.h"
-
-// Variable Declarations
-extern omp_nest_lock_t emlrtNestLockGlobal;
+#include "EOGClassifier_types.h"
 
 // Function Declarations
-extern double eog_knn(const double ch1[250], const double ch2[250], const double
-                      ch3[250]);
-extern void eog_knn_initialize();
-extern void eog_knn_terminate();
+extern double EOGClassifier(const double ch1[1000], const double ch2[1000]);
+extern void EOGClassifier_initialize();
+extern void EOGClassifier_terminate();
 
 #endif
 
 //
-// File trailer for eog_knn.h
+// File trailer for EOGClassifier.h
 //
 // [EOF]
 //

@@ -16,7 +16,6 @@
 #include <string.h>
 #include "rt_nonfinite.h"
 #include "rtwtypes.h"
-#include "fullHybridClassifier_types.h"
 
 // Function Declarations
 extern void eogcfilt_a(const double X[1000], double Y[1000]);

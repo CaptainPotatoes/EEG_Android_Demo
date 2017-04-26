@@ -74,6 +74,7 @@
             ap:label="EMG Data"
             ap:rangeLabel="range" />
 
+
         <GridLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -95,6 +96,14 @@
                 android:layout_row="0"
                 android:text="↑\nFwd"
                 android:textAppearance="@style/TextAppearance.AppCompat.Small" />
+
+            <TextView
+                android:id="@+id/eogClass"
+                android:layout_width="72dp"
+                android:layout_height="wrap_content"
+                android:layout_column="0"
+                android:layout_row="2"
+                android:text="TextView" />
 
             <Button
                 android:id="@+id/buttonMiddle"
@@ -140,6 +149,14 @@
                 android:layout_row="0"
                 android:text="\nBlink"
                 android:textAppearance="@style/TextAppearance.AppCompat.Small" />
+
+            <TextView
+                android:id="@+id/textViewYfit"
+                android:layout_width="72dp"
+                android:layout_height="wrap_content"
+                android:layout_column="2"
+                android:layout_row="2"
+                android:text="Yfit:" />
 
 
         </GridLayout>
