@@ -2,11 +2,10 @@
 // Created by mahmoodms on 4/3/2017.
 //
 #include "rt_nonfinite.h"
-//#include "fullHybridClassifier.h"
 #include "eegcfilt.h"
 #include "eogcfilt_a.h"
 #include "EOGClassifier.h"
-//#include "eog_knn.h"
+#include "EOGClassifier2.h"
 /*Additional Includes*/
 #include <jni.h>
 #include <android/log.h>
@@ -164,6 +163,17 @@ extern "C" {
     }
 }
 
+extern "C" {
+    JNIEXPORT jdouble JNICALL
+    Java_com_mahmoodms_bluetooth_eegssvepdemo_DeviceControlActivity_jeogclassifier2(
+            JNIEnv *env, jobject jobject1, jdoubleArray array1, jdoubleArray array2) {
+        jdouble  *c_array_ch1 = env->GetDoubleArrayElements(array1, NULL);
+        jdouble  *c_array_ch2 = env->GetDoubleArrayElements(array2, NULL);
+        if (c_array_ch1==NULL) LOGE("ERROR - C_ARRAY IS NULL");
+        if (c_array_ch2==NULL) LOGE("ERROR - C_ARRAY IS NULL");
+        return EOGClassifier2(c_array_ch1,c_array_ch2);
+    }
+}
 
 
 extern "C" {
@@ -196,6 +206,7 @@ Java_com_mahmoodms_bluetooth_eegssvepdemo_DeviceControlActivity_jmainInitializat
     if(!(bool)terminate) {
         eogcfilt_a_initialize();
         EOGClassifier_initialize();
+        EOGClassifier2_initialize();
         main_EOGClassifier();
         return 0;
     } else {

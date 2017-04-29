@@ -35,6 +35,7 @@ import android.widget.CompoundButton;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
 import com.androidplot.Plot;
 import com.androidplot.util.Redrawer;
@@ -96,7 +97,6 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
 
     private String mLastRssi;
 
-
     private boolean filterData = false;
     private int points = 0;
     private Menu menu;
@@ -124,6 +124,9 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private double mEOGClass = 0;
     private int mLastButtonPress = 0;
 
+    //Classification
+    private boolean mClassifierToUse = true; //Default classifier.
+    private boolean mWheelchairControl = false; //Default classifier.
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -360,6 +363,20 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             public void onClick(View view) {
                 mEOGClass = 2;
                 mClassTime = System.currentTimeMillis();
+            }
+        });
+        ToggleButton toggleButton = (ToggleButton) findViewById(R.id.toggleButtonClassifier);
+        toggleButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                mClassifierToUse = b;
+            }
+        });
+        ToggleButton toggleButton1 = (ToggleButton) findViewById(R.id.toggleButtonWheelchairControl);
+        toggleButton1.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                mWheelchairControl = b;
             }
         });
     }
@@ -755,6 +772,8 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private int[] eog_ch3_data = new int[6];
 
     private int packetsReceived = 0;
+    // Classification
+    private double[] yfitarray = new double[5];
 
     @Override
     public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
@@ -773,19 +792,19 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 eeg_ch1_data_on = true;
             }
             int byteLength = dataEmgBytes.length;
-            //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
             getDataRateBytes(byteLength);
-            System.arraycopy(unfilteredEegSignal, 6, unfilteredEegSignal, 0, 1000-6);
-            System.arraycopy(explicitXValsLong, 6, explicitXValsLong, 0, 1000-6);
+            //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
+//            System.arraycopy(unfilteredEegSignal, 6, unfilteredEegSignal, 0, 1000-6);
+//            System.arraycopy(explicitXValsLong, 6, explicitXValsLong, 0, 1000-6);
             for (int i = 0; i < byteLength/3; i++) { //0→9
                 dataCnt1000++; //count?
                 int data = unsignedBytesToInt(dataEmgBytes[3*i], dataEmgBytes[3*i+1], dataEmgBytes[3*i+2]);
                 eeg_ch1_data[i] = unsignedToSigned(data, 24);
-                numberDataPointsCh1++;
-                timeData = numberDataPointsCh1*0.0040;
-                explicitXValsLong[994+i] = timeData;//plus adjustment for offset
-                unfilteredEegSignal[994+i] = convert24bitInt(data);
-                updateEEG(timeData, eeg_ch1_data[i]);
+//                numberDataPointsCh1++;
+//                timeData = numberDataPointsCh1*0.0040;
+//                explicitXValsLong[994+i] = timeData;//plus adjustment for offset
+//                unfilteredEegSignal[994+i] = convert24bitInt(data);
+//                updateEEG(timeData, eeg_ch1_data[i]);
             }
             Log.e(TAG,"EEG-CH1");
         }
@@ -915,18 +934,18 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 writeToDisk24(eog_ch1_data[i],eog_ch2_data[i]);
                 resetClass();
             }
-            if(packetsReceived==20) {
+            if(packetsReceived==5) {
                 packetsReceived=0;
                 // TODO: 4/24/2017 EVERY ~60 Dp, call classifier:
-                Log.e(TAG, "unfiltEOG: "+Arrays.toString(unfiltEOGCh1));
-                final double Y = jeogclassifier(unfiltEOGCh1, unfiltEOGCh2);
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Log.e(TAG,"EOGClassifier, Y: "+String.valueOf(Y));
-                        mYfitTextView.setText("YFIT:\n"+String.valueOf(Y));
-                    }
-                });
+                System.arraycopy(yfitarray, 1, yfitarray, 0, 4);
+                if (!mClassifierToUse) {
+                    final double Y = jeogclassifier(unfiltEOGCh1, unfiltEOGCh2);
+                    processClassifiedData(Y,1);
+                } else {
+                    final double Y = jeogclassifier2(unfiltEOGCh1, unfiltEOGCh2);
+                    processClassifiedData(Y,2);
+                }
+
             }
             runOnUiThread(new Runnable() {
                 @Override
@@ -959,6 +978,83 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         }
     }
 
+    private void processClassifiedData(final double Y, final int classifier) {
+        //Add to end;
+        yfitarray[4] = Y;
+        //Analyze:
+        Log.e(TAG, "C" + String.valueOf(classifier) + " YfitArray: "+Arrays.toString(yfitarray));
+        final boolean checkLastThreeMatches = lastThreeMatches(yfitarray);
+        if(checkLastThreeMatches) {
+            //Get value:
+            Log.e(TAG,"Found fit: "+String.valueOf(yfitarray[4]));
+            // TODO: 4/27/2017 CONDITION :: CONTROL WHEELCHAIR
+            if(mWheelchairControl) {
+                switch((int)yfitarray[4]) {
+                    case 1:
+                        byte[] bytes = new byte[1];
+                        bytes[0] = (byte) 0x00;
+                        if(mLedService!=null) {
+                            mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex],mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
+                        }
+                        break;
+                    case 2:
+                        byte[] bytes1 = new byte[1];
+                        bytes1[0] = (byte) 0x00;
+                        if(mLedService!=null) {
+                            mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex],mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes1);
+                        }
+                        break;
+                    case 3:
+                        byte[] bytes2 = new byte[1];
+                        bytes2[0] = (byte) 0x01;
+                        if(mLedService!=null) {
+                            mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex],mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes2);
+                        }
+                        break;
+                    case 4:
+                        byte[] bytes3 = new byte[1];
+                        bytes3[0] = (byte) 0x0F;
+                        if(mLedService!=null) {
+                            mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex],mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes3);
+                        }
+                        break;
+                    case 5:
+                        byte[] bytes4 = new byte[1];
+                        bytes4[0] = (byte) 0xF0;
+                        if(mLedService!=null) {
+                            mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex],mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes4);
+                        }
+                        break;
+                    case 6:
+                        byte[] bytes5 = new byte[1];
+                        bytes5[0] = (byte) 0xF0;
+                        if(mLedService!=null) {
+                            mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex],mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes5);
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Log.e(TAG,"EOGClassifier, Y: "+String.valueOf(Y));
+                if(checkLastThreeMatches)
+                    mYfitTextView.setText("YFIT"+String.valueOf(classifier)+":\n"+String.valueOf(Y));
+                double sum = yfitarray[0]+yfitarray[1]+yfitarray[2]+yfitarray[3]+yfitarray[4];
+                if(sum==0) {
+                    mYfitTextView.setText("YFIT"+String.valueOf(classifier)+":\n"+String.valueOf(Y));
+                }
+            }
+        });
+    }
+
+    private void executeWheelchairCommand(byte[] command) {
+
+    }
+
     private void writeToDisk24(final int ch1, final int ch2) {
         try {
             double ch1d = convert24bitInt(ch1);
@@ -967,6 +1063,16 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         } catch (IOException e) {
             Log.e("IOException", e.toString());
         }
+    }
+
+    private boolean lastThreeMatches(double[] yfitarray) {
+        boolean b0 = false;
+        boolean b1 = false;
+        if(yfitarray[4]!=0) {
+            b0 = (yfitarray[4] == yfitarray[3]);
+            b1 = (yfitarray[3] == yfitarray[2]);
+        }
+        return b0 && b1;
     }
 
     private void writeToDisk24(final int ch1, final int ch2, final int ch3) {
@@ -1495,4 +1601,6 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
     private native double[] jeogcfilt(double[] array);
 
     private native double jeogclassifier(double[] array1, double[] array2);
+
+    private native double jeogclassifier2(double[] array1, double[] array2);
 }
