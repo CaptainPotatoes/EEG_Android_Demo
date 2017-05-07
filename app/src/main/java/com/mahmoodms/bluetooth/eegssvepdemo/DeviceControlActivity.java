@@ -683,6 +683,13 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                     Log.i(TAG,"BLE Wheelchair Control Service found");
                 }
 
+                if(AppConstant.SERVICE_3CH_EMG_SIGNAL.equals(service.getUuid())) {
+                    makeFilterSwitchVisible(true);
+                    mBluetoothLe.setCharacteristicNotification(gatt, service.getCharacteristic(AppConstant.CHAR_3CH_EMG_SIGNAL_CH1),true);
+                    mBluetoothLe.setCharacteristicNotification(gatt, service.getCharacteristic(AppConstant.CHAR_3CH_EMG_SIGNAL_CH2),true);
+                    mBluetoothLe.setCharacteristicNotification(gatt, service.getCharacteristic(AppConstant.CHAR_3CH_EMG_SIGNAL_CH3),true);
+                }
+
                 if(AppConstant.SERVICE_EEG_SIGNAL.equals(service.getUuid())) {
                     mEEGConnected = true;
                     makeFilterSwitchVisible(true);
@@ -784,6 +791,47 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             String timeStamp = getTimeStamp2();
             exportLogFile(false, "Battery Level Changed at " + timeStamp + getDetails()+"\r\n");
             Log.i(TAG, "Battery Level :: " + batteryLevel);
+        }
+
+        if(AppConstant.CHAR_3CH_EMG_SIGNAL_CH1.equals(characteristic.getUuid())) {
+
+            byte[] dataEmgBytes = characteristic.getValue();
+            int byteLength = dataEmgBytes.length;
+            //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
+            getDataRateBytes(byteLength);
+        }
+
+        if(AppConstant.CHAR_3CH_EMG_SIGNAL_CH2.equals(characteristic.getUuid())) {
+            byte[] dataEmgBytes = characteristic.getValue();
+            int byteLength = dataEmgBytes.length;
+            //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
+            getDataRateBytes(byteLength);
+        }
+
+        if(AppConstant.CHAR_3CH_EMG_SIGNAL_CH3.equals(characteristic.getUuid())) {
+            // TODO: 5/7/2017 UPDATE THIS (This is just a copy of EOG plot)
+            if(!eog_ch1_data_on) {
+                eog_ch1_data_on = true;
+            }
+            byte[] dataEmgBytes = characteristic.getValue();
+            int byteLength = dataEmgBytes.length;
+            //TODO: Remember to check/uncheck plotImplicitXVals (boolean)
+            getDataRateBytes(byteLength);
+            // TODO: 4/18/2017 GRAPHING STUFF
+            System.arraycopy(unfilteredEegSignal, 6, unfilteredEegSignal, 0, 1000-6);
+            System.arraycopy(explicitXValsLong, 6, explicitXValsLong, 0, 1000-6);
+            System.arraycopy(unfiltEOGCh1,6,unfiltEOGCh1,0,1000-6);
+            for (int i = 0; i < byteLength/3; i++) { //0→9
+                int data = unsignedBytesToInt(dataEmgBytes[3*i], dataEmgBytes[3*i+1], dataEmgBytes[3*i+2]);
+                eog_ch1_data[i] = unsignedToSigned(data, 24);
+                // TODO: 4/18/2017 PLOTTING STUFF (REMOVE LATER).
+                numberDataPointsCh1++;
+                timeData = numberDataPointsCh1*0.0040;
+                explicitXValsLong[994+i] = timeData;//plus adjustment for offset
+                unfilteredEegSignal[994+i] = convert24bitInt(data);
+                updateEEG(timeData, eog_ch1_data[i]);
+                unfiltEOGCh1[994+i] = convert24bitInt(data);
+            }
         }
 
         if (AppConstant.CHAR_EEG_CH1_SIGNAL.equals(characteristic.getUuid())) {
@@ -955,10 +1003,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                     mEOGClassTextView.setText("EOG Class\n:"+String.valueOf(mEOGClass));
                 }
             });
-        }
-
-        if(eog_ch3_data_on && eog_ch2_data_on && eog_ch1_data_on) {
-
+        } else if(eog_ch3_data_on && eog_ch2_data_on && eog_ch1_data_on) {
             eog_ch3_data_on = false;
             eog_ch2_data_on = false;
             eog_ch1_data_on = false;
