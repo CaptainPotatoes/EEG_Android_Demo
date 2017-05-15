@@ -848,11 +848,6 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
                 dataCnt1000++; //count?
                 int data = unsignedBytesToInt(dataEmgBytes[3*i], dataEmgBytes[3*i+1], dataEmgBytes[3*i+2]);
                 eeg_ch1_data[i] = unsignedToSigned(data, 24);
-//                numberDataPointsCh1++;
-//                timeData = numberDataPointsCh1*0.0040;
-//                explicitXValsLong[994+i] = timeData;//plus adjustment for offset
-//                unfilteredEegSignal[994+i] = convert24bitInt(data);
-//                updateEEG(timeData, eeg_ch1_data[i]);
             }
             Log.e(TAG,"EEG-CH1");
         }
@@ -1034,52 +1029,7 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
             Log.e(TAG,"Found fit: "+String.valueOf(yfitarray[4]));
             // TODO: 4/27/2017 CONDITION :: CONTROL WHEELCHAIR
             if(mWheelchairControl) {
-                switch((int)yfitarray[4]) {
-                    case 1:
-                        byte[] bytes = new byte[1];
-                        bytes[0] = (byte) 0x00;
-                        if(mLedService!=null) {
-                            mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex],mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
-                        }
-                        break;
-                    case 2:
-                        byte[] bytes1 = new byte[1];
-                        bytes1[0] = (byte) 0x00;
-                        if(mLedService!=null) {
-                            mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex],mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes1);
-                        }
-                        break;
-                    case 3:
-                        byte[] bytes2 = new byte[1];
-                        bytes2[0] = (byte) 0x01;
-                        if(mLedService!=null) {
-                            mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex],mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes2);
-                        }
-                        break;
-                    case 4:
-                        byte[] bytes3 = new byte[1];
-                        bytes3[0] = (byte) 0x0F;
-                        if(mLedService!=null) {
-                            mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex],mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes3);
-                        }
-                        break;
-                    case 5:
-                        byte[] bytes4 = new byte[1];
-                        bytes4[0] = (byte) 0xF0;
-                        if(mLedService!=null) {
-                            mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex],mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes4);
-                        }
-                        break;
-                    case 6:
-                        byte[] bytes5 = new byte[1];
-                        bytes5[0] = (byte) 0xF0;
-                        if(mLedService!=null) {
-                            mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex],mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes5);
-                        }
-                        break;
-                    default:
-                        break;
-                }
+                executeWheelchairCommand((int)yfitarray[4]);
             }
         }
         runOnUiThread(new Runnable() {
@@ -1096,8 +1046,33 @@ public class DeviceControlActivity extends Activity implements BluetoothLe.Bluet
         });
     }
 
-    private void executeWheelchairCommand(byte[] command) {
-
+    private void executeWheelchairCommand(int command) {
+        byte[] bytes = new byte[1];
+        switch(command) {
+            case 1:
+                bytes[0] = (byte) 0x00;
+                break;
+            case 2:
+                bytes[0] = (byte) 0x00;
+                break;
+            case 3:
+                bytes[0] = (byte) 0x01;
+                break;
+            case 4:
+                bytes[0] = (byte) 0x0F;
+                break;
+            case 5:
+                bytes[0] = (byte) 0xF0;
+                break;
+            case 6:
+                bytes[0] = (byte) 0xF0;
+                break;
+            default:
+                break;
+        }
+        if(mLedService!=null) {
+            mBluetoothLe.writeCharacteristic(mBluetoothGattArray[mWheelchairGattIndex],mLedService.getCharacteristic(AppConstant.CHAR_WHEELCHAIR_CONTROL),bytes);
+        }
     }
 
     private void writeToDisk24(final int ch1, final int ch2) {
